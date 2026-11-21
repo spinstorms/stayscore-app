@@ -1,18 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React from 'react';
-import {
-  Image,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { getHotelVideoUrl, openExternalUrl } from '../lib/api';
-import { formatPersonalScore, isRatedHotel, isVisitedHotel } from '../lib/layout';
-import { useStayScore } from '../lib/store';
-import { Colors, getVerdictPalette } from '../lib/theme';
+import { BRAND } from '../lib/brand';
+import { formatPersonalScore } from '../lib/layout';
+import { computeStayOdds, getTonePalette } from '../lib/scoring';
+import { useStayOdds } from '../lib/store';
+import { Colors } from '../lib/theme';
 import type { Hotel } from '../lib/types';
 
 interface Props {
@@ -54,19 +49,12 @@ function ScoreBar({
 
 export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
   const router = useRouter();
-  const { pushToCompare } = useStayScore();
+  const { pushToCompare } = useStayOdds();
 
-  const c = hotel.consensus;
-  const rated = isRatedHotel(hotel);
-  const visited = isVisitedHotel(hotel);
-  const palette = getVerdictPalette(c.agreement, rated);
+  const o = computeStayOdds(hotel);
+  const palette = getTonePalette(o.statusTone);
   const videoUrl = getHotelVideoUrl(hotel);
-  const b = c.bookingSubscores;
   const s = hotel.scores;
-
-  const ours100 = rated && hotel.overall != null ? Math.round(hotel.overall * 20) : null;
-  const critic100 = Math.round((c.criticScore || 4.5) * 20);
-  const google100 = Math.round((c.googleRating || 4.5) * 20);
 
   return (
     <ScrollView
@@ -74,145 +62,137 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
       contentContainerStyle={[styles.content, isSidePane && styles.contentSidePane]}
       showsVerticalScrollIndicator={false}
     >
-      {/* Hero Media */}
+      {/* Hero Media & Summary */}
       <View style={styles.heroCard}>
         <Image source={{ uri: hotel.thumbnail }} style={styles.heroImage} />
         <View style={styles.heroBody}>
           <View style={styles.badgeRow}>
-            <View style={[styles.pill, { backgroundColor: palette.soft, borderColor: palette.border }]}>
-              <Text style={[styles.pillText, { color: palette.color }]}>{c.agreement}</Text>
-            </View>
             <View
               style={[
                 styles.pill,
                 {
-                  backgroundColor: visited ? Colors.accentSoft : Colors.slateSoft,
-                  borderColor: visited ? Colors.accentBorder : Colors.slateBorder,
+                  backgroundColor: o.firstHand ? Colors.accentSoft : Colors.slateSoft,
+                  borderColor: o.firstHand ? Colors.accentBorder : Colors.slateBorder,
                 },
               ]}
             >
-              <Text style={[styles.pillText, { color: visited ? Colors.accent : Colors.slate }]}>
-                {visited ? 'Visited by Uncharted' : 'Global Directory'}
+              <Text style={[styles.pillText, { color: o.firstHand ? Colors.accent : Colors.slate }]}>
+                {o.tierLabel}
               </Text>
             </View>
-            {c.award ? (
-              <View style={[styles.pill, { backgroundColor: Colors.bgCanvas, borderColor: Colors.border }]}>
-                <Text style={[styles.pillText, { color: Colors.inkSecondary }]} numberOfLines={1}>
-                  {c.award}
-                </Text>
-              </View>
-            ) : null}
+            <View style={[styles.pill, { backgroundColor: palette.soft, borderColor: palette.border }]}>
+              <Text style={[styles.pillText, { color: palette.color }]}>{o.statusBadge}</Text>
+            </View>
           </View>
 
           <Text style={styles.title}>{hotel.name}</Text>
           <Text style={styles.subtitle}>
-            {hotel.location}, {hotel.country} • {hotel.brand}
+            {hotel.location}, {hotel.country}
+            {hotel.brand ? ` • ${hotel.brand}` : ''}
             {hotel.priceRange ? ` • ${hotel.priceRange}` : ''}
           </Text>
-          <Text style={styles.verdict}>{hotel.verdict}</Text>
+          {hotel.verdict ? <Text style={styles.verdict}>{hotel.verdict}</Text> : null}
 
-          {/* 4 KPI Tiles */}
+          {/* 4 Transparent KPI Tiles */}
           <View style={styles.kpiGrid}>
             <View style={[styles.kpiTile, { backgroundColor: palette.soft, borderColor: palette.border }]}>
-              <Text style={[styles.kpiBig, { color: palette.color }]}>{c.greatStayChance}%</Text>
-              <Text style={styles.kpiLabel}>{rated ? 'Great-Stay Odds' : 'Global Odds'}</Text>
+              <Text style={[styles.kpiBig, { color: palette.color }]}>
+                {o.greatStayOdds != null ? `${o.greatStayOdds}%` : 'Pending'}
+              </Text>
+              <Text style={styles.kpiLabel}>{o.statusBadge}</Text>
             </View>
             <View style={styles.kpiTile}>
               <Text style={styles.kpiBig}>
-                {c.overallIndex}
-                <Text style={styles.kpiSub}>/100</Text>
+                {o.overallIndex != null ? `${o.overallIndex}/100` : '—'}
               </Text>
-              <Text style={styles.kpiLabel}>StayScore</Text>
+              <Text style={styles.kpiLabel}>{BRAND.name} Index</Text>
             </View>
-            <View style={[styles.kpiTile, { backgroundColor: Colors.accentSoft, borderColor: Colors.accentBorder }]}>
-              <Text style={[styles.kpiBig, { color: Colors.accent }]}>
-                {rated ? `${formatPersonalScore(hotel.overall)}/5` : visited ? 'Short' : '—'}
+            <View style={styles.kpiTile}>
+              <Text style={styles.kpiBig}>
+                {o.firstHand ? `${formatPersonalScore(hotel.overall)}/5` : o.visited ? 'Short' : '—'}
               </Text>
-              <Text style={styles.kpiLabel}>{rated ? 'Our Score' : visited ? 'Unrated Yet' : 'Not Visited'}</Text>
+              <Text style={styles.kpiLabel}>First-Hand</Text>
             </View>
-            <View style={[styles.kpiTile, { backgroundColor: Colors.bookingSoft, borderColor: '#BFDBFE' }]}>
-              <Text style={[styles.kpiBig, { color: Colors.bookingBlue }]}>
-                {(c.bookingOverall || c.googleRating * 2).toFixed(1)}
-                <Text style={styles.kpiSub}>/10</Text>
+            <View style={styles.kpiTile}>
+              <Text style={styles.kpiBig}>
+                {o.verifiedGuest ? `${o.verifiedGuest.rating.toFixed(1)}/${o.verifiedGuest.scale}` : 'API'}
               </Text>
-              <Text style={styles.kpiLabel}>Booking.com</Text>
+              <Text style={styles.kpiLabel}>
+                {o.verifiedGuest ? o.verifiedGuest.sourceName : 'Phase 1B Live'}
+              </Text>
             </View>
           </View>
 
           {/* Primary Actions */}
           <View style={styles.actionRow}>
-            <Pressable
-              style={[styles.btn, styles.btnPrimary]}
-              onPress={() => openExternalUrl(hotel.bookingUrl)}
-            >
-              <Ionicons name="bed-outline" size={16} color="#FFFFFF" />
-              <Text style={styles.btnPrimaryText}>Check Live Rates</Text>
-            </Pressable>
-
-            <Pressable
-              style={[styles.btn, styles.btnDark]}
-              onPress={() => {
-                pushToCompare(hotel.id);
-                router.push('/(tabs)/compare');
-              }}
-            >
-              <Ionicons name="git-compare-outline" size={16} color="#FFFFFF" />
-              <Text style={styles.btnPrimaryText}>Compare VS</Text>
-            </Pressable>
-
-            {videoUrl ? (
+            {hotel.bookingUrl ? (
               <Pressable
-                style={[styles.btn, styles.btnOutline]}
-                onPress={() => openExternalUrl(videoUrl)}
+                style={[styles.btnPrimary, { flex: 1 }]}
+                onPress={() => openExternalUrl(hotel.bookingUrl)}
               >
-                <Ionicons name="logo-youtube" size={16} color={Colors.accent} />
-                <Text style={styles.btnOutlineText}>
+                <Ionicons name="bed-outline" size={16} color="#FFFFFF" />
+                <Text style={styles.btnPrimaryText}>Check Live Rates</Text>
+              </Pressable>
+            ) : null}
+            {videoUrl ? (
+              <Pressable style={styles.btnDark} onPress={() => openExternalUrl(videoUrl)}>
+                <Ionicons name="logo-youtube" size={16} color="#FFFFFF" />
+                <Text style={styles.btnDarkText}>
                   {hotel.coverageType === 'Short Tour' ? 'Watch Short' : 'Watch Review'}
                 </Text>
               </Pressable>
             ) : null}
           </View>
+
+          <Pressable
+            style={styles.btnCompare}
+            onPress={() => {
+              pushToCompare(hotel.id);
+              router.push('/(tabs)/compare');
+            }}
+          >
+            <Ionicons name="git-compare-outline" size={15} color={Colors.accentDark} />
+            <Text style={styles.btnCompareText}>Compare Head-to-Head</Text>
+          </Pressable>
         </View>
       </View>
 
-      {/* Formula Transparency Strip */}
+      {/* Dynamic Confidence-Weighted Formula Card */}
       <View style={styles.sectionCard}>
-        <Text style={styles.sectionHeading}>How StayScore Is Calculated</Text>
-        <Text style={styles.sectionSub}>
-          {rated
-            ? 'Weighted blend: 40% Our First-Hand Stay + 30% Critics & YouTubers + 30% Verified Guests.'
-            : 'No personal score added yet — 50% Top Critics & YouTubers + 50% Verified Booking.com & Google Guests.'}
-        </Text>
-        <View style={styles.formulaRow}>
-          <View style={[styles.formulaBox, { borderTopColor: Colors.accent, backgroundColor: Colors.accentSoft }]}>
-            <Text style={[styles.formulaWeight, { color: Colors.accent }]}>{rated ? '40%' : '0%'}</Text>
-            <Text style={styles.formulaScore}>{ours100 != null ? `${ours100}/100` : 'Pending'}</Text>
-            <Text style={styles.formulaCaption}>Our Stay</Text>
+        <Text style={styles.sectionEyebrow}>TRANSPARENT FORMULA</Text>
+        <Text style={styles.sectionTitle}>How This {BRAND.name} Score Is Weighted</Text>
+        <Text style={styles.sectionSub}>{o.formulaSummary}</Text>
+
+        <View style={styles.weightGrid}>
+          <View style={styles.weightBox}>
+            <Text style={styles.weightPct}>{o.weights.firstHand}%</Text>
+            <Text style={styles.weightLbl}>First-Hand</Text>
+            <Text style={styles.weightVal}>
+              {o.ours100 != null ? `${o.ours100}/100` : 'Unrated'}
+            </Text>
           </View>
-          <View style={[styles.formulaBox, { borderTopColor: Colors.slate, backgroundColor: Colors.slateSoft }]}>
-            <Text style={[styles.formulaWeight, { color: Colors.slate }]}>{rated ? '30%' : '50%'}</Text>
-            <Text style={styles.formulaScore}>{critic100}/100</Text>
-            <Text style={styles.formulaCaption}>Critics & YT</Text>
+          <View style={styles.weightBox}>
+            <Text style={styles.weightPct}>{o.weights.critics}%</Text>
+            <Text style={styles.weightLbl}>Sourced Critics</Text>
+            <Text style={styles.weightVal}>
+              {o.critic100 != null ? `${o.critic100}/100` : '0 linked'}
+            </Text>
           </View>
-          <View style={[styles.formulaBox, { borderTopColor: Colors.googleGreen, backgroundColor: Colors.googleSoft }]}>
-            <Text style={[styles.formulaWeight, { color: Colors.googleGreen }]}>{rated ? '30%' : '50%'}</Text>
-            <Text style={styles.formulaScore}>{google100}/100</Text>
-            <Text style={styles.formulaCaption}>
-              {c.googleRating.toFixed(1)}★ ({c.googleReviews.toLocaleString()})
+          <View style={styles.weightBox}>
+            <Text style={styles.weightPct}>{o.weights.guests}%</Text>
+            <Text style={styles.weightLbl}>Live Guests</Text>
+            <Text style={styles.weightVal}>
+              {o.guest100 != null ? `${o.guest100}/100` : 'Phase 1B'}
             </Text>
           </View>
         </View>
       </View>
 
-      {/* Our 5-Axis Scorecard */}
-      <View style={[styles.sectionCard, { borderTopWidth: 4, borderTopColor: Colors.accent }]}>
-        <View style={styles.cardHeaderRow}>
-          <Text style={styles.sectionHeading}>Uncharted 5-Axis Scorecard</Text>
-          <Text style={[styles.scoreTag, { color: Colors.accent }]}>
-            {rated ? `${formatPersonalScore(hotel.overall)} / 5` : 'Pending'}
-          </Text>
-        </View>
-        {rated && s ? (
+      {/* First-Hand 5-Axis Scorecard */}
+      <View style={styles.sectionCard}>
+        <Text style={styles.sectionEyebrow}>TIER 1 • FOUNDING CONTRIBUTOR</Text>
+        <Text style={styles.sectionTitle}>First-Hand 5-Axis Scorecard</Text>
+        {o.firstHand && s ? (
           <View style={{ marginTop: 10, gap: 10 }}>
             <ScoreBar label="Rooms & Villas" value={s.rooms} max={5} suffix=" / 5" color={Colors.accent} whole />
             <ScoreBar label="Grounds, Pools & Beach" value={s.grounds} max={5} suffix=" / 5" color={Colors.accent} whole />
@@ -221,98 +201,123 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
             <ScoreBar label="Value for Money" value={s.value} max={5} suffix=" / 5" color={Colors.accent} whole />
           </View>
         ) : (
-          <View style={styles.unratedNotice}>
-            <Text style={styles.unratedTitle}>
-              {visited ? 'Featured in a YouTube Short (Not Ranked Yet)' : 'Global Luxury Directory (Not Visited Yet)'}
+          <View style={styles.noticeBox}>
+            <Text style={styles.noticeTitle}>
+              {o.visited ? 'Short Preview — Full Scorecard Pending' : 'Global Directory — Not Stayed Yet'}
             </Text>
-            <Text style={styles.unratedText}>
-              {visited
-                ? 'We haven’t published a full scored video review for this stay yet. Until then, StayScore relies strictly on verified guests & critics.'
-                : 'When we stay and film at this property, our whole-number 5-axis Uncharted Scorecard automatically unlocks and merges into the StayScore!'}
+            <Text style={styles.noticeText}>
+              {o.visited
+                ? `${BRAND.foundingContributor} filmed quick Shorts at ${hotel.name} without assigning a full 5-axis stay scorecard yet.`
+                : `${BRAND.foundingContributor} has not filmed a first-hand stay at ${hotel.name} yet. Live Google Places & licensed guest feeds connect in Phase 1B.`}
             </Text>
           </View>
         )}
       </View>
 
-      {/* Booking.com 6-Axis Verified Sub-Scores */}
-      {b ? (
-        <View style={[styles.sectionCard, { borderTopWidth: 4, borderTopColor: Colors.bookingBlue }]}>
-          <View style={styles.cardHeaderRow}>
-            <Text style={styles.sectionHeading}>Booking.com Guest Sub-Scores</Text>
-            <Text style={[styles.scoreTag, { color: Colors.bookingBlue }]}>
-              {c.bookingOverall.toFixed(1)} / 10
-            </Text>
-          </View>
+      {/* Separated Layer 1: Structured Editorial Ratings & Official Awards (sourceUrl enforced) */}
+      <View style={styles.sectionCard}>
+        <Text style={styles.sectionEyebrow}>SOURCE-URL ENFORCED</Text>
+        <Text style={styles.sectionTitle}>
+          Structured Editorial Ratings & Awards ({o.editorialRatings.length + o.officialAwards.length})
+        </Text>
+        {o.editorialRatings.length > 0 || o.officialAwards.length > 0 ? (
           <View style={{ marginTop: 10, gap: 10 }}>
-            <ScoreBar label="Staff & Service" value={b.staff} max={10} suffix=" / 10" color={Colors.bookingBlue} />
-            <ScoreBar label="Cleanliness" value={b.cleanliness} max={10} suffix=" / 10" color={Colors.bookingBlue} />
-            <ScoreBar label="Comfort" value={b.comfort} max={10} suffix=" / 10" color={Colors.bookingBlue} />
-            <ScoreBar label="Facilities" value={b.facilities} max={10} suffix=" / 10" color={Colors.bookingBlue} />
-            <ScoreBar label="Location" value={b.location} max={10} suffix=" / 10" color={Colors.bookingBlue} />
-            <ScoreBar label="Value for Money" value={b.value} max={10} suffix=" / 10" color={Colors.bookingBlue} />
-          </View>
-        </View>
-      ) : null}
-
-      {/* Standout & Watch Out */}
-      <View style={styles.trioWrap}>
-        <View style={[styles.calloutCard, { borderLeftColor: Colors.accent, backgroundColor: Colors.accentSoft }]}>
-          <Text style={[styles.calloutKicker, { color: Colors.accent }]}>STANDOUT HIGHLIGHT</Text>
-          <Text style={styles.calloutText}>{hotel.standout}</Text>
-        </View>
-        <View style={[styles.calloutCard, { borderLeftColor: Colors.amberRing, backgroundColor: Colors.amberSoft }]}>
-          <Text style={[styles.calloutKicker, { color: Colors.amber }]}>HONEST WATCH-OUT</Text>
-          <Text style={styles.calloutText}>{hotel.watchOut}</Text>
-        </View>
-      </View>
-
-      {/* Channel Benchmarks */}
-      {c.channelBenchmarks && c.channelBenchmarks.length > 0 ? (
-        <View style={styles.sectionCard}>
-          <Text style={styles.sectionHeading}>Reviewers & Platforms Compared</Text>
-          <View style={{ marginTop: 12, gap: 12 }}>
-            {c.channelBenchmarks.map((row, idx) => (
-              <View key={`${row.source}-${idx}`} style={styles.benchRow}>
-                <View style={styles.benchHead}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.benchCat}>{row.category}</Text>
-                    <Text style={styles.benchSource}>{row.source}</Text>
-                  </View>
-                  <View style={{ alignItems: 'flex-end' }}>
-                    <Text style={styles.benchScore}>{row.score}</Text>
-                    <Text style={styles.benchNorm}>
-                      {row.normalized100 != null ? `${row.normalized100}/100` : 'Pending'}
-                    </Text>
-                  </View>
-                </View>
-                <Text style={styles.benchTakeaway}>{row.takeaway}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-      ) : null}
-
-      {/* Matching Resort Shorts */}
-      {hotel.shorts && hotel.shorts.length > 0 ? (
-        <View style={styles.sectionCard}>
-          <Text style={styles.sectionHeading}>Quick Shorts From This Resort</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 12 }}>
-            {hotel.shorts.map((sh) => (
+            {o.editorialRatings.map((item, idx) => (
               <Pressable
-                key={sh.id}
-                style={styles.shortCard}
-                onPress={() => openExternalUrl(`https://www.youtube.com/shorts/${sh.id}`)}
+                key={`${item.sourceName}-${idx}`}
+                style={styles.sourceRow}
+                onPress={() => openExternalUrl(item.sourceUrl)}
               >
-                <Image
-                  source={{ uri: `https://i.ytimg.com/vi/${sh.id}/hqdefault.jpg` }}
-                  style={styles.shortImg}
-                />
-                <Text style={styles.shortTitle} numberOfLines={2}>
-                  {sh.title}
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.sourceTitle}>{item.sourceName} ↗</Text>
+                  {item.takeaway ? <Text style={styles.sourceBody}>{item.takeaway}</Text> : null}
+                </View>
+                <View style={styles.sourceScorePill}>
+                  <Text style={styles.sourceScoreText}>
+                    {item.rawScore || `${item.normalized100}/100`}
+                  </Text>
+                </View>
+              </Pressable>
+            ))}
+            {o.officialAwards.map((aw, idx) => (
+              <Pressable
+                key={`${aw.label}-${idx}`}
+                style={styles.sourceRow}
+                onPress={() => openExternalUrl(aw.sourceUrl)}
+              >
+                <Ionicons name="ribbon" size={16} color={Colors.amber} />
+                <Text style={[styles.sourceTitle, { flex: 1 }]}>
+                  {aw.label} {aw.year ? `(${aw.year})` : ''} ↗
                 </Text>
               </Pressable>
             ))}
-          </ScrollView>
+          </View>
+        ) : (
+          <Text style={styles.emptyNotice}>
+            Zero unlinked editorial scores shown. Every editorial rating or official award added in Phase 1B requires a verified source URL.
+          </Text>
+        )}
+      </View>
+
+      {/* Separated Layer 2: Linked YouTube Video Reviews (sourceUrl enforced) */}
+      <View style={styles.sectionCard}>
+        <Text style={styles.sectionEyebrow}>DIRECT VIDEO LINKS</Text>
+        <Text style={styles.sectionTitle}>
+          Linked YouTube Video Reviews ({(videoUrl ? 1 : 0) + o.youtubeReviews.length})
+        </Text>
+        <View style={{ marginTop: 10, gap: 10 }}>
+          {videoUrl ? (
+            <Pressable style={styles.sourceRow} onPress={() => openExternalUrl(videoUrl)}>
+              <Ionicons name="logo-youtube" size={18} color="#DC2626" />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.sourceTitle}>
+                  {BRAND.foundingContributor} ({hotel.coverageType}) ↗
+                </Text>
+                <Text style={styles.sourceBody} numberOfLines={2}>
+                  {hotel.verdict}
+                </Text>
+              </View>
+            </Pressable>
+          ) : null}
+          {o.youtubeReviews.map((yt, idx) => (
+            <Pressable
+              key={`${yt.creatorName}-${idx}`}
+              style={styles.sourceRow}
+              onPress={() => openExternalUrl(yt.sourceUrl)}
+            >
+              <Ionicons name="logo-youtube" size={18} color="#DC2626" />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.sourceTitle}>
+                  {yt.creatorName} {yt.sentiment ? `• ${yt.sentiment}` : ''} ↗
+                </Text>
+                {yt.takeaway ? <Text style={styles.sourceBody}>{yt.takeaway}</Text> : null}
+              </View>
+            </Pressable>
+          ))}
+          {!videoUrl && o.youtubeReviews.length === 0 ? (
+            <Text style={styles.emptyNotice}>
+              No third-party YouTube video reviews linked yet. Creators are never attributed without a direct verified YouTube link.
+            </Text>
+          ) : null}
+        </View>
+      </View>
+
+      {/* Standout & Watch-Out */}
+      {(hotel.standout || hotel.watchOut) ? (
+        <View style={styles.sectionCard}>
+          <Text style={styles.sectionEyebrow}>BEFORE YOU BOOK</Text>
+          {hotel.standout ? (
+            <>
+              <Text style={[styles.noteHead, { color: Colors.teal }]}>Standout Highlight</Text>
+              <Text style={styles.noteText}>{hotel.standout}</Text>
+            </>
+          ) : null}
+          {hotel.watchOut ? (
+            <>
+              <Text style={[styles.noteHead, { color: Colors.amber, marginTop: 12 }]}>Honest Caveat</Text>
+              <Text style={styles.noteText}>{hotel.watchOut}</Text>
+            </>
+          ) : null}
         </View>
       ) : null}
     </ScrollView>
@@ -321,123 +326,140 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
 
 const styles = StyleSheet.create({
   scroll: { flex: 1, backgroundColor: Colors.bgCanvas },
-  content: { padding: 16, gap: 14, paddingBottom: 40 },
-  contentSidePane: { padding: 20 },
+  content: { padding: 14, gap: 14, paddingBottom: 40 },
+  contentSidePane: { paddingTop: 14 },
+
   heroCard: {
     backgroundColor: Colors.bgWhite,
-    borderRadius: 18,
-    overflow: 'hidden',
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: Colors.border,
+    overflow: 'hidden',
   },
-  heroImage: { width: '100%', height: 210, backgroundColor: Colors.charcoal },
-  heroBody: { padding: 16, gap: 10 },
-  badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  pill: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 999,
-    borderWidth: 1,
-  },
-  pillText: { fontSize: 11, fontWeight: '700' },
-  title: { fontSize: 22, fontWeight: '700', color: Colors.inkPrimary, lineHeight: 28 },
-  subtitle: { fontSize: 13, color: Colors.inkSecondary },
-  verdict: { fontSize: 14, color: Colors.inkSecondary, lineHeight: 21 },
-  kpiGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
+  heroImage: { width: '100%', height: 205, backgroundColor: Colors.charcoal },
+  heroBody: { padding: 14 },
+  badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 8 },
+  pill: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999, borderWidth: 1 },
+  pillText: { fontSize: 11, fontWeight: '800' },
+
+  title: { fontSize: 21, fontWeight: '800', color: Colors.inkPrimary },
+  subtitle: { fontSize: 12.5, color: Colors.inkSecondary, marginTop: 3 },
+  verdict: { fontSize: 13.5, color: Colors.inkPrimary, marginTop: 10, lineHeight: 20 },
+
+  kpiGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 14 },
   kpiTile: {
-    flexGrow: 1,
+    flex: 1,
     minWidth: '45%',
-    padding: 12,
+    backgroundColor: Colors.bgCanvas,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: Colors.bgCanvas,
+    borderColor: Colors.borderSoft,
+    padding: 10,
+    alignItems: 'center',
   },
-  kpiBig: { fontSize: 21, fontWeight: '800', color: Colors.inkPrimary },
-  kpiSub: { fontSize: 12, fontWeight: '600', color: Colors.inkMuted },
-  kpiLabel: { fontSize: 11, fontWeight: '600', color: Colors.inkSecondary, marginTop: 2 },
-  actionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 6 },
-  btn: {
+  kpiBig: { fontSize: 18, fontWeight: '900', color: Colors.inkPrimary },
+  kpiLabel: { fontSize: 11, fontWeight: '700', color: Colors.inkMuted, marginTop: 2, textAlign: 'center' },
+
+  actionRow: { flexDirection: 'row', gap: 8, marginTop: 14 },
+  btnPrimary: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
+    backgroundColor: Colors.accent,
+    paddingVertical: 12,
+    borderRadius: 10,
+  },
+  btnPrimaryText: { color: '#FFFFFF', fontSize: 13.5, fontWeight: '800' },
+  btnDark: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: Colors.charcoal,
     paddingHorizontal: 14,
-    paddingVertical: 11,
-    borderRadius: 999,
-    flexGrow: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
   },
-  btnPrimary: { backgroundColor: Colors.accent },
-  btnDark: { backgroundColor: Colors.charcoal },
-  btnOutline: {
-    backgroundColor: Colors.bgWhite,
+  btnDarkText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
+  btnCompare: {
+    marginTop: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: Colors.accentSoft,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: Colors.accentBorder,
+    paddingVertical: 10,
+    borderRadius: 10,
   },
-  btnPrimaryText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
-  btnOutlineText: { color: Colors.inkPrimary, fontSize: 13, fontWeight: '700' },
+  btnCompareText: { color: Colors.accentDark, fontSize: 13, fontWeight: '800' },
+
   sectionCard: {
     backgroundColor: Colors.bgWhite,
     borderRadius: 16,
-    padding: 16,
     borderWidth: 1,
     borderColor: Colors.border,
-  },
-  cardHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  sectionHeading: { fontSize: 16, fontWeight: '700', color: Colors.inkPrimary },
-  sectionSub: { fontSize: 13, color: Colors.inkSecondary, marginTop: 4, lineHeight: 19 },
-  scoreTag: { fontSize: 14, fontWeight: '800' },
-  formulaRow: { flexDirection: 'row', gap: 8, marginTop: 12 },
-  formulaBox: {
-    flex: 1,
-    padding: 10,
-    borderRadius: 10,
-    borderTopWidth: 3,
-    alignItems: 'center',
-  },
-  formulaWeight: { fontSize: 11, fontWeight: '800' },
-  formulaScore: { fontSize: 15, fontWeight: '800', color: Colors.inkPrimary, marginTop: 2 },
-  formulaCaption: { fontSize: 10.5, color: Colors.inkSecondary, marginTop: 2, textAlign: 'center' },
-  barRow: { gap: 4 },
-  barTop: { flexDirection: 'row', justifyContent: 'space-between' },
-  barLabel: { fontSize: 13, color: Colors.inkSecondary, fontWeight: '500' },
-  barVal: { fontSize: 13, fontWeight: '700', color: Colors.inkPrimary },
-  barTrack: { height: 7, borderRadius: 99, backgroundColor: Colors.borderSoft, overflow: 'hidden' },
-  barFill: { height: '100%', borderRadius: 99 },
-  unratedNotice: {
-    marginTop: 10,
-    padding: 12,
-    borderRadius: 10,
-    backgroundColor: Colors.bgCanvas,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: Colors.slateBorder,
-  },
-  unratedTitle: { fontSize: 13.5, fontWeight: '700', color: Colors.inkPrimary, marginBottom: 4 },
-  unratedText: { fontSize: 13, color: Colors.inkSecondary, lineHeight: 19 },
-  trioWrap: { gap: 10 },
-  calloutCard: {
     padding: 14,
-    borderRadius: 14,
-    borderLeftWidth: 4,
   },
-  calloutKicker: { fontSize: 11, fontWeight: '800', letterSpacing: 0.6, marginBottom: 4 },
-  calloutText: { fontSize: 13.5, color: Colors.inkPrimary, lineHeight: 20 },
-  benchRow: {
-    padding: 12,
-    borderRadius: 12,
+  sectionEyebrow: { fontSize: 10, fontWeight: '800', color: Colors.accent, letterSpacing: 0.8 },
+  sectionTitle: { fontSize: 16.5, fontWeight: '800', color: Colors.inkPrimary, marginTop: 2 },
+  sectionSub: { fontSize: 12.5, color: Colors.inkSecondary, marginTop: 4, lineHeight: 18 },
+
+  weightGrid: { flexDirection: 'row', gap: 8, marginTop: 12 },
+  weightBox: {
+    flex: 1,
     backgroundColor: Colors.bgCanvas,
+    borderRadius: 10,
+    padding: 10,
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: Colors.borderSoft,
-    gap: 6,
   },
-  benchHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10 },
-  benchCat: { fontSize: 10.5, fontWeight: '700', color: Colors.accent, textTransform: 'uppercase' },
-  benchSource: { fontSize: 14, fontWeight: '700', color: Colors.inkPrimary },
-  benchScore: { fontSize: 14, fontWeight: '800', color: Colors.inkPrimary },
-  benchNorm: { fontSize: 11, color: Colors.inkMuted },
-  benchTakeaway: { fontSize: 13, color: Colors.inkSecondary, lineHeight: 19 },
-  shortCard: { width: 132, marginRight: 10 },
-  shortImg: { width: 132, height: 180, borderRadius: 12, backgroundColor: Colors.charcoal },
-  shortTitle: { fontSize: 12, fontWeight: '600', color: Colors.inkPrimary, marginTop: 6 },
+  weightPct: { fontSize: 18, fontWeight: '900', color: Colors.accent },
+  weightLbl: { fontSize: 10.5, fontWeight: '700', color: Colors.inkMuted, marginTop: 2, textAlign: 'center' },
+  weightVal: { fontSize: 12, fontWeight: '800', color: Colors.inkPrimary, marginTop: 4 },
+
+  barRow: { gap: 4 },
+  barTop: { flexDirection: 'row', justifyContent: 'space-between' },
+  barLabel: { fontSize: 13, fontWeight: '600', color: Colors.inkSecondary },
+  barVal: { fontSize: 13, fontWeight: '800', color: Colors.inkPrimary },
+  barTrack: { height: 8, borderRadius: 999, backgroundColor: Colors.bgCanvas, overflow: 'hidden' },
+  barFill: { height: '100%', borderRadius: 999 },
+
+  noticeBox: {
+    marginTop: 10,
+    backgroundColor: Colors.bgWarm,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.accentBorder,
+    padding: 12,
+  },
+  noticeTitle: { fontSize: 13.5, fontWeight: '800', color: Colors.inkPrimary },
+  noticeText: { fontSize: 12.5, color: Colors.inkSecondary, marginTop: 4, lineHeight: 18 },
+
+  sourceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: Colors.bgCanvas,
+    borderRadius: 12,
+    padding: 11,
+    borderWidth: 1,
+    borderColor: Colors.borderSoft,
+  },
+  sourceTitle: { fontSize: 13.5, fontWeight: '800', color: Colors.inkPrimary },
+  sourceBody: { fontSize: 12, color: Colors.inkSecondary, marginTop: 2, lineHeight: 17 },
+  sourceScorePill: {
+    backgroundColor: Colors.charcoal,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  sourceScoreText: { color: '#FFFFFF', fontSize: 12, fontWeight: '800' },
+
+  emptyNotice: { fontSize: 12.5, color: Colors.inkMuted, marginTop: 8, lineHeight: 18 },
+  noteHead: { fontSize: 11.5, fontWeight: '800', textTransform: 'uppercase', marginTop: 6 },
+  noteText: { fontSize: 13, color: Colors.inkPrimary, marginTop: 3, lineHeight: 19 },
 });

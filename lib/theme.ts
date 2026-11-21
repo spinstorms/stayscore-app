@@ -37,36 +37,3 @@ export const Colors = {
   emerald: '#047857',
   emeraldSoft: '#ECFDF5',
 };
-
-export function getVerdictPalette(agreement?: string, rated?: boolean) {
-  if (agreement === 'Contrarian Verdict') {
-    return {
-      color: Colors.amber,
-      ring: Colors.amberRing,
-      soft: Colors.amberSoft,
-      border: Colors.amberBorder,
-    };
-  }
-  if (!rated || agreement === 'Global StayScore' || agreement === 'External Consensus') {
-    return {
-      color: Colors.slate,
-      ring: '#475569',
-      soft: Colors.slateSoft,
-      border: Colors.slateBorder,
-    };
-  }
-  if (agreement === 'Strong Consensus') {
-    return {
-      color: Colors.accent,
-      ring: Colors.accent,
-      soft: Colors.accentSoft,
-      border: Colors.accentBorder,
-    };
-  }
-  return {
-    color: Colors.teal,
-    ring: Colors.teal,
-    soft: Colors.tealSoft,
-    border: Colors.tealBorder,
-  };
-}

@@ -1,42 +1,34 @@
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, Stack } from 'expo-router';
 import React from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { HotelDetailContent } from '../../components/HotelDetailContent';
-import { useStayScore } from '../../lib/store';
+import { BRAND } from '../../lib/brand';
+import { useStayOdds } from '../../lib/store';
 import { Colors } from '../../lib/theme';
 
-export default function HotelDetailScreen() {
+export default function HotelDetailRoute() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { hotels, loading } = useStayScore();
-
+  const { hotels } = useStayOdds();
   const hotel = hotels.find((h) => h.id === id) || hotels[0];
-
-  if (loading && !hotel) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={Colors.accent} />
-        <Text style={styles.msg}>Loading StayScore breakdown…</Text>
-      </View>
-    );
-  }
 
   if (!hotel) {
     return (
       <View style={styles.center}>
-        <Text style={styles.msg}>Hotel not found.</Text>
+        <Text style={styles.empty}>Loading {BRAND.name} breakdown…</Text>
       </View>
     );
   }
 
   return (
-    <>
+    <View style={styles.screen}>
       <Stack.Screen options={{ title: hotel.name }} />
       <HotelDetailContent hotel={hotel} />
-    </>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.bgCanvas, gap: 10 },
-  msg: { color: Colors.inkSecondary, fontSize: 14 },
+  screen: { flex: 1, backgroundColor: Colors.bgCanvas },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
+  empty: { color: Colors.inkMuted, fontSize: 15 },
 });

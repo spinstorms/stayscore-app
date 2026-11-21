@@ -13,12 +13,12 @@ import {
 } from 'react-native';
 import { openExternalUrl } from '../../lib/api';
 import { useAdaptiveLayout } from '../../lib/layout';
-import { useStayScore } from '../../lib/store';
+import { useStayOdds } from '../../lib/store';
 import { Colors } from '../../lib/theme';
 import type { VideoItem } from '../../lib/types';
 
 export default function WatchScreen() {
-  const { videos, shorts, refreshing, refresh } = useStayScore();
+  const { videos, shorts, refreshing, refresh } = useStayOdds();
   const { isSplitScreen, gridColumns, horizontalPadding } = useAdaptiveLayout();
 
   const [category, setCategory] = useState('All');

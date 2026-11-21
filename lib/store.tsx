@@ -1,8 +1,8 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import { fetchStayScoreData, loadCachedData } from './api';
+import { fetchStayOddsData, loadCachedData } from './api';
 import type { AffiliateDeal, Hotel, VideoItem } from './types';
 
-interface StayScoreContextValue {
+interface StayOddsContextValue {
   hotels: Hotel[];
   visitedCount: number;
   worldCount: number;
@@ -20,9 +20,9 @@ interface StayScoreContextValue {
   refresh: () => Promise<void>;
 }
 
-const StayScoreContext = createContext<StayScoreContextValue | null>(null);
+const StayOddsContext = createContext<StayOddsContextValue | null>(null);
 
-export function StayScoreProvider({ children }: { children: React.ReactNode }) {
+export function StayOddsProvider({ children }: { children: React.ReactNode }) {
   const [hotels, setHotels] = useState<Hotel[]>([]);
   const [visitedCount, setVisitedCount] = useState(0);
   const [worldCount, setWorldCount] = useState(0);
@@ -32,13 +32,13 @@ export function StayScoreProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [compareA, setCompareA] = useState('ritz-carlton-bali');
-  const [compareB, setCompareB] = useState('bulgari-resort-bali');
+  const [compareA, setCompareA] = useState('taaktana-labuan-bajo');
+  const [compareB, setCompareB] = useState('ritz-carlton-bali');
 
   const hydrate = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     try {
-      const data = await fetchStayScoreData();
+      const data = await fetchStayOddsData();
       setHotels(data.hotels);
       setVisitedCount(data.visitedCount);
       setWorldCount(data.worldCount);
@@ -47,7 +47,7 @@ export function StayScoreProvider({ children }: { children: React.ReactNode }) {
       setDeals(data.deals);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to reach StayScore live feed.');
+      setError(err instanceof Error ? err.message : 'Unable to reach StayOdds live feed.');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -79,7 +79,7 @@ export function StayScoreProvider({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <StayScoreContext.Provider
+    <StayOddsContext.Provider
       value={{
         hotels,
         visitedCount,
@@ -99,12 +99,12 @@ export function StayScoreProvider({ children }: { children: React.ReactNode }) {
       }}
     >
       {children}
-    </StayScoreContext.Provider>
+    </StayOddsContext.Provider>
   );
 }
 
-export function useStayScore() {
-  const ctx = useContext(StayScoreContext);
-  if (!ctx) throw new Error('useStayScore must be used inside StayScoreProvider');
+export function useStayOdds() {
+  const ctx = useContext(StayOddsContext);
+  if (!ctx) throw new Error('useStayOdds must be used inside StayOddsProvider');
   return ctx;
 }

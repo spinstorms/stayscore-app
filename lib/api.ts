@@ -1,12 +1,13 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as WebBrowser from 'expo-web-browser';
 import { Linking } from 'react-native';
+import { BRAND } from './brand';
 import type { AffiliateDeal, Hotel, VideoItem } from './types';
 
-export const LIVE_BASE_URL = 'https://live.uncharteditinerary.com';
-const CACHE_KEY = 'stayscore_live_cache_v1';
+export const LIVE_BASE_URL = BRAND.liveApiBaseUrl;
+const CACHE_KEY = 'stayodds_live_cache_v2';
 
-export interface StayScorePayload {
+export interface StayOddsPayload {
   hotels: Hotel[];
   visitedCount: number;
   worldCount: number;
@@ -24,45 +25,88 @@ async function fetchJson<T>(path: string): Promise<T> {
   return (await res.json()) as T;
 }
 
-export async function loadCachedData(): Promise<StayScorePayload | null> {
+/**
+ * Defensive sanitizer: guarantees legacy unverified/estimated external scores
+ * can NEVER enter the app even if fetched before a remote deploy finishes.
+ */
+function sanitizeHotelRecord(raw: Record<string, any>, visitedByUs: boolean): Hotel {
+  const rated = visitedByUs && raw.overall != null && raw.scores != null;
+  const bookingUrl = typeof raw.bookingUrl === 'string' ? raw.bookingUrl : '';
+  return {
+    id: String(raw.id || ''),
+    name: String(raw.name || ''),
+    location: String(raw.location || ''),
+    country: String(raw.country || ''),
+    region: String(raw.region || 'Global'),
+    lat: Number(raw.lat || 0),
+    lng: Number(raw.lng || 0),
+    brand: String(raw.brand || ''),
+    priceRange: visitedByUs ? raw.priceRange : undefined,
+    reviewedDate: raw.reviewedDate,
+    videoId: visitedByUs ? raw.videoId : undefined,
+    inLiveFeed: visitedByUs ? Boolean(raw.inLiveFeed) : false,
+    visitedByUs,
+    coverageType: visitedByUs
+      ? raw.coverageType || (rated ? 'Full Review' : 'Short Tour')
+      : 'Global Directory',
+    tier: rated ? 'first_hand_verified' : visitedByUs ? 'short_preview' : 'global_directory',
+    thumbnail: String(raw.thumbnail || ''),
+    scores: rated ? raw.scores : null,
+    overall: rated ? Number(raw.overall) : null,
+    verdict: String(raw.verdict || ''),
+    standout: String(raw.standout || ''),
+    watchOut: String(raw.watchOut || ''),
+    bookingUrl,
+    bookingLinks: Array.isArray(raw.bookingLinks)
+      ? raw.bookingLinks
+      : bookingUrl
+      ? [{ channelType: 'ota_affiliate', partnerName: 'Booking.com', url: bookingUrl, priority: 1 }]
+      : [],
+    shorts: visitedByUs && Array.isArray(raw.shorts) ? raw.shorts : [],
+    verifiedGuest: raw.verifiedGuest || null,
+    editorialRatings: Array.isArray(raw.editorialRatings) ? raw.editorialRatings : [],
+    youtubeReviews: Array.isArray(raw.youtubeReviews) ? raw.youtubeReviews : [],
+    officialAwards: Array.isArray(raw.officialAwards) ? raw.officialAwards : [],
+    redFlags: Array.isArray(raw.redFlags) ? raw.redFlags : [],
+  };
+}
+
+export async function loadCachedData(): Promise<StayOddsPayload | null> {
   try {
     const raw = await AsyncStorage.getItem(CACHE_KEY);
-    return raw ? (JSON.parse(raw) as StayScorePayload) : null;
+    return raw ? (JSON.parse(raw) as StayOddsPayload) : null;
   } catch {
     return null;
   }
 }
 
-export async function fetchStayScoreData(): Promise<StayScorePayload> {
+export async function fetchStayOddsData(): Promise<StayOddsPayload> {
   const [visitedRes, worldRes, videosRes, affRes] = await Promise.all([
-    fetchJson<{ updatedAt?: string; hotels?: Hotel[] }>('/data/hotels.json'),
-    fetchJson<{ hotels?: Hotel[] }>('/data/world-hotels.json').catch(() => ({ hotels: [] })),
+    fetchJson<{ updatedAt?: string; hotels?: Record<string, any>[] }>('/data/hotels.json'),
+    fetchJson<{ hotels?: Record<string, any>[] }>('/data/world-hotels.json').catch(() => ({
+      hotels: [],
+    })),
     fetchJson<{ videos?: VideoItem[]; shorts?: VideoItem[] }>('/data/videos.json').catch(() => ({
       videos: [],
       shorts: [],
     })),
-    fetchJson<{ curated?: AffiliateDeal[]; fromVideos?: AffiliateDeal[] }>('/data/affiliates.json').catch(() => ({
+    fetchJson<{ curated?: AffiliateDeal[]; fromVideos?: AffiliateDeal[] }>(
+      '/data/affiliates.json'
+    ).catch(() => ({
       curated: [],
       fromVideos: [],
     })),
   ]);
 
-  const visitedHotels: Hotel[] = (visitedRes.hotels || []).map((h) => ({
-    ...h,
-    visitedByUs: true,
-  }));
+  const visitedHotels: Hotel[] = (visitedRes.hotels || []).map((h) => sanitizeHotelRecord(h, true));
   const visitedIds = new Set(visitedHotels.map((h) => h.id));
   const visitedNames = new Set(visitedHotels.map((h) => h.name.toLowerCase()));
 
   const worldHotels: Hotel[] = (worldRes.hotels || [])
-    .filter((h) => !visitedIds.has(h.id) && !visitedNames.has((h.name || '').toLowerCase()))
-    .map((h) => ({
-      ...h,
-      visitedByUs: false,
-      coverageType: 'Global Directory',
-    }));
+    .filter((h) => !visitedIds.has(String(h.id)) && !visitedNames.has(String(h.name || '').toLowerCase()))
+    .map((h) => sanitizeHotelRecord(h, false));
 
-  const payload: StayScorePayload = {
+  const payload: StayOddsPayload = {
     hotels: [...visitedHotels, ...worldHotels],
     visitedCount: visitedHotels.length,
     worldCount: worldHotels.length,

@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import React from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
+import { BRAND } from '../../lib/brand';
 import { Colors } from '../../lib/theme';
 
 function BrandHeaderTitle() {
@@ -9,8 +10,8 @@ function BrandHeaderTitle() {
     <View style={styles.brandRow}>
       <Image source={require('../../assets/images/icon.png')} style={styles.brandIcon} />
       <View>
-        <Text style={styles.brandName}>StayScore</Text>
-        <Text style={styles.brandSub}>by The Uncharted Itinerary</Text>
+        <Text style={styles.brandName}>{BRAND.name}</Text>
+        <Text style={styles.brandSub}>{BRAND.subtitle}</Text>
       </View>
     </View>
   );
@@ -42,7 +43,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'StayScore',
+          title: BRAND.name,
           headerTitle: () => <BrandHeaderTitle />,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="compass" size={size} color={typeof color === 'string' ? color : Colors.accent} />
@@ -93,5 +94,5 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.85)',
   },
   brandName: { fontSize: 18, fontWeight: '800', color: '#FFFFFF', lineHeight: 20 },
-  brandSub: { fontSize: 10.5, fontWeight: '600', color: 'rgba(255,255,255,0.88)' },
+  brandSub: { fontSize: 10.5, fontWeight: '600', color: 'rgba(255,255,255,0.9)' },
 });

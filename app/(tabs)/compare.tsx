@@ -14,16 +14,18 @@ import {
   View,
 } from 'react-native';
 import { getHotelVideoUrl, openExternalUrl } from '../../lib/api';
-import { formatPersonalScore, isRatedHotel, isVisitedHotel, useAdaptiveLayout } from '../../lib/layout';
-import { useStayScore } from '../../lib/store';
-import { Colors, getVerdictPalette } from '../../lib/theme';
+import { BRAND } from '../../lib/brand';
+import { formatPersonalScore, useAdaptiveLayout } from '../../lib/layout';
+import { computeStayOdds, getTonePalette, isVisitedProperty } from '../../lib/scoring';
+import { useStayOdds } from '../../lib/store';
+import { Colors } from '../../lib/theme';
 import type { Hotel } from '../../lib/types';
 
 type PickerTarget = 'A' | 'B' | null;
 
 export default function CompareScreen() {
   const router = useRouter();
-  const { hotels, compareA, compareB, setCompareA, setCompareB, refreshing, refresh } = useStayScore();
+  const { hotels, compareA, compareB, setCompareA, setCompareB, refreshing, refresh } = useStayOdds();
   const { isSplitScreen, horizontalPadding } = useAdaptiveLayout();
 
   const [pickerTarget, setPickerTarget] = useState<PickerTarget>(null);
@@ -43,12 +45,15 @@ export default function CompareScreen() {
     [hotels, compareB, hotelA]
   );
 
+  const oddsA = useMemo(() => (hotelA ? computeStayOdds(hotelA) : null), [hotelA]);
+  const oddsB = useMemo(() => (hotelB ? computeStayOdds(hotelB) : null), [hotelB]);
+
   const pickerList = useMemo(() => {
     const q = pickerQuery.trim().toLowerCase();
     return hotels
       .filter((h) => {
-        if (pickerScope === 'visited' && !isVisitedHotel(h)) return false;
-        if (pickerScope === 'global' && isVisitedHotel(h)) return false;
+        if (pickerScope === 'visited' && !isVisitedProperty(h)) return false;
+        if (pickerScope === 'global' && isVisitedProperty(h)) return false;
         if (!q) return true;
         return (
           h.name.toLowerCase().includes(q) ||
@@ -59,10 +64,12 @@ export default function CompareScreen() {
         );
       })
       .sort((a, b) => {
-        const av = isVisitedHotel(a) ? 0 : 1;
-        const bv = isVisitedHotel(b) ? 0 : 1;
-        if (av !== bv) return av - bv;
-        return (b.consensus?.overallIndex || 0) - (a.consensus?.overallIndex || 0);
+        const oa = computeStayOdds(a);
+        const ob = computeStayOdds(b);
+        const av = oa.firstHand ? 2 : oa.visited ? 1 : 0;
+        const bv = ob.firstHand ? 2 : ob.visited ? 1 : 0;
+        if (bv !== av) return bv - av;
+        return (ob.greatStayOdds ?? -1) - (oa.greatStayOdds ?? -1) || a.name.localeCompare(b.name);
       });
   }, [hotels, pickerQuery, pickerScope]);
 
@@ -74,11 +81,8 @@ export default function CompareScreen() {
   };
 
   const handleSelectHotel = (id: string) => {
-    if (pickerTarget === 'A') {
-      setCompareA(id);
-    } else if (pickerTarget === 'B') {
-      setCompareB(id);
-    }
+    if (pickerTarget === 'A') setCompareA(id);
+    else if (pickerTarget === 'B') setCompareB(id);
     setPickerTarget(null);
     setPickerQuery('');
   };
@@ -108,10 +112,9 @@ export default function CompareScreen() {
     );
   };
 
-  const renderHotelCard = (hotel: Hotel, other: Hotel | null, side: 'A' | 'B') => {
-    const rated = isRatedHotel(hotel);
-    const visited = isVisitedHotel(hotel);
-    const palette = getVerdictPalette(hotel.consensus?.agreement, rated);
+  const renderHotelCard = (hotel: Hotel, side: 'A' | 'B') => {
+    const o = side === 'A' ? oddsA! : oddsB!;
+    const palette = getTonePalette(o.statusTone);
     const videoUrl = getHotelVideoUrl(hotel);
 
     return (
@@ -122,17 +125,15 @@ export default function CompareScreen() {
             <View style={[styles.sidePill, side === 'A' ? styles.sidePillA : styles.sidePillB]}>
               <Text style={styles.sidePillText}>HOTEL {side}</Text>
             </View>
-            <View style={[styles.scopeBadge, visited ? styles.scopeVisited : styles.scopeGlobal]}>
-              <Text style={styles.scopeBadgeText}>
-                {visited ? hotel.coverageType : 'Global Directory'}
-              </Text>
+            <View style={[styles.scopeBadge, o.firstHand ? styles.scopeVisited : styles.scopeGlobal]}>
+              <Text style={styles.scopeBadgeText}>{o.tierLabel}</Text>
             </View>
           </View>
           <View style={[styles.scoreBadge, { borderColor: palette.ring }]}>
             <Text style={[styles.scoreBadgeNum, { color: palette.color }]}>
-              {hotel.consensus?.overallIndex ?? '—'}
+              {o.greatStayOdds != null ? `${o.greatStayOdds}%` : '—'}
             </Text>
-            <Text style={styles.scoreBadgeSub}>STAYSCORE</Text>
+            <Text style={styles.scoreBadgeSub}>{BRAND.name.toUpperCase()}</Text>
           </View>
         </View>
 
@@ -141,73 +142,82 @@ export default function CompareScreen() {
             {hotel.name}
           </Text>
           <Text style={styles.hotelLoc}>
-            {hotel.location} · {hotel.priceRange || '$$$$'}
+            {hotel.location}, {hotel.country}
+            {hotel.brand ? ` · ${hotel.brand}` : ''}
           </Text>
-          {hotel.consensus?.award ? (
-            <View style={styles.awardPill}>
-              <Ionicons name="ribbon" size={12} color={Colors.amber} />
-              <Text style={styles.awardText} numberOfLines={1}>
-                {hotel.consensus.award}
-              </Text>
-            </View>
-          ) : null}
 
           <View style={styles.metricsBox}>
             {renderMetricRow(
-              'StayScore Index',
-              hotelA?.consensus?.overallIndex,
-              hotelB?.consensus?.overallIndex,
-              `${hotelA?.consensus?.overallIndex ?? '—'} / 100`,
-              `${hotelB?.consensus?.overallIndex ?? '—'} / 100`,
+              `${BRAND.name} Odds`,
+              oddsA?.greatStayOdds,
+              oddsB?.greatStayOdds,
+              oddsA?.greatStayOdds != null ? `${oddsA.greatStayOdds}%` : 'Pending API',
+              oddsB?.greatStayOdds != null ? `${oddsB.greatStayOdds}%` : 'Pending API',
               side
             )}
             {renderMetricRow(
-              'Great Stay Probability',
-              hotelA?.consensus?.greatStayChance,
-              hotelB?.consensus?.greatStayChance,
-              `${hotelA?.consensus?.greatStayChance ?? '—'}%`,
-              `${hotelB?.consensus?.greatStayChance ?? '—'}%`,
+              'First-Hand Score',
+              oddsA?.firstHand ? hotelA?.overall : null,
+              oddsB?.firstHand ? hotelB?.overall : null,
+              oddsA?.firstHand ? `${formatPersonalScore(hotelA?.overall)} / 5` : 'Not Rated',
+              oddsB?.firstHand ? `${formatPersonalScore(hotelB?.overall)} / 5` : 'Not Rated',
               side
             )}
             {renderMetricRow(
-              'Booking.com Score',
-              hotelA?.consensus?.bookingOverall,
-              hotelB?.consensus?.bookingOverall,
-              hotelA?.consensus?.bookingOverall ? `${hotelA.consensus.bookingOverall.toFixed(1)} / 10` : '—',
-              hotelB?.consensus?.bookingOverall ? `${hotelB.consensus.bookingOverall.toFixed(1)} / 10` : '—',
+              'Live Verified Guests',
+              oddsA?.guest100,
+              oddsB?.guest100,
+              oddsA?.verifiedGuest
+                ? `${oddsA.verifiedGuest.rating.toFixed(1)} / ${oddsA.verifiedGuest.scale}`
+                : 'Phase 1B API',
+              oddsB?.verifiedGuest
+                ? `${oddsB.verifiedGuest.rating.toFixed(1)} / ${oddsB.verifiedGuest.scale}`
+                : 'Phase 1B API',
               side
             )}
             {renderMetricRow(
-              'Google Rating',
-              hotelA?.consensus?.googleRating,
-              hotelB?.consensus?.googleRating,
-              hotelA?.consensus?.googleRating ? `${hotelA.consensus.googleRating.toFixed(1)} ★` : '—',
-              hotelB?.consensus?.googleRating ? `${hotelB.consensus.googleRating.toFixed(1)} ★` : '—',
+              'Sourced Critics',
+              oddsA?.critic100,
+              oddsB?.critic100,
+              oddsA?.critic100 != null ? `${oddsA.critic100} / 100` : '0 linked',
+              oddsB?.critic100 != null ? `${oddsB.critic100} / 100` : '0 linked',
               side
             )}
             {renderMetricRow(
-              'Critic & YouTube',
-              hotelA?.consensus?.criticScore,
-              hotelB?.consensus?.criticScore,
-              hotelA?.consensus?.criticScore ? `${hotelA.consensus.criticScore.toFixed(1)} / 5` : '—',
-              hotelB?.consensus?.criticScore ? `${hotelB.consensus.criticScore.toFixed(1)} / 5` : '—',
+              'Rooms & Villas',
+              oddsA?.firstHand ? hotelA?.scores?.rooms : null,
+              oddsB?.firstHand ? hotelB?.scores?.rooms : null,
+              oddsA?.firstHand ? `${formatPersonalScore(hotelA?.scores?.rooms)} / 5` : '—',
+              oddsB?.firstHand ? `${formatPersonalScore(hotelB?.scores?.rooms)} / 5` : '—',
               side
             )}
             {renderMetricRow(
-              'Our Personal Score',
-              hotelA && isRatedHotel(hotelA) ? hotelA.overall : null,
-              hotelB && isRatedHotel(hotelB) ? hotelB.overall : null,
-              hotelA && isRatedHotel(hotelA) ? `${formatPersonalScore(hotelA.overall)} / 5` : 'External Only',
-              hotelB && isRatedHotel(hotelB) ? `${formatPersonalScore(hotelB.overall)} / 5` : 'External Only',
+              'Service',
+              oddsA?.firstHand ? hotelA?.scores?.service : null,
+              oddsB?.firstHand ? hotelB?.scores?.service : null,
+              oddsA?.firstHand ? `${formatPersonalScore(hotelA?.scores?.service)} / 5` : '—',
+              oddsB?.firstHand ? `${formatPersonalScore(hotelB?.scores?.service)} / 5` : '—',
+              side
+            )}
+            {renderMetricRow(
+              'Value for Money',
+              oddsA?.firstHand ? hotelA?.scores?.value : null,
+              oddsB?.firstHand ? hotelB?.scores?.value : null,
+              oddsA?.firstHand ? `${formatPersonalScore(hotelA?.scores?.value)} / 5` : '—',
+              oddsB?.firstHand ? `${formatPersonalScore(hotelB?.scores?.value)} / 5` : '—',
               side
             )}
           </View>
 
           <View style={styles.noteBox}>
-            <Text style={styles.noteTitle}>Standout</Text>
-            <Text style={styles.noteBody}>{hotel.standout}</Text>
-            <Text style={[styles.noteTitle, { marginTop: 8, color: Colors.amber }]}>Watch-Out</Text>
-            <Text style={styles.noteBody}>{hotel.watchOut}</Text>
+            <Text style={styles.noteTitle}>Formula</Text>
+            <Text style={styles.noteBody}>{o.formulaSummary}</Text>
+            {hotel.watchOut ? (
+              <>
+                <Text style={[styles.noteTitle, { marginTop: 8, color: Colors.amber }]}>Watch-Out</Text>
+                <Text style={styles.noteBody}>{hotel.watchOut}</Text>
+              </>
+            ) : null}
           </View>
 
           <View style={styles.ctaRow}>
@@ -217,7 +227,7 @@ export default function CompareScreen() {
                 onPress={() => openExternalUrl(hotel.bookingUrl)}
               >
                 <Ionicons name="bed-outline" size={15} color="#FFFFFF" />
-                <Text style={styles.btnPrimaryText}>Check Rates</Text>
+                <Text style={styles.btnPrimaryText}>Check Live Rates</Text>
               </Pressable>
             ) : null}
             {videoUrl ? (
@@ -246,14 +256,13 @@ export default function CompareScreen() {
         contentContainerStyle={{ paddingBottom: 36 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={Colors.accent} />}
       >
-        {/* Deep Charcoal VS Arena Header */}
         <View style={[styles.arenaHeader, { paddingHorizontal: horizontalPadding }]}>
           <View style={styles.arenaTitleRow}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.arenaEyebrow}>HEAD-TO-HEAD STAYSCORE ARENA</Text>
+              <Text style={styles.arenaEyebrow}>HEAD-TO-HEAD {BRAND.name.toUpperCase()} ARENA</Text>
               <Text style={styles.arenaTitle}>Compare Any 2 Luxury Stays</Text>
               <Text style={styles.arenaSub}>
-                Pit our visited reviews against {hotels.length} iconic resorts worldwide. Green ★ marks the winner.
+                Zero guessed numbers — green ★ highlights verified winners across {hotels.length} luxury stays.
               </Text>
             </View>
             <Pressable style={styles.swapBtn} onPress={handleSwap} accessibilityLabel="Swap hotels">
@@ -268,7 +277,7 @@ export default function CompareScreen() {
                 {hotelA ? hotelA.name : 'Select first hotel...'}
               </Text>
               <Text style={styles.selectorMeta} numberOfLines={1}>
-                {hotelA ? `${hotelA.location} · StayScore ${hotelA.consensus?.overallIndex}` : ''}
+                {hotelA && oddsA ? `${hotelA.location} · ${oddsA.tierLabel}` : ''}
               </Text>
             </Pressable>
 
@@ -278,14 +287,13 @@ export default function CompareScreen() {
                 {hotelB ? hotelB.name : 'Select second hotel...'}
               </Text>
               <Text style={styles.selectorMeta} numberOfLines={1}>
-                {hotelB ? `${hotelB.location} · StayScore ${hotelB.consensus?.overallIndex}` : ''}
+                {hotelB && oddsB ? `${hotelB.location} · ${oddsB.tierLabel}` : ''}
               </Text>
             </Pressable>
           </View>
         </View>
 
-        {/* Adaptive VS Cards: 2-Column on Foldables/iPhone Duo/Tablet, Stacked on Phone */}
-        {hotelA && hotelB ? (
+        {hotelA && hotelB && oddsA && oddsB ? (
           <View
             style={[
               styles.vsGrid,
@@ -293,17 +301,16 @@ export default function CompareScreen() {
               { paddingHorizontal: horizontalPadding },
             ]}
           >
-            {renderHotelCard(hotelA, hotelB, 'A')}
-            {renderHotelCard(hotelB, hotelA, 'B')}
+            {renderHotelCard(hotelA, 'A')}
+            {renderHotelCard(hotelB, 'B')}
           </View>
         ) : (
           <View style={styles.emptyBox}>
-            <Text style={styles.emptyText}>Loading global luxury stays...</Text>
+            <Text style={styles.emptyText}>Loading luxury stays...</Text>
           </View>
         )}
       </ScrollView>
 
-      {/* Searchable Hotel Picker Modal */}
       <Modal
         visible={pickerTarget !== null}
         animationType="slide"
@@ -340,8 +347,8 @@ export default function CompareScreen() {
           <View style={styles.modalScopeRow}>
             {(
               [
-                ['all', 'All Global'],
-                ['visited', 'Visited by Us'],
+                ['all', 'All Luxury'],
+                ['visited', 'First-Hand'],
                 ['global', 'Global Directory'],
               ] as const
             ).map(([key, label]) => (
@@ -362,7 +369,7 @@ export default function CompareScreen() {
             keyExtractor={(item) => item.id}
             keyboardShouldPersistTaps="handled"
             renderItem={({ item }) => {
-              const visited = isVisitedHotel(item);
+              const o = computeStayOdds(item);
               const isSelected =
                 (pickerTarget === 'A' && item.id === hotelA?.id) ||
                 (pickerTarget === 'B' && item.id === hotelB?.id);
@@ -377,11 +384,13 @@ export default function CompareScreen() {
                       {item.name}
                     </Text>
                     <Text style={styles.pickerLoc} numberOfLines={1}>
-                      {item.location} · {visited ? 'Visited by Us' : 'Global Directory'}
+                      {item.location} · {o.tierLabel}
                     </Text>
                   </View>
                   <View style={styles.pickerScorePill}>
-                    <Text style={styles.pickerScoreText}>{item.consensus?.overallIndex ?? '—'}</Text>
+                    <Text style={styles.pickerScoreText}>
+                      {o.greatStayOdds != null ? `${o.greatStayOdds}%` : '—'}
+                    </Text>
                   </View>
                 </Pressable>
               );
@@ -470,26 +479,12 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     alignItems: 'center',
   },
-  scoreBadgeNum: { fontSize: 20, fontWeight: '900', lineHeight: 22 },
+  scoreBadgeNum: { fontSize: 19, fontWeight: '900', lineHeight: 21 },
   scoreBadgeSub: { fontSize: 8.5, fontWeight: '800', color: Colors.inkMuted, letterSpacing: 0.5 },
 
   cardBody: { padding: 14 },
   hotelName: { fontSize: 18, fontWeight: '800', color: Colors.inkPrimary },
   hotelLoc: { fontSize: 12.5, color: Colors.inkSecondary, marginTop: 2 },
-  awardPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    marginTop: 8,
-    backgroundColor: Colors.amberSoft,
-    borderColor: Colors.amberBorder,
-    borderWidth: 1,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    alignSelf: 'flex-start',
-  },
-  awardText: { fontSize: 11, fontWeight: '700', color: Colors.amber },
 
   metricsBox: {
     marginTop: 12,

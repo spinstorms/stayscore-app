@@ -13,14 +13,14 @@ import {
 } from 'react-native';
 import { openExternalUrl } from '../../lib/api';
 import { useAdaptiveLayout } from '../../lib/layout';
-import { useStayScore } from '../../lib/store';
+import { useStayOdds } from '../../lib/store';
 import { Colors } from '../../lib/theme';
 import type { AffiliateDeal } from '../../lib/types';
 
 type DealSection = 'all' | 'promos' | 'gear';
 
 export default function DealsScreen() {
-  const { deals, refreshing, refresh } = useStayScore();
+  const { deals, refreshing, refresh } = useStayOdds();
   const { isSplitScreen, gridColumns, horizontalPadding } = useAdaptiveLayout();
 
   const [section, setSection] = useState<DealSection>('all');

@@ -1,15 +1,15 @@
 {
   "expo": {
-    "name": "StayScore",
-    "slug": "stayscore-app",
+    "name": "StayOdds",
+    "slug": "stayodds",
     "version": "1.0.0",
     "orientation": "default",
     "icon": "./assets/images/icon.png",
-    "scheme": "stayscore",
+    "scheme": "stayodds",
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.uncharteditinerary.stayscore",
+      "bundleIdentifier": "com.stayodds.app",
       "buildNumber": "1",
       "infoPlist": {
         "UIRequiresFullScreen": false,
@@ -17,7 +17,7 @@
       }
     },
     "android": {
-      "package": "com.uncharteditinerary.stayscore",
+      "package": "com.stayodds.app",
       "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#FF5D22",
@@ -46,6 +46,9 @@
       "typedRoutes": true
     },
     "extra": {
+      "appStoreTitle": "StayOdds: Hotel Score Compare",
+      "appStoreSubtitle": "Critics vs Real Guest Reviews",
+      "foundingContributor": "The Uncharted Itinerary",
       "apiBaseUrl": "https://live.uncharteditinerary.com",
       "websiteUrl": "https://www.uncharteditinerary.com"
     }

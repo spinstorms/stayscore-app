@@ -1,16 +1,17 @@
 import { Link, Stack } from 'expo-router';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { BRAND } from '../lib/brand';
 import { Colors } from '../lib/theme';
 
 export default function NotFoundScreen() {
   return (
     <>
-      <Stack.Screen options={{ title: 'StayScore' }} />
+      <Stack.Screen options={{ title: BRAND.name }} />
       <View style={styles.container}>
         <Text style={styles.title}>We couldn't find that screen.</Text>
         <Link href="/" style={styles.link}>
-          <Text style={styles.linkText}>Return to StayScore Home</Text>
+          <Text style={styles.linkText}>Return to {BRAND.name} Home</Text>
         </Link>
       </View>
     </>

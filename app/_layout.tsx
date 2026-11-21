@@ -2,13 +2,14 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { StayScoreProvider } from '../lib/store';
+import { BRAND } from '../lib/brand';
+import { StayOddsProvider } from '../lib/store';
 import { Colors } from '../lib/theme';
 
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
-      <StayScoreProvider>
+      <StayOddsProvider>
         <StatusBar style="light" />
         <Stack
           screenOptions={{
@@ -22,12 +23,12 @@ export default function RootLayout() {
           <Stack.Screen
             name="hotel/[id]"
             options={{
-              title: 'StayScore Breakdown',
+              title: `${BRAND.name} Breakdown`,
               headerBackTitle: 'Back',
             }}
           />
         </Stack>
-      </StayScoreProvider>
+      </StayOddsProvider>
     </SafeAreaProvider>
   );
 }

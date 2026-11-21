@@ -6,21 +6,52 @@ export interface HotelScores {
   value: number;
 }
 
-export interface BookingSubscores {
-  staff: number;
-  cleanliness: number;
-  comfort: number;
-  facilities: number;
-  location: number;
-  value: number;
+export interface EditorialRating {
+  sourceName: string;
+  sourceUrl: string;
+  rawScore?: string;
+  normalized100: number;
+  takeaway?: string;
+  verifiedAt?: string;
 }
 
-export interface ChannelBenchmark {
-  source: string;
-  category: string;
-  score: string;
-  normalized100: number | null;
-  takeaway: string;
+export interface LinkedYoutubeReview {
+  creatorName: string;
+  sourceUrl: string;
+  sentiment?: 'Recommended' | 'Mixed' | 'Pass' | string;
+  takeaway?: string;
+  publishedAt?: string;
+}
+
+export interface OfficialAward {
+  label: string;
+  sourceUrl: string;
+  year?: string;
+}
+
+export interface VerifiedGuestSource {
+  google?: {
+    rating: number;
+    reviewCount?: number | null;
+    verifiedAt?: string;
+  } | null;
+  licensed?: {
+    sourceName: string;
+    rating?: number;
+    scale?: number;
+    reviewCount?: number | null;
+    normalized100: number;
+    attribution?: string;
+    verifiedAt?: string;
+  } | null;
+}
+
+export interface BookingLink {
+  channelType: 'ota_affiliate' | 'direct_brand' | 'luxury_advisor_vip' | string;
+  partnerName: string;
+  url: string;
+  perksSummary?: string;
+  priority?: number;
 }
 
 export interface HotelShort {
@@ -28,25 +59,6 @@ export interface HotelShort {
   title: string;
   url: string;
   viewsText?: string;
-}
-
-export interface HotelConsensus {
-  overallIndex: number;
-  greatStayChance: number;
-  agreement: string;
-  spread: number | null;
-  oursIncluded?: boolean;
-  googleRating: number;
-  googleReviews: number;
-  criticScore: number;
-  bookingOverall: number;
-  tripadvisorRating?: number;
-  award?: string;
-  sources?: string[];
-  otherReviewersSay?: string;
-  whereWeDiffer?: string;
-  bookingSubscores?: BookingSubscores;
-  channelBenchmarks?: ChannelBenchmark[];
 }
 
 export interface Hotel {
@@ -64,6 +76,7 @@ export interface Hotel {
   inLiveFeed?: boolean;
   visitedByUs?: boolean;
   coverageType: 'Full Review' | 'Short Tour' | 'Global Directory' | string;
+  tier?: 'first_hand_verified' | 'short_preview' | 'global_directory' | string;
   thumbnail: string;
   scores: HotelScores | null;
   overall: number | null;
@@ -71,8 +84,13 @@ export interface Hotel {
   standout: string;
   watchOut: string;
   bookingUrl: string;
+  bookingLinks?: BookingLink[];
   shorts?: HotelShort[];
-  consensus: HotelConsensus;
+  verifiedGuest?: VerifiedGuestSource | null;
+  editorialRatings?: EditorialRating[];
+  youtubeReviews?: LinkedYoutubeReview[];
+  officialAwards?: OfficialAward[];
+  redFlags?: string[];
 }
 
 export interface VideoItem {
