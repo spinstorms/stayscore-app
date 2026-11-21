@@ -65,8 +65,19 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
     };
   }, [hotel.id, hotel.googlePlaceId]);
 
+  // Only feed live Google into scoring when status === 'ok' and rating is a real number
+  const validLiveGoogle =
+    liveGoogle && liveGoogle.status === 'ok' && typeof liveGoogle.rating === 'number'
+      ? {
+          rating: liveGoogle.rating,
+          reviewCount: liveGoogle.reviewCount,
+          googleMapsUri: liveGoogle.googleMapsUri,
+          fetchedAt: liveGoogle.fetchedAt,
+        }
+      : null;
+
   // If Nuitée licensed guest score exists, keep it in main calculation or merge live Google cleanly
-  const o = computeStayOdds(hotel, !hotel.verifiedGuest?.licensed ? liveGoogle : null);
+  const o = computeStayOdds(hotel, !hotel.verifiedGuest?.licensed ? validLiveGoogle : null);
   const palette = getTonePalette(o.statusTone);
   const videoUrl = getHotelVideoUrl(hotel);
   const s = hotel.scores;
@@ -130,12 +141,12 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
               <Text style={styles.kpiBig}>
                 {o.verifiedGuest
                   ? `${o.verifiedGuest.rating.toFixed(1)}/${o.verifiedGuest.scale}`
-                  : liveGoogle
-                  ? `${liveGoogle.rating.toFixed(1)}★`
+                  : validLiveGoogle
+                  ? `${validLiveGoogle.rating.toFixed(1)}★`
                   : '—'}
               </Text>
               <Text style={styles.kpiLabel}>
-                {o.verifiedGuest ? o.verifiedGuest.sourceName : liveGoogle ? 'Google Live' : 'Guest Score'}
+                {o.verifiedGuest ? o.verifiedGuest.sourceName : validLiveGoogle ? 'Google Live' : 'Guest Score'}
               </Text>
             </View>
           </View>
@@ -221,16 +232,29 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
           />
         </View>
 
-        {liveGoogle ? (
+        {validLiveGoogle ? (
+          <Pressable
+            style={styles.googleStrip}
+            onPress={() => validLiveGoogle.googleMapsUri && openExternalUrl(validLiveGoogle.googleMapsUri)}
+          >
+            <View style={{ flex: 1, paddingRight: 8 }}>
+              <Text style={styles.googleStripText}>
+                Live Google Rating: {validLiveGoogle.rating.toFixed(1)} ★
+                {validLiveGoogle.reviewCount ? ` (${validLiveGoogle.reviewCount.toLocaleString()} reviews)` : ''}
+              </Text>
+              <Text style={[styles.googleAttr, { marginTop: 2, fontWeight: '500' }]}>
+                {liveGoogle?.policyNotice || 'Reviews are not verified by Google.'}
+              </Text>
+            </View>
+            <Text style={styles.googleAttr}>Powered by Google</Text>
+          </Pressable>
+        ) : liveGoogle && liveGoogle.googleMapsUri ? (
           <Pressable
             style={styles.googleStrip}
             onPress={() => liveGoogle.googleMapsUri && openExternalUrl(liveGoogle.googleMapsUri)}
           >
-            <Text style={styles.googleStripText}>
-              Live Google Rating: {liveGoogle.rating.toFixed(1)} ★
-              {liveGoogle.reviewCount ? ` (${liveGoogle.reviewCount.toLocaleString()} reviews)` : ''}
-            </Text>
-            <Text style={styles.googleAttr}>Powered by Google</Text>
+            <Text style={styles.googleStripText}>Check live reviews on Google Maps ↗</Text>
+            <Text style={styles.googleAttr}>Google Maps</Text>
           </Pressable>
         ) : null}
 

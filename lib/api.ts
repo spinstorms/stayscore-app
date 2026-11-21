@@ -18,13 +18,15 @@ export interface StayOddsPayload {
 }
 
 export interface LiveGoogleRating {
+  status: 'ok' | 'cap_reached' | 'unavailable';
   placeId: string;
-  rating: number;
+  rating: number | null;
   scale: number;
-  normalized100: number;
+  normalized100: number | null;
   reviewCount: number | null;
   googleMapsUri?: string | null;
   attribution: string;
+  policyNotice?: string;
   fetchedAt: string;
 }
 
@@ -239,17 +241,66 @@ export async function fetchStayOddsData(): Promise<StayOddsPayload> {
  */
 export async function fetchLiveGoogleRating(placeId?: string | null): Promise<LiveGoogleRating | null> {
   if (!placeId) return null;
+  const fallbackMapsUrl = `https://www.google.com/maps/place/?q=place_id:${encodeURIComponent(placeId)}`;
   try {
     const res = await fetch(
       `${BRAND.liveGoogleEdgeUrl}?place_id=${encodeURIComponent(placeId)}`,
       { headers: { Accept: 'application/json' } }
     );
-    if (!res.ok) return null;
+    if (!res.ok) {
+      return {
+        status: 'unavailable',
+        placeId,
+        rating: null,
+        scale: 5,
+        normalized100: null,
+        reviewCount: null,
+        googleMapsUri: fallbackMapsUrl,
+        attribution: 'Google Maps',
+        policyNotice: '',
+        fetchedAt: new Date().toISOString(),
+      };
+    }
     const data = await res.json();
-    if (typeof data.rating !== 'number') return null;
-    return data as LiveGoogleRating;
+    if (data.status !== 'ok' || typeof data.rating !== 'number') {
+      return {
+        status: data.status === 'cap_reached' ? 'cap_reached' : 'unavailable',
+        placeId,
+        rating: null,
+        scale: 5,
+        normalized100: null,
+        reviewCount: null,
+        googleMapsUri: data.googleMapsUri || fallbackMapsUrl,
+        attribution: 'Google Maps',
+        policyNotice: '',
+        fetchedAt: new Date().toISOString(),
+      };
+    }
+    return {
+      status: 'ok',
+      placeId,
+      rating: data.rating,
+      scale: 5,
+      normalized100: data.normalized100 ?? Math.round(data.rating * 20),
+      reviewCount: typeof data.reviewCount === 'number' ? data.reviewCount : null,
+      googleMapsUri: data.googleMapsUri || fallbackMapsUrl,
+      attribution: data.attribution || 'Powered by Google',
+      policyNotice: data.policyNotice || 'Reviews are not verified by Google.',
+      fetchedAt: data.fetchedAt || new Date().toISOString(),
+    };
   } catch {
-    return null;
+    return {
+      status: 'unavailable',
+      placeId,
+      rating: null,
+      scale: 5,
+      normalized100: null,
+      reviewCount: null,
+      googleMapsUri: fallbackMapsUrl,
+      attribution: 'Google Maps',
+      policyNotice: '',
+      fetchedAt: new Date().toISOString(),
+    };
   }
 }
 
