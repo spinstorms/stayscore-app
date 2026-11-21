@@ -5,7 +5,7 @@ import { BRAND } from './brand';
 import type { AffiliateDeal, Hotel, VideoItem } from './types';
 
 export const LIVE_BASE_URL = BRAND.liveApiBaseUrl;
-const CACHE_KEY = 'stayodds_supabase_cache_v3';
+const CACHE_KEY = 'stayodds_supabase_cache_v4';
 
 export interface StayOddsPayload {
   hotels: Hotel[];

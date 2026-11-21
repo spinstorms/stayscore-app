@@ -151,8 +151,8 @@ export default function CompareScreen() {
               `${BRAND.name} Odds`,
               oddsA?.greatStayOdds,
               oddsB?.greatStayOdds,
-              oddsA?.greatStayOdds != null ? `${oddsA.greatStayOdds}%` : 'Pending API',
-              oddsB?.greatStayOdds != null ? `${oddsB.greatStayOdds}%` : 'Pending API',
+              oddsA?.greatStayOdds != null ? `${oddsA.greatStayOdds}%` : 'Live',
+              oddsB?.greatStayOdds != null ? `${oddsB.greatStayOdds}%` : 'Live',
               side
             )}
             {renderMetricRow(
@@ -169,10 +169,10 @@ export default function CompareScreen() {
               oddsB?.guest100,
               oddsA?.verifiedGuest
                 ? `${oddsA.verifiedGuest.rating.toFixed(1)} / ${oddsA.verifiedGuest.scale}`
-                : 'Phase 1B API',
+                : 'Live Google',
               oddsB?.verifiedGuest
                 ? `${oddsB.verifiedGuest.rating.toFixed(1)} / ${oddsB.verifiedGuest.scale}`
-                : 'Phase 1B API',
+                : 'Live Google',
               side
             )}
             {renderMetricRow(

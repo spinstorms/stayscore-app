@@ -203,6 +203,15 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
             suffix="/100"
             color={Colors.accent}
           />
+          {o.firstHand && o.critic100 != null ? (
+            <ScoreBar
+              label={`Critics & Official Awards (${o.officialAwards.length + o.editorialRatings.length} sourced)`}
+              value={o.critic100}
+              max={100}
+              suffix="/100"
+              color={Colors.amber}
+            />
+          ) : null}
           <ScoreBar
             label={`${o.opinionGap.rightLabel} (${o.opinionGap.rightDisplay})`}
             value={o.opinionGap.right100 || 0}
