@@ -47,7 +47,7 @@ export function StayOddsProvider({ children }: { children: React.ReactNode }) {
       setDeals(data.deals);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to reach StayOdds live feed.');
+      setError(err instanceof Error ? err.message : 'Unable to load StayOdds right now.');
     } finally {
       setLoading(false);
       setRefreshing(false);

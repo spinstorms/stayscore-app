@@ -129,7 +129,7 @@ export default function WatchScreen() {
             {videos.length} Full Reviews & {shorts.length} Travel Shorts
           </Text>
           <Text style={styles.bannerSub}>
-            Live-synced automatically every time we publish a new hotel tour, flight review, or camera test.
+            Personally curated episodes from The Uncharted Itinerary — hotel tours, flight reviews, and camera tests.
           </Text>
         </View>
         <Pressable
