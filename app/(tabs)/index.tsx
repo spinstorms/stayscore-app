@@ -135,24 +135,34 @@ export default function StayOddsHomeScreen() {
           <View style={styles.pillar}>
             <Text style={styles.pillarLbl}>First-Hand ({o.weights.firstHand}%)</Text>
             <Text style={[styles.pillarVal, o.firstHand && { color: Colors.accent }]}>
-              {o.firstHand ? `${formatPersonalScore(h.overall)}/5` : o.visited ? 'Short' : 'Unvisited'}
+              {o.firstHand ? `${formatPersonalScore(h.overall)}/5` : o.visited ? 'Short' : 'Global'}
             </Text>
           </View>
           <View style={styles.pillar}>
-            <Text style={styles.pillarLbl}>Critics ({o.weights.critics}%)</Text>
-            <Text style={styles.pillarVal}>
-              {o.critic100 != null ? `${o.critic100}/100` : '0 linked'}
-            </Text>
-          </View>
-          <View style={styles.pillar}>
-            <Text style={styles.pillarLbl}>Live Guests ({o.weights.guests}%)</Text>
+            <Text style={styles.pillarLbl}>Guests ({o.weights.guests}%)</Text>
             <Text style={[styles.pillarVal, o.verifiedGuest && { color: Colors.googleGreen }]}>
               {o.verifiedGuest
                 ? `${o.verifiedGuest.rating.toFixed(1)}/${o.verifiedGuest.scale}`
-                : 'Phase 1B'}
+                : 'Live Detail'}
             </Text>
           </View>
+          <View style={styles.pillar}>
+            <Text style={styles.pillarLbl}>Opinion Gap</Text>
+            <Text style={styles.pillarVal}>{o.opinionGap.deltaLabel}</Text>
+          </View>
         </View>
+
+        {o.keyFacts.length > 0 ? (
+          <View style={styles.factsStrip}>
+            {o.keyFacts.slice(0, 2).map((kf) => (
+              <View key={kf.label} style={styles.factChip}>
+                <Text style={styles.factChipText} numberOfLines={1}>
+                  {kf.label}: {kf.value}
+                </Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
       </Pressable>
     );
   };
@@ -360,4 +370,15 @@ const styles = StyleSheet.create({
   },
   pillarLbl: { fontSize: 9.5, fontWeight: '700', color: Colors.inkMuted },
   pillarVal: { fontSize: 12, fontWeight: '800', color: Colors.inkPrimary, marginTop: 2 },
+  factsStrip: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  factChip: {
+    backgroundColor: Colors.bgWarm,
+    borderWidth: 1,
+    borderColor: Colors.accentBorder,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    maxWidth: '100%',
+  },
+  factChipText: { fontSize: 11, fontWeight: '600', color: Colors.inkSecondary },
 });

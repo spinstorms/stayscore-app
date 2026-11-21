@@ -5,7 +5,7 @@ import { BRAND } from './brand';
 import type { AffiliateDeal, Hotel, VideoItem } from './types';
 
 export const LIVE_BASE_URL = BRAND.liveApiBaseUrl;
-const CACHE_KEY = 'stayodds_live_cache_v2';
+const CACHE_KEY = 'stayodds_supabase_cache_v3';
 
 export interface StayOddsPayload {
   hotels: Hotel[];
@@ -17,58 +17,36 @@ export interface StayOddsPayload {
   updatedAt: string;
 }
 
-async function fetchJson<T>(path: string): Promise<T> {
+export interface LiveGoogleRating {
+  placeId: string;
+  rating: number;
+  scale: number;
+  normalized100: number;
+  reviewCount: number | null;
+  googleMapsUri?: string | null;
+  attribution: string;
+  fetchedAt: string;
+}
+
+async function sbSelect<T>(table: string, select = '*'): Promise<T[]> {
+  const url = `${BRAND.supabaseUrl}/rest/v1/${table}?select=${encodeURIComponent(select)}&limit=1000`;
+  const res = await fetch(url, {
+    headers: {
+      apikey: BRAND.supabasePublishableKey,
+      Authorization: `Bearer ${BRAND.supabasePublishableKey}`,
+      Accept: 'application/json',
+    },
+  });
+  if (!res.ok) throw new Error(`Supabase ${table} HTTP ${res.status}`);
+  return (await res.json()) as T[];
+}
+
+async function fetchLiveJson<T>(path: string): Promise<T> {
   const res = await fetch(`${LIVE_BASE_URL}${path}?v=${Date.now()}`, {
     headers: { Accept: 'application/json' },
   });
   if (!res.ok) throw new Error(`HTTP ${res.status} for ${path}`);
   return (await res.json()) as T;
-}
-
-/**
- * Defensive sanitizer: guarantees legacy unverified/estimated external scores
- * can NEVER enter the app even if fetched before a remote deploy finishes.
- */
-function sanitizeHotelRecord(raw: Record<string, any>, visitedByUs: boolean): Hotel {
-  const rated = visitedByUs && raw.overall != null && raw.scores != null;
-  const bookingUrl = typeof raw.bookingUrl === 'string' ? raw.bookingUrl : '';
-  return {
-    id: String(raw.id || ''),
-    name: String(raw.name || ''),
-    location: String(raw.location || ''),
-    country: String(raw.country || ''),
-    region: String(raw.region || 'Global'),
-    lat: Number(raw.lat || 0),
-    lng: Number(raw.lng || 0),
-    brand: String(raw.brand || ''),
-    priceRange: visitedByUs ? raw.priceRange : undefined,
-    reviewedDate: raw.reviewedDate,
-    videoId: visitedByUs ? raw.videoId : undefined,
-    inLiveFeed: visitedByUs ? Boolean(raw.inLiveFeed) : false,
-    visitedByUs,
-    coverageType: visitedByUs
-      ? raw.coverageType || (rated ? 'Full Review' : 'Short Tour')
-      : 'Global Directory',
-    tier: rated ? 'first_hand_verified' : visitedByUs ? 'short_preview' : 'global_directory',
-    thumbnail: String(raw.thumbnail || ''),
-    scores: rated ? raw.scores : null,
-    overall: rated ? Number(raw.overall) : null,
-    verdict: String(raw.verdict || ''),
-    standout: String(raw.standout || ''),
-    watchOut: String(raw.watchOut || ''),
-    bookingUrl,
-    bookingLinks: Array.isArray(raw.bookingLinks)
-      ? raw.bookingLinks
-      : bookingUrl
-      ? [{ channelType: 'ota_affiliate', partnerName: 'Booking.com', url: bookingUrl, priority: 1 }]
-      : [],
-    shorts: visitedByUs && Array.isArray(raw.shorts) ? raw.shorts : [],
-    verifiedGuest: raw.verifiedGuest || null,
-    editorialRatings: Array.isArray(raw.editorialRatings) ? raw.editorialRatings : [],
-    youtubeReviews: Array.isArray(raw.youtubeReviews) ? raw.youtubeReviews : [],
-    officialAwards: Array.isArray(raw.officialAwards) ? raw.officialAwards : [],
-    redFlags: Array.isArray(raw.redFlags) ? raw.redFlags : [],
-  };
 }
 
 export async function loadCachedData(): Promise<StayOddsPayload | null> {
@@ -80,44 +58,199 @@ export async function loadCachedData(): Promise<StayOddsPayload | null> {
   }
 }
 
+/**
+ * Fetches live 250-hotel directory directly from Supabase Postgres (public RLS read),
+ * paired with live-synced YouTube episodes & Google Sheet deals.
+ */
 export async function fetchStayOddsData(): Promise<StayOddsPayload> {
-  const [visitedRes, worldRes, videosRes, affRes] = await Promise.all([
-    fetchJson<{ updatedAt?: string; hotels?: Record<string, any>[] }>('/data/hotels.json'),
-    fetchJson<{ hotels?: Record<string, any>[] }>('/data/world-hotels.json').catch(() => ({
-      hotels: [],
-    })),
-    fetchJson<{ videos?: VideoItem[]; shorts?: VideoItem[] }>('/data/videos.json').catch(() => ({
-      videos: [],
-      shorts: [],
-    })),
-    fetchJson<{ curated?: AffiliateDeal[]; fromVideos?: AffiliateDeal[] }>(
-      '/data/affiliates.json'
-    ).catch(() => ({
-      curated: [],
-      fromVideos: [],
-    })),
-  ]);
+  const [props, facts, fhReviews, licensedScores, awards, editorial, ytReviews, bookingLinks, videosRes, affRes] =
+    await Promise.all([
+      sbSelect<Record<string, any>>('properties'),
+      sbSelect<Record<string, any>>('property_facts').catch(() => []),
+      sbSelect<Record<string, any>>('first_hand_reviews').catch(() => []),
+      sbSelect<Record<string, any>>('licensed_guest_scores').catch(() => []),
+      sbSelect<Record<string, any>>('official_awards').catch(() => []),
+      sbSelect<Record<string, any>>('editorial_ratings').catch(() => []),
+      sbSelect<Record<string, any>>('youtube_reviews').catch(() => []),
+      sbSelect<Record<string, any>>('booking_links').catch(() => []),
+      fetchLiveJson<{ videos?: VideoItem[]; shorts?: VideoItem[] }>('/data/videos.json').catch(() => ({
+        videos: [],
+        shorts: [],
+      })),
+      fetchLiveJson<{ curated?: AffiliateDeal[]; fromVideos?: AffiliateDeal[] }>(
+        '/data/affiliates.json'
+      ).catch(() => ({ curated: [], fromVideos: [] })),
+    ]);
 
-  const visitedHotels: Hotel[] = (visitedRes.hotels || []).map((h) => sanitizeHotelRecord(h, true));
-  const visitedIds = new Set(visitedHotels.map((h) => h.id));
-  const visitedNames = new Set(visitedHotels.map((h) => h.name.toLowerCase()));
+  const factMap = new Map(facts.map((r) => [String(r.property_id), r]));
+  const fhMap = new Map(fhReviews.map((r) => [String(r.property_id), r]));
+  const guestMap = new Map(licensedScores.map((r) => [String(r.property_id), r]));
 
-  const worldHotels: Hotel[] = (worldRes.hotels || [])
-    .filter((h) => !visitedIds.has(String(h.id)) && !visitedNames.has(String(h.name || '').toLowerCase()))
-    .map((h) => sanitizeHotelRecord(h, false));
+  const awardsMap = new Map<string, any[]>();
+  awards.forEach((r) => {
+    const k = String(r.property_id);
+    awardsMap.set(k, [
+      ...(awardsMap.get(k) || []),
+      {
+        awardBody: r.award_body,
+        label: r.label,
+        year: r.award_year,
+        normalized100: r.normalized_100,
+        sourceUrl: r.source_url,
+      },
+    ]);
+  });
 
+  const edMap = new Map<string, any[]>();
+  editorial.forEach((r) => {
+    const k = String(r.property_id);
+    edMap.set(k, [
+      ...(edMap.get(k) || []),
+      {
+        sourceName: r.source_name,
+        sourceUrl: r.source_url,
+        rawScore: r.raw_score,
+        normalized100: r.normalized_100,
+        takeaway: r.takeaway,
+      },
+    ]);
+  });
+
+  const ytMap = new Map<string, any[]>();
+  ytReviews.forEach((r) => {
+    const k = String(r.property_id);
+    ytMap.set(k, [
+      ...(ytMap.get(k) || []),
+      {
+        creatorName: r.creator_name,
+        sourceUrl: r.source_url,
+        sentiment: r.sentiment,
+        takeaway: r.takeaway,
+      },
+    ]);
+  });
+
+  const bkMap = new Map<string, any[]>();
+  bookingLinks.forEach((r) => {
+    const k = String(r.property_id);
+    bkMap.set(k, [
+      ...(bkMap.get(k) || []),
+      {
+        channelType: r.channel_type,
+        partnerName: r.partner_name,
+        url: r.url,
+        mobileAllowed: Boolean(r.mobile_allowed),
+        perksSummary: r.perks_summary,
+        priority: r.priority,
+      },
+    ]);
+  });
+
+  const hotels: Hotel[] = props.map((p) => {
+    const id = String(p.id);
+    const f = factMap.get(id) || {};
+    const fh = fhMap.get(id);
+    const gs = guestMap.get(id);
+    const links = (bkMap.get(id) || []).sort((a, b) => (a.priority || 1) - (b.priority || 1));
+    // Mobile Booking Compliance: prefer mobileAllowed link (StayOdds SEO web page or VIP/mobile-approved partner)
+    const mobileBooking =
+      links.find((l) => l.mobileAllowed)?.url || `${LIVE_BASE_URL}/stayodds/${id}/`;
+
+    const rated = Boolean(fh && fh.overall_score != null);
+    return {
+      id,
+      name: String(p.name || ''),
+      location: String(p.city || ''),
+      country: String(p.country || ''),
+      region: String(p.region || 'Global'),
+      lat: Number(p.lat || 0),
+      lng: Number(p.lng || 0),
+      brand: String(p.brand || ''),
+      priceRange: p.price_tier || undefined,
+      reviewedDate: fh?.reviewed_date || undefined,
+      videoId: fh?.youtube_video_id || undefined,
+      inLiveFeed: Boolean(fh?.in_live_feed),
+      visitedByUs: Boolean(p.visited_by_founder),
+      coverageType: fh?.coverage_type || 'Global Directory',
+      tier: p.tier || 'global_directory',
+      googlePlaceId: p.google_place_id || null,
+      thumbnail: String(p.hero_image_url || ''),
+      scores: rated && fh
+        ? {
+            rooms: Number(fh.rooms_score),
+            grounds: Number(fh.grounds_score),
+            food: Number(fh.food_score),
+            service: Number(fh.service_score),
+            value: Number(fh.value_score),
+          }
+        : null,
+      overall: rated && fh ? Number(fh.overall_score) : null,
+      verdict: String(fh?.verdict || ''),
+      whereWeDiffer: String(fh?.where_we_differ || ''),
+      standout: String(f.standout || ''),
+      watchOut: String(f.watch_out || ''),
+      keyFacts: {
+        poolHeating: f.pool_heating || undefined,
+        beachOrReef: f.beach_or_reef || undefined,
+        renovationYear: f.renovation_year || null,
+        transferLogistics: f.transfer_logistics || undefined,
+      },
+      redFlags: Array.isArray(f.red_flag_tags) ? f.red_flag_tags : [],
+      bookingUrl: mobileBooking,
+      bookingLinks: links,
+      shorts: Array.isArray(fh?.shorts) ? fh.shorts : [],
+      verifiedGuest: gs
+        ? {
+            licensed: {
+              sourceName: 'Verified Guests',
+              rating: Number(gs.rating),
+              scale: Number(gs.scale || 10),
+              normalized100: Number(gs.normalized_100),
+              reviewCount: gs.review_count != null ? Number(gs.review_count) : null,
+              attribution: gs.attribution || 'Verified Guest Score',
+              verifiedAt: gs.verified_at,
+            },
+          }
+        : null,
+      editorialRatings: edMap.get(id) || [],
+      youtubeReviews: ytMap.get(id) || [],
+      officialAwards: awardsMap.get(id) || [],
+    };
+  });
+
+  const visitedCount = hotels.filter((h) => h.visitedByUs).length;
   const payload: StayOddsPayload = {
-    hotels: [...visitedHotels, ...worldHotels],
-    visitedCount: visitedHotels.length,
-    worldCount: worldHotels.length,
+    hotels,
+    visitedCount,
+    worldCount: hotels.length - visitedCount,
     videos: videosRes.videos || [],
     shorts: videosRes.shorts || [],
     deals: [...(affRes.curated || []), ...(affRes.fromVideos || [])],
-    updatedAt: visitedRes.updatedAt || new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   };
 
   AsyncStorage.setItem(CACHE_KEY, JSON.stringify(payload)).catch(() => {});
   return payload;
+}
+
+/**
+ * ToS-compliant on-demand live Google Places rating fetch for Detail screens ONLY.
+ * Never cached permanently in Postgres or AsyncStorage.
+ */
+export async function fetchLiveGoogleRating(placeId?: string | null): Promise<LiveGoogleRating | null> {
+  if (!placeId) return null;
+  try {
+    const res = await fetch(
+      `${BRAND.liveGoogleEdgeUrl}?place_id=${encodeURIComponent(placeId)}`,
+      { headers: { Accept: 'application/json' } }
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (typeof data.rating !== 'number') return null;
+    return data as LiveGoogleRating;
+  } catch {
+    return null;
+  }
 }
 
 export async function openExternalUrl(url: string) {

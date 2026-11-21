@@ -6,6 +6,13 @@ export interface HotelScores {
   value: number;
 }
 
+export interface KeyFacts {
+  poolHeating?: string;
+  beachOrReef?: string;
+  renovationYear?: number | null;
+  transferLogistics?: string;
+}
+
 export interface EditorialRating {
   sourceName: string;
   sourceUrl: string;
@@ -24,15 +31,18 @@ export interface LinkedYoutubeReview {
 }
 
 export interface OfficialAward {
+  awardBody?: string;
   label: string;
   sourceUrl: string;
   year?: string;
+  normalized100?: number | null;
 }
 
 export interface VerifiedGuestSource {
   google?: {
     rating: number;
     reviewCount?: number | null;
+    googleMapsUri?: string | null;
     verifiedAt?: string;
   } | null;
   licensed?: {
@@ -50,6 +60,7 @@ export interface BookingLink {
   channelType: 'ota_affiliate' | 'direct_brand' | 'luxury_advisor_vip' | string;
   partnerName: string;
   url: string;
+  mobileAllowed?: boolean;
   perksSummary?: string;
   priority?: number;
 }
@@ -77,12 +88,15 @@ export interface Hotel {
   visitedByUs?: boolean;
   coverageType: 'Full Review' | 'Short Tour' | 'Global Directory' | string;
   tier?: 'first_hand_verified' | 'short_preview' | 'global_directory' | string;
+  googlePlaceId?: string | null;
   thumbnail: string;
   scores: HotelScores | null;
   overall: number | null;
   verdict: string;
+  whereWeDiffer?: string;
   standout: string;
   watchOut: string;
+  keyFacts?: KeyFacts;
   bookingUrl: string;
   bookingLinks?: BookingLink[];
   shorts?: HotelShort[];

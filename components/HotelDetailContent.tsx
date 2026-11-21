@@ -1,8 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { getHotelVideoUrl, openExternalUrl } from '../lib/api';
+import { fetchLiveGoogleRating, getHotelVideoUrl, LiveGoogleRating, openExternalUrl } from '../lib/api';
 import { BRAND } from '../lib/brand';
 import { formatPersonalScore } from '../lib/layout';
 import { computeStayOdds, getTonePalette } from '../lib/scoring';
@@ -50,8 +50,23 @@ function ScoreBar({
 export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
   const router = useRouter();
   const { pushToCompare } = useStayOdds();
+  const [liveGoogle, setLiveGoogle] = useState<LiveGoogleRating | null>(null);
 
-  const o = computeStayOdds(hotel);
+  useEffect(() => {
+    let active = true;
+    setLiveGoogle(null);
+    if (hotel.googlePlaceId) {
+      fetchLiveGoogleRating(hotel.googlePlaceId).then((res) => {
+        if (active && res) setLiveGoogle(res);
+      });
+    }
+    return () => {
+      active = false;
+    };
+  }, [hotel.id, hotel.googlePlaceId]);
+
+  // If Nuitée licensed guest score exists, keep it in main calculation or merge live Google cleanly
+  const o = computeStayOdds(hotel, !hotel.verifiedGuest?.licensed ? liveGoogle : null);
   const palette = getTonePalette(o.statusTone);
   const videoUrl = getHotelVideoUrl(hotel);
   const s = hotel.scores;
@@ -97,33 +112,35 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
           <View style={styles.kpiGrid}>
             <View style={[styles.kpiTile, { backgroundColor: palette.soft, borderColor: palette.border }]}>
               <Text style={[styles.kpiBig, { color: palette.color }]}>
-                {o.greatStayOdds != null ? `${o.greatStayOdds}%` : 'Pending'}
+                {o.greatStayOdds != null ? `${o.greatStayOdds}%` : 'Live'}
               </Text>
               <Text style={styles.kpiLabel}>{o.statusBadge}</Text>
             </View>
             <View style={styles.kpiTile}>
-              <Text style={styles.kpiBig}>
-                {o.overallIndex != null ? `${o.overallIndex}/100` : '—'}
-              </Text>
-              <Text style={styles.kpiLabel}>{BRAND.name} Index</Text>
+              <Text style={styles.kpiBig}>{o.opinionGap.deltaLabel}</Text>
+              <Text style={styles.kpiLabel}>Opinion Gap</Text>
             </View>
             <View style={styles.kpiTile}>
               <Text style={styles.kpiBig}>
-                {o.firstHand ? `${formatPersonalScore(hotel.overall)}/5` : o.visited ? 'Short' : '—'}
+                {o.firstHand ? `${formatPersonalScore(hotel.overall)}/5` : o.visited ? 'Short' : 'Global'}
               </Text>
               <Text style={styles.kpiLabel}>First-Hand</Text>
             </View>
             <View style={styles.kpiTile}>
               <Text style={styles.kpiBig}>
-                {o.verifiedGuest ? `${o.verifiedGuest.rating.toFixed(1)}/${o.verifiedGuest.scale}` : 'API'}
+                {o.verifiedGuest
+                  ? `${o.verifiedGuest.rating.toFixed(1)}/${o.verifiedGuest.scale}`
+                  : liveGoogle
+                  ? `${liveGoogle.rating.toFixed(1)}★`
+                  : '—'}
               </Text>
               <Text style={styles.kpiLabel}>
-                {o.verifiedGuest ? o.verifiedGuest.sourceName : 'Phase 1B Live'}
+                {o.verifiedGuest ? o.verifiedGuest.sourceName : liveGoogle ? 'Google Live' : 'Guest Score'}
               </Text>
             </View>
           </View>
 
-          {/* Primary Actions */}
+          {/* Primary Actions (Mobile-Compliant Booking Routing) */}
           <View style={styles.actionRow}>
             {hotel.bookingUrl ? (
               <Pressable
@@ -154,10 +171,109 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
             <Ionicons name="git-compare-outline" size={15} color={Colors.accentDark} />
             <Text style={styles.btnCompareText}>Compare Head-to-Head</Text>
           </Pressable>
+
+          <View style={styles.vipBox}>
+            <Ionicons name="sparkles-outline" size={14} color={Colors.inkSecondary} />
+            <Text style={styles.vipText}>
+              VIP Luxury Advisor Perks slot ready — complimentary breakfast, resort credit &amp; upgrades coming soon.
+            </Text>
+          </View>
         </View>
       </View>
 
-      {/* Dynamic Confidence-Weighted Formula Card */}
+      {/* RESTORED: Dual-Mode Consensus & Opinion Gap Card */}
+      <View style={[styles.sectionCard, styles.gapCard, { borderLeftColor: palette.ring }]}>
+        <View style={styles.gapHeader}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.sectionEyebrow}>OPINION GAP • HYPE VS. REALITY</Text>
+            <Text style={styles.sectionTitle}>{o.opinionGap.title}</Text>
+            <Text style={styles.gapHeadline}>{o.opinionGap.headline}</Text>
+          </View>
+          <View style={styles.deltaBadge}>
+            <Text style={styles.deltaBig}>{o.opinionGap.deltaLabel}</Text>
+            <Text style={styles.deltaSub}>DELTA</Text>
+          </View>
+        </View>
+
+        <View style={{ marginTop: 12, gap: 10 }}>
+          <ScoreBar
+            label={`${o.opinionGap.leftLabel} (${o.opinionGap.leftDisplay})`}
+            value={o.opinionGap.left100 || 0}
+            max={100}
+            suffix="/100"
+            color={Colors.accent}
+          />
+          <ScoreBar
+            label={`${o.opinionGap.rightLabel} (${o.opinionGap.rightDisplay})`}
+            value={o.opinionGap.right100 || 0}
+            max={100}
+            suffix="/100"
+            color={Colors.teal}
+          />
+        </View>
+
+        {liveGoogle ? (
+          <Pressable
+            style={styles.googleStrip}
+            onPress={() => liveGoogle.googleMapsUri && openExternalUrl(liveGoogle.googleMapsUri)}
+          >
+            <Text style={styles.googleStripText}>
+              Live Google Rating: {liveGoogle.rating.toFixed(1)} ★
+              {liveGoogle.reviewCount ? ` (${liveGoogle.reviewCount.toLocaleString()} reviews)` : ''}
+            </Text>
+            <Text style={styles.googleAttr}>Powered by Google</Text>
+          </Pressable>
+        ) : null}
+
+        {o.firstHand && o.opinionGap.narrative ? (
+          <Text style={styles.gapNarrative}>
+            <Text style={{ fontWeight: '800' }}>Why our take matches or differs: </Text>
+            {o.opinionGap.narrative}
+          </Text>
+        ) : null}
+      </View>
+
+      {/* RESTORED: Structured Middle Key Facts Panel (Verified Specs Only) */}
+      <View style={[styles.sectionCard, styles.keyFactsCard]}>
+        <Text style={styles.sectionEyebrow}>KEY HOTEL FACTS</Text>
+        <Text style={styles.sectionTitle}>Verified Specs &amp; Decision Details</Text>
+        {o.keyFacts.length > 0 ? (
+          <View style={styles.factsGrid}>
+            {o.keyFacts.map((kf) => (
+              <View key={kf.label} style={styles.factTile}>
+                <Text style={styles.factLabel}>{kf.label}</Text>
+                <Text style={styles.factValue}>{kf.value}</Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
+
+        {o.redFlags.length > 0 ? (
+          <View style={styles.flagsRow}>
+            {o.redFlags.map((flag) => (
+              <View key={flag} style={styles.flagChip}>
+                <Ionicons name="warning-outline" size={12} color={Colors.amber} />
+                <Text style={styles.flagText}>{flag}</Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
+
+        {hotel.standout ? (
+          <>
+            <Text style={[styles.noteHead, { color: Colors.teal, marginTop: 12 }]}>Standout Strengths</Text>
+            <Text style={styles.noteText}>{hotel.standout}</Text>
+          </>
+        ) : null}
+        {hotel.watchOut ? (
+          <>
+            <Text style={[styles.noteHead, { color: Colors.amber, marginTop: 10 }]}>Watch-Outs Before Booking</Text>
+            <Text style={styles.noteText}>{hotel.watchOut}</Text>
+          </>
+        ) : null}
+      </View>
+
+      {/* Dynamic Formula Card */}
       <View style={styles.sectionCard}>
         <Text style={styles.sectionEyebrow}>TRANSPARENT FORMULA</Text>
         <Text style={styles.sectionTitle}>How This {BRAND.name} Score Is Weighted</Text>
@@ -173,16 +289,16 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
           </View>
           <View style={styles.weightBox}>
             <Text style={styles.weightPct}>{o.weights.critics}%</Text>
-            <Text style={styles.weightLbl}>Sourced Critics</Text>
+            <Text style={styles.weightLbl}>Critics &amp; Awards</Text>
             <Text style={styles.weightVal}>
-              {o.critic100 != null ? `${o.critic100}/100` : '0 linked'}
+              {o.critic100 != null ? `${o.critic100}/100` : '0 sourced'}
             </Text>
           </View>
           <View style={styles.weightBox}>
             <Text style={styles.weightPct}>{o.weights.guests}%</Text>
-            <Text style={styles.weightLbl}>Live Guests</Text>
+            <Text style={styles.weightLbl}>Verified Guests</Text>
             <Text style={styles.weightVal}>
-              {o.guest100 != null ? `${o.guest100}/100` : 'Phase 1B'}
+              {o.guest100 != null ? `${o.guest100}/100` : 'Live'}
             </Text>
           </View>
         </View>
@@ -207,21 +323,41 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
             </Text>
             <Text style={styles.noticeText}>
               {o.visited
-                ? `${BRAND.foundingContributor} filmed quick Shorts at ${hotel.name} without assigning a full 5-axis stay scorecard yet.`
-                : `${BRAND.foundingContributor} has not filmed a first-hand stay at ${hotel.name} yet. Live Google Places & licensed guest feeds connect in Phase 1B.`}
+                ? `${BRAND.foundingContributor} filmed quick Shorts here without assigning a full 5-axis stay scorecard yet.`
+                : `${BRAND.foundingContributor} has not filmed a first-hand stay at ${hotel.name} yet.`}
             </Text>
           </View>
         )}
       </View>
 
-      {/* Separated Layer 1: Structured Editorial Ratings & Official Awards (sourceUrl enforced) */}
+      {/* Separated Layer 1: Official Awards & Editorial Ratings */}
       <View style={styles.sectionCard}>
         <Text style={styles.sectionEyebrow}>SOURCE-URL ENFORCED</Text>
         <Text style={styles.sectionTitle}>
-          Structured Editorial Ratings & Awards ({o.editorialRatings.length + o.officialAwards.length})
+          Official Awards &amp; Editorial Ratings ({o.editorialRatings.length + o.officialAwards.length})
         </Text>
         {o.editorialRatings.length > 0 || o.officialAwards.length > 0 ? (
           <View style={{ marginTop: 10, gap: 10 }}>
+            {o.officialAwards.map((aw, idx) => (
+              <Pressable
+                key={`${aw.label}-${idx}`}
+                style={styles.sourceRow}
+                onPress={() => openExternalUrl(aw.sourceUrl)}
+              >
+                <Ionicons name="ribbon" size={16} color={Colors.amber} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.sourceTitle}>
+                    {aw.label} {aw.year ? `(${aw.year})` : ''} ↗
+                  </Text>
+                  {aw.awardBody ? <Text style={styles.sourceBody}>{aw.awardBody}</Text> : null}
+                </View>
+                {aw.normalized100 ? (
+                  <View style={styles.sourceScorePill}>
+                    <Text style={styles.sourceScoreText}>{aw.normalized100}/100</Text>
+                  </View>
+                ) : null}
+              </Pressable>
+            ))}
             {o.editorialRatings.map((item, idx) => (
               <Pressable
                 key={`${item.sourceName}-${idx}`}
@@ -239,27 +375,15 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
                 </View>
               </Pressable>
             ))}
-            {o.officialAwards.map((aw, idx) => (
-              <Pressable
-                key={`${aw.label}-${idx}`}
-                style={styles.sourceRow}
-                onPress={() => openExternalUrl(aw.sourceUrl)}
-              >
-                <Ionicons name="ribbon" size={16} color={Colors.amber} />
-                <Text style={[styles.sourceTitle, { flex: 1 }]}>
-                  {aw.label} {aw.year ? `(${aw.year})` : ''} ↗
-                </Text>
-              </Pressable>
-            ))}
           </View>
         ) : (
           <Text style={styles.emptyNotice}>
-            Zero unlinked editorial scores shown. Every editorial rating or official award added in Phase 1B requires a verified source URL.
+            Zero unlinked critic scores shown. Every editorial rating or official award requires a verified source URL.
           </Text>
         )}
       </View>
 
-      {/* Separated Layer 2: Linked YouTube Video Reviews (sourceUrl enforced) */}
+      {/* Separated Layer 2: Linked YouTube Video Reviews */}
       <View style={styles.sectionCard}>
         <Text style={styles.sectionEyebrow}>DIRECT VIDEO LINKS</Text>
         <Text style={styles.sectionTitle}>
@@ -296,30 +420,11 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
           ))}
           {!videoUrl && o.youtubeReviews.length === 0 ? (
             <Text style={styles.emptyNotice}>
-              No third-party YouTube video reviews linked yet. Creators are never attributed without a direct verified YouTube link.
+              No YouTube video reviews linked yet. Creators are never attributed without a direct YouTube link.
             </Text>
           ) : null}
         </View>
       </View>
-
-      {/* Standout & Watch-Out */}
-      {(hotel.standout || hotel.watchOut) ? (
-        <View style={styles.sectionCard}>
-          <Text style={styles.sectionEyebrow}>BEFORE YOU BOOK</Text>
-          {hotel.standout ? (
-            <>
-              <Text style={[styles.noteHead, { color: Colors.teal }]}>Standout Highlight</Text>
-              <Text style={styles.noteText}>{hotel.standout}</Text>
-            </>
-          ) : null}
-          {hotel.watchOut ? (
-            <>
-              <Text style={[styles.noteHead, { color: Colors.amber, marginTop: 12 }]}>Honest Caveat</Text>
-              <Text style={styles.noteText}>{hotel.watchOut}</Text>
-            </>
-          ) : null}
-        </View>
-      ) : null}
     </ScrollView>
   );
 }
@@ -395,6 +500,19 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   btnCompareText: { color: Colors.accentDark, fontSize: 13, fontWeight: '800' },
+  vipBox: {
+    marginTop: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    backgroundColor: Colors.bgCanvas,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: Colors.border,
+    padding: 10,
+  },
+  vipText: { flex: 1, fontSize: 11.5, color: Colors.inkSecondary, lineHeight: 16 },
 
   sectionCard: {
     backgroundColor: Colors.bgWhite,
@@ -403,6 +521,71 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     padding: 14,
   },
+  gapCard: { borderLeftWidth: 4.5 },
+  gapHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+  gapHeadline: { fontSize: 13, fontWeight: '700', color: Colors.inkSecondary, marginTop: 4, lineHeight: 18 },
+  deltaBadge: {
+    backgroundColor: Colors.charcoal,
+    borderRadius: 12,
+    paddingHorizontal: 11,
+    paddingVertical: 7,
+    alignItems: 'center',
+    minWidth: 74,
+  },
+  deltaBig: { color: '#FF7849', fontSize: 15, fontWeight: '900' },
+  deltaSub: { color: '#D1D5DB', fontSize: 8.5, fontWeight: '800', letterSpacing: 0.6 },
+  googleStrip: {
+    marginTop: 12,
+    backgroundColor: Colors.googleSoft,
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 8,
+  },
+  googleStripText: { fontSize: 12, fontWeight: '700', color: '#14532D', flex: 1 },
+  googleAttr: { fontSize: 10, fontWeight: '800', color: '#4B5563' },
+  gapNarrative: {
+    marginTop: 12,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: Colors.borderSoft,
+    fontSize: 13,
+    color: Colors.inkPrimary,
+    lineHeight: 19,
+  },
+
+  keyFactsCard: { backgroundColor: Colors.bgWarm, borderColor: Colors.accentBorder },
+  factsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
+  factTile: {
+    minWidth: '47%',
+    flex: 1,
+    backgroundColor: Colors.bgWhite,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.borderSoft,
+    padding: 10,
+  },
+  factLabel: { fontSize: 9.5, fontWeight: '800', color: Colors.inkMuted, textTransform: 'uppercase' },
+  factValue: { fontSize: 12.5, fontWeight: '700', color: Colors.inkPrimary, marginTop: 3 },
+  flagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10 },
+  flagChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: Colors.amberSoft,
+    borderWidth: 1,
+    borderColor: Colors.amberBorder,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  flagText: { fontSize: 11, fontWeight: '800', color: Colors.amber },
+
   sectionEyebrow: { fontSize: 10, fontWeight: '800', color: Colors.accent, letterSpacing: 0.8 },
   sectionTitle: { fontSize: 16.5, fontWeight: '800', color: Colors.inkPrimary, marginTop: 2 },
   sectionSub: { fontSize: 12.5, color: Colors.inkSecondary, marginTop: 4, lineHeight: 18 },
@@ -423,8 +606,8 @@ const styles = StyleSheet.create({
 
   barRow: { gap: 4 },
   barTop: { flexDirection: 'row', justifyContent: 'space-between' },
-  barLabel: { fontSize: 13, fontWeight: '600', color: Colors.inkSecondary },
-  barVal: { fontSize: 13, fontWeight: '800', color: Colors.inkPrimary },
+  barLabel: { fontSize: 12.5, fontWeight: '600', color: Colors.inkSecondary, flex: 1, paddingRight: 8 },
+  barVal: { fontSize: 12.5, fontWeight: '800', color: Colors.inkPrimary },
   barTrack: { height: 8, borderRadius: 999, backgroundColor: Colors.bgCanvas, overflow: 'hidden' },
   barFill: { height: '100%', borderRadius: 999 },
 
@@ -460,6 +643,6 @@ const styles = StyleSheet.create({
   sourceScoreText: { color: '#FFFFFF', fontSize: 12, fontWeight: '800' },
 
   emptyNotice: { fontSize: 12.5, color: Colors.inkMuted, marginTop: 8, lineHeight: 18 },
-  noteHead: { fontSize: 11.5, fontWeight: '800', textTransform: 'uppercase', marginTop: 6 },
+  noteHead: { fontSize: 11.5, fontWeight: '800', textTransform: 'uppercase' },
   noteText: { fontSize: 13, color: Colors.inkPrimary, marginTop: 3, lineHeight: 19 },
 });
