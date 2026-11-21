@@ -216,7 +216,7 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
           />
           {o.firstHand && o.critic100 != null ? (
             <ScoreBar
-              label={`Critics & Official Awards (${o.officialAwards.length + o.editorialRatings.length} sourced)`}
+              label={`Published Critics (${o.editorialRatings.filter((e) => e.normalized100 != null).map((e) => e.sourceName).join(', ')})`}
               value={o.critic100}
               max={100}
               suffix="/100"
@@ -260,13 +260,13 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
 
         {o.firstHand && o.opinionGap.narrative ? (
           <Text style={styles.gapNarrative}>
-            <Text style={{ fontWeight: '800' }}>Why our take matches or differs: </Text>
+            <Text style={{ fontWeight: '800' }}>What I Liked &amp; Where My Take Differs: </Text>
             {o.opinionGap.narrative}
           </Text>
         ) : null}
       </View>
 
-      {/* RESTORED: Structured Middle Key Facts Panel (Verified Specs Only) */}
+      {/* Structured Middle Key Facts Panel (Verified Specs Only) */}
       <View style={[styles.sectionCard, styles.keyFactsCard]}>
         <Text style={styles.sectionEyebrow}>KEY HOTEL FACTS</Text>
         <Text style={styles.sectionTitle}>Verified Specs &amp; Decision Details</Text>
@@ -306,25 +306,25 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
         ) : null}
       </View>
 
-      {/* Dynamic Formula Card */}
+      {/* Weighting Card */}
       <View style={styles.sectionCard}>
-        <Text style={styles.sectionEyebrow}>TRANSPARENT FORMULA</Text>
+        <Text style={styles.sectionEyebrow}>TRANSPARENT WEIGHTING</Text>
         <Text style={styles.sectionTitle}>How This {BRAND.name} Score Is Weighted</Text>
         <Text style={styles.sectionSub}>{o.formulaSummary}</Text>
 
         <View style={styles.weightGrid}>
           <View style={styles.weightBox}>
             <Text style={styles.weightPct}>{o.weights.firstHand}%</Text>
-            <Text style={styles.weightLbl}>First-Hand</Text>
+            <Text style={styles.weightLbl}>My Stay</Text>
             <Text style={styles.weightVal}>
               {o.ours100 != null ? `${o.ours100}/100` : 'Unrated'}
             </Text>
           </View>
           <View style={styles.weightBox}>
             <Text style={styles.weightPct}>{o.weights.critics}%</Text>
-            <Text style={styles.weightLbl}>Critics &amp; Awards</Text>
+            <Text style={styles.weightLbl}>Published Critics</Text>
             <Text style={styles.weightVal}>
-              {o.critic100 != null ? `${o.critic100}/100` : '0 sourced'}
+              {o.critic100 != null ? `${o.critic100}/100` : '—'}
             </Text>
           </View>
           <View style={styles.weightBox}>
@@ -337,17 +337,17 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
         </View>
       </View>
 
-      {/* First-Hand 5-Axis Scorecard */}
+      {/* First-Hand 5-Category Scorecard (/25) */}
       <View style={styles.sectionCard}>
-        <Text style={styles.sectionEyebrow}>TIER 1 • FOUNDING CONTRIBUTOR</Text>
-        <Text style={styles.sectionTitle}>First-Hand 5-Axis Scorecard</Text>
+        <Text style={styles.sectionEyebrow}>TIER 1 • MY STAY SCORECARD</Text>
+        <Text style={styles.sectionTitle}>My 5-Category Scorecard ({o.opinionGap.leftDisplay})</Text>
         {o.firstHand && s ? (
           <View style={{ marginTop: 10, gap: 10 }}>
-            <ScoreBar label="Rooms & Villas" value={s.rooms} max={5} suffix=" / 5" color={Colors.accent} whole />
-            <ScoreBar label="Grounds, Pools & Beach" value={s.grounds} max={5} suffix=" / 5" color={Colors.accent} whole />
-            <ScoreBar label="Food & Breakfast" value={s.food} max={5} suffix=" / 5" color={Colors.accent} whole />
-            <ScoreBar label="Service & Hospitality" value={s.service} max={5} suffix=" / 5" color={Colors.accent} whole />
-            <ScoreBar label="Value for Money" value={s.value} max={5} suffix=" / 5" color={Colors.accent} whole />
+            <ScoreBar label="Value" value={s.value} max={5} suffix=" / 5" color={Colors.accent} whole />
+            <ScoreBar label="Room Quality" value={s.rooms} max={5} suffix=" / 5" color={Colors.accent} whole />
+            <ScoreBar label="Vibe" value={s.grounds} max={5} suffix=" / 5" color={Colors.accent} whole />
+            <ScoreBar label="Food" value={s.food} max={5} suffix=" / 5" color={Colors.accent} whole />
+            <ScoreBar label="Service" value={s.service} max={5} suffix=" / 5" color={Colors.accent} whole />
           </View>
         ) : (
           <View style={styles.noticeBox}>
@@ -356,18 +356,18 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
             </Text>
             <Text style={styles.noticeText}>
               {o.visited
-                ? `${BRAND.foundingContributor} filmed quick Shorts here without assigning a full 5-axis stay scorecard yet.`
+                ? `${BRAND.foundingContributor} filmed quick Shorts here without assigning a full /25 stay scorecard yet.`
                 : `${BRAND.foundingContributor} has not filmed a first-hand stay at ${hotel.name} yet.`}
             </Text>
           </View>
         )}
       </View>
 
-      {/* Separated Layer 1: Official Awards & Editorial Ratings */}
+      {/* Separated Layer 1: Official Awards & Editorial Reviews */}
       <View style={styles.sectionCard}>
-        <Text style={styles.sectionEyebrow}>SOURCE-URL ENFORCED</Text>
+        <Text style={styles.sectionEyebrow}>DIRECTLY SOURCED</Text>
         <Text style={styles.sectionTitle}>
-          Official Awards &amp; Editorial Ratings ({o.editorialRatings.length + o.officialAwards.length})
+          Official Awards &amp; Editorial Reviews ({o.editorialRatings.length + o.officialAwards.length})
         </Text>
         {o.editorialRatings.length > 0 || o.officialAwards.length > 0 ? (
           <View style={{ marginTop: 10, gap: 10 }}>
@@ -384,11 +384,9 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
                   </Text>
                   {aw.awardBody ? <Text style={styles.sourceBody}>{aw.awardBody}</Text> : null}
                 </View>
-                {aw.normalized100 ? (
-                  <View style={styles.sourceScorePill}>
-                    <Text style={styles.sourceScoreText}>{aw.normalized100}/100</Text>
-                  </View>
-                ) : null}
+                <View style={styles.sourceScorePill}>
+                  <Text style={styles.sourceScoreText}>Official Award</Text>
+                </View>
               </Pressable>
             ))}
             {o.editorialRatings.map((item, idx) => (
@@ -403,7 +401,7 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
                 </View>
                 <View style={styles.sourceScorePill}>
                   <Text style={styles.sourceScoreText}>
-                    {item.rawScore || `${item.normalized100}/100`}
+                    {item.normalized100 != null ? (item.rawScore || `${item.normalized100}/100`) : 'Review ↗'}
                   </Text>
                 </View>
               </Pressable>
