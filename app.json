@@ -6,7 +6,7 @@
     "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "stayodds",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.stayodds.app",
@@ -20,7 +20,7 @@
       "package": "com.stayodds.app",
       "versionCode": 1,
       "adaptiveIcon": {
-        "backgroundColor": "#0B0E14",
+        "backgroundColor": "#071323",
         "foregroundImage": "./assets/images/android-icon-foreground.png"
       },
       "edgeToEdgeEnabled": true,
@@ -38,7 +38,7 @@
         {
           "image": "./assets/images/splash-icon.png",
           "resizeMode": "contain",
-          "backgroundColor": "#0B0E14"
+          "backgroundColor": "#071323"
         }
       ]
     ],

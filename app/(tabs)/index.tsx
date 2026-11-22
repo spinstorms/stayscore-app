@@ -93,9 +93,8 @@ export default function StayOddsHomeScreen() {
       >
         <View style={styles.cardHeroWrap}>
           <Image source={{ uri: h.thumbnail }} style={styles.cardHeroImg} resizeMode="cover" />
-          <View style={styles.cardHeroScrim} />
 
-          {/* Top overlay badges */}
+          {/* Top overlay: tier pill + floating white-and-orange StayOdds ring */}
           <View style={styles.cardHeroTop}>
             <View style={styles.topLeftPills}>
               <View style={styles.rankBadge}>
@@ -105,24 +104,21 @@ export default function StayOddsHomeScreen() {
                 style={[
                   styles.heroTag,
                   {
-                    backgroundColor: o.firstHand ? 'rgba(217, 169, 89, 0.92)' : 'rgba(11, 14, 20, 0.78)',
-                    borderColor: o.firstHand ? Colors.accent : 'rgba(255,255,255,0.18)',
+                    backgroundColor: o.firstHand ? Colors.accent : 'rgba(15, 23, 42, 0.78)',
                   },
                 ]}
               >
-                <Text
-                  style={[
-                    styles.heroTagText,
-                    { color: o.firstHand ? Colors.accentInk : Colors.inkPrimary },
-                  ]}
-                >
-                  {o.tierLabel}
-                </Text>
+                <Text style={styles.heroTagText}>{o.tierLabel}</Text>
               </View>
             </View>
 
-            <View style={[styles.ring, { borderColor: palette.ring }]}>
-              <Text style={[styles.ringPct, { color: palette.color }]}>
+            <View
+              style={[
+                styles.ring,
+                { borderColor: o.greatStayOdds != null ? Colors.accent : palette.ring },
+              ]}
+            >
+              <Text style={styles.ringPct}>
                 {o.greatStayOdds != null ? `${o.greatStayOdds}%` : topAward ? '★' : '—'}
               </Text>
               <Text style={styles.ringLabel}>
@@ -131,72 +127,68 @@ export default function StayOddsHomeScreen() {
             </View>
           </View>
 
-          {/* Bottom title overlay */}
-          <View style={styles.cardHeroBottom}>
+          {/* Bottom frosted light glass overlay panel (Option 3 signature) */}
+          <View style={styles.cardBottomOverlay}>
             {topAward ? (
               <View style={styles.awardPill}>
-                <Ionicons name="ribbon-outline" size={11} color={Colors.accent} />
+                <Ionicons name="ribbon-outline" size={11} color="#FFFFFF" />
                 <Text style={styles.awardPillText} numberOfLines={1}>
                   {topAward}
                 </Text>
               </View>
             ) : null}
-            <Text style={styles.hotelName} numberOfLines={2}>
-              {h.name}
-            </Text>
-            <Text style={styles.hotelLoc} numberOfLines={1}>
-              {h.location}, {h.country}
-              {h.brand ? ` • ${h.brand}` : ''}
-            </Text>
-          </View>
-        </View>
 
-        <View style={styles.cardFooter}>
-          <View style={styles.pillarRow}>
-            <View style={styles.pillar}>
-              <Text style={styles.pillarLbl}>My Stay</Text>
-              <Text style={[styles.pillarVal, o.firstHand && { color: Colors.accent }]}>
-                {o.personalScore25 != null
-                  ? `${o.personalScore25}/25`
-                  : o.firstHand
-                  ? `${formatPersonalScore(h.overall)}/5`
-                  : o.visited
-                  ? 'Short'
-                  : 'Directory'}
-              </Text>
-            </View>
-            <View style={styles.pillar}>
-              <Text style={styles.pillarLbl}>Guests</Text>
-              <Text style={[styles.pillarVal, o.verifiedGuest && { color: Colors.googleGreen }]}>
-                {o.verifiedGuest
-                  ? `${o.verifiedGuest.rating.toFixed(1)}/${o.verifiedGuest.scale}`
-                  : 'Live Detail'}
-              </Text>
-            </View>
-            <View style={styles.pillar}>
-              <Text style={styles.pillarLbl}>Opinion Gap</Text>
-              <Text style={styles.pillarVal}>{o.opinionGap.deltaLabel}</Text>
-            </View>
-          </View>
+            <View style={styles.frostedInfoBox}>
+              <View style={styles.frostedTopRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.hotelName} numberOfLines={1}>
+                    {h.name}
+                  </Text>
+                  <Text style={styles.hotelLoc} numberOfLines={1}>
+                    {h.location}, {h.country}
+                    {h.brand ? ` • ${h.brand}` : ''}
+                  </Text>
+                </View>
+                <Pressable
+                  onPress={(e) => {
+                    e.stopPropagation?.();
+                    openExternalUrl(getTripAdvisorUrl(h));
+                  }}
+                  style={styles.taChip}
+                >
+                  <Text style={styles.taChipText}>TripAdvisor</Text>
+                  <Ionicons name="open-outline" size={11} color={Colors.inkSecondary} />
+                </Pressable>
+              </View>
 
-          <View style={[styles.factsStrip, { alignItems: 'center' }]}>
-            {o.keyFacts.slice(0, 2).map((kf) => (
-              <View key={kf.label} style={styles.factChip}>
-                <Text style={styles.factChipText} numberOfLines={1}>
-                  {kf.label}: {kf.value}
+              <View style={styles.frostedStatsRow}>
+                <Text style={styles.statText}>
+                  <Text style={styles.statBold}>
+                    {o.personalScore25 != null
+                      ? `${o.personalScore25}/25`
+                      : o.firstHand
+                      ? `${formatPersonalScore(h.overall)}/5`
+                      : o.visited
+                      ? 'Short'
+                      : 'Global'}
+                  </Text>{' '}
+                  {o.firstHand ? 'My Stay' : 'Tier'}
+                </Text>
+                <Text style={styles.statDot}>•</Text>
+                <Text style={styles.statText}>
+                  <Text style={[styles.statBold, o.verifiedGuest && { color: Colors.teal }]}>
+                    {o.verifiedGuest
+                      ? `${o.verifiedGuest.rating.toFixed(1)}/${o.verifiedGuest.scale}`
+                      : 'Live'}
+                  </Text>{' '}
+                  Guests
+                </Text>
+                <Text style={styles.statDot}>•</Text>
+                <Text style={styles.statText}>
+                  <Text style={styles.statBold}>{o.opinionGap.deltaLabel}</Text>
                 </Text>
               </View>
-            ))}
-            <Pressable
-              onPress={(e) => {
-                e.stopPropagation?.();
-                openExternalUrl(getTripAdvisorUrl(h));
-              }}
-              style={styles.taChip}
-            >
-              <Text style={styles.taChipText}>TripAdvisor</Text>
-              <Ionicons name="open-outline" size={11} color={Colors.inkSecondary} />
-            </Pressable>
+            </View>
           </View>
         </View>
       </Pressable>
@@ -204,46 +196,43 @@ export default function StayOddsHomeScreen() {
   };
 
   const listHeader = (
-    <View style={styles.headerBlock}>
+    <View style={styles.navyHeaderPanel}>
+      <View style={styles.searchWrap}>
+        <Ionicons name="search" size={17} color="rgba(255,255,255,0.68)" />
+        <TextInput
+          value={search}
+          onChangeText={setSearch}
+          placeholder={`Search ${BRAND.name}: Maldives, Bali, Four Seasons...`}
+          placeholderTextColor="rgba(255,255,255,0.58)"
+          style={styles.searchInput}
+          returnKeyType="search"
+        />
+        {search ? (
+          <Pressable onPress={() => setSearch('')}>
+            <Ionicons name="close-circle" size={17} color="rgba(255,255,255,0.75)" />
+          </Pressable>
+        ) : null}
+      </View>
+
       <View style={styles.scopeBar}>
         {(
           [
             ['all', `All (${hotels.length})`],
             ['visited', `First-Hand (${visitedCount})`],
             ['world', `Global (${worldCount})`],
-          ] as [Scope, string][]
-        ).map(([key, label]) => {
-          const isActive = scope === key;
-          return (
-            <Pressable
-              key={key}
-              onPress={() => {
-                setScope(key);
-                setRegion('All');
-              }}
-              style={[styles.scopeBtn, isActive && styles.scopeBtnActive]}
-            >
-              <Text style={[styles.scopeText, isActive && styles.scopeTextActive]}>{label}</Text>
-            </Pressable>
-          );
-        })}
-      </View>
-
-      <View style={styles.searchWrap}>
-        <Ionicons name="search" size={16} color={Colors.inkMuted} />
-        <TextInput
-          value={search}
-          onChangeText={setSearch}
-          placeholder={`Search ${BRAND.name}: Maldives, Bali, Four Seasons...`}
-          placeholderTextColor={Colors.inkMuted}
-          style={styles.searchInput}
-          returnKeyType="search"
-        />
-        {search ? (
-          <Pressable onPress={() => setSearch('')}>
-            <Ionicons name="close-circle" size={17} color={Colors.inkMuted} />
+          ] as const
+        ).map(([val, lbl]) => (
+          <Pressable
+            key={val}
+            onPress={() => {
+              setScope(val);
+              setRegion('All');
+            }}
+            style={[styles.scopeBtn, scope === val && styles.scopeBtnActive]}
+          >
+            <Text style={[styles.scopeText, scope === val && styles.scopeTextActive]}>{lbl}</Text>
           </Pressable>
-        ) : null}
+        ))}
       </View>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.regionRow}>
@@ -315,76 +304,81 @@ const styles = StyleSheet.create({
   splitLeft: { width: '44%', minWidth: 320, borderRightWidth: 1, borderRightColor: Colors.border },
   splitRight: { flex: 1 },
 
-  listContent: { padding: 14, gap: 16, paddingBottom: 34 },
-  headerBlock: { gap: 11, marginBottom: 4 },
+  listContent: { paddingBottom: 34, gap: 14 },
 
-  scopeBar: {
-    flexDirection: 'row',
-    backgroundColor: Colors.bgWhite,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: 999,
-    padding: 4,
-    gap: 4,
+  navyHeaderPanel: {
+    backgroundColor: Colors.navy,
+    paddingHorizontal: 14,
+    paddingTop: 6,
+    paddingBottom: 18,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    gap: 11,
+    marginBottom: 4,
   },
-  scopeBtn: { flex: 1, paddingVertical: 8, borderRadius: 999, alignItems: 'center' },
-  scopeBtnActive: { backgroundColor: Colors.accent },
-  scopeText: { fontSize: 11.5, fontWeight: '700', color: Colors.inkSecondary },
-  scopeTextActive: { color: Colors.accentInk },
-
   searchWrap: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: Colors.bgWhite,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
     paddingHorizontal: 13,
-    paddingVertical: 11,
+    paddingVertical: 10,
   },
-  searchInput: { flex: 1, fontSize: 14, color: Colors.inkPrimary },
+  searchInput: { flex: 1, fontSize: 14, color: '#FFFFFF' },
+
+  scopeBar: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 999,
+    padding: 3,
+    gap: 4,
+  },
+  scopeBtn: { flex: 1, paddingVertical: 7, borderRadius: 999, alignItems: 'center' },
+  scopeBtnActive: { backgroundColor: '#FFFFFF' },
+  scopeText: { fontSize: 11.5, fontWeight: '700', color: 'rgba(255,255,255,0.75)' },
+  scopeTextActive: { color: Colors.navy },
 
   regionRow: { gap: 8, paddingVertical: 2 },
   regionPill: {
     paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: 999,
-    backgroundColor: Colors.bgWhite,
+    backgroundColor: 'rgba(255, 255, 255, 0.09)',
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: 'rgba(255, 255, 255, 0.16)',
   },
   regionPillActive: { backgroundColor: Colors.accent, borderColor: Colors.accent },
-  regionText: { fontSize: 12, fontWeight: '700', color: Colors.inkSecondary },
-  regionTextActive: { color: Colors.accentInk },
+  regionText: { fontSize: 12, fontWeight: '700', color: 'rgba(255,255,255,0.88)' },
+  regionTextActive: { color: '#FFFFFF' },
 
   card: {
+    marginHorizontal: 14,
     backgroundColor: Colors.bgWhite,
-    borderRadius: 20,
+    borderRadius: 22,
     borderWidth: 1,
     borderColor: Colors.border,
     overflow: 'hidden',
+    shadowColor: '#0F172A',
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
   },
   cardSelected: {
     borderColor: Colors.accent,
-    borderWidth: 1.5,
+    borderWidth: 2,
   },
   cardHeroWrap: {
     position: 'relative',
-    height: 196,
-    backgroundColor: Colors.charcoal,
+    height: 256,
+    backgroundColor: Colors.navy,
   },
   cardHeroImg: {
     width: '100%',
     height: '100%',
-  },
-  cardHeroScrim: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(11, 14, 20, 0.42)',
   },
   cardHeroTop: {
     position: 'absolute',
@@ -402,102 +396,85 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   rankBadge: {
-    backgroundColor: 'rgba(11, 14, 20, 0.78)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.16)',
+    backgroundColor: 'rgba(15, 23, 42, 0.78)',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 999,
   },
-  rankBadgeText: { fontSize: 10.5, fontWeight: '800', color: Colors.inkPrimary },
+  rankBadgeText: { fontSize: 10.5, fontWeight: '800', color: '#FFFFFF' },
   heroTag: {
-    paddingHorizontal: 9,
+    paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 999,
-    borderWidth: 1,
   },
-  heroTagText: { fontSize: 10.5, fontWeight: '800', letterSpacing: 0.2 },
+  heroTagText: { fontSize: 10.5, fontWeight: '800', color: '#FFFFFF' },
 
   ring: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    borderWidth: 2.5,
-    backgroundColor: 'rgba(11, 14, 20, 0.84)',
+    borderWidth: 3.5,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  ringPct: { fontSize: 15, fontWeight: '900', lineHeight: 17 },
-  ringLabel: { fontSize: 7.5, fontWeight: '800', color: Colors.inkSecondary, letterSpacing: 0.5 },
+  ringPct: { fontSize: 15, fontWeight: '900', color: Colors.navy, lineHeight: 17 },
+  ringLabel: { fontSize: 7.5, fontWeight: '800', color: Colors.inkMuted, letterSpacing: 0.4 },
 
-  cardHeroBottom: {
+  cardBottomOverlay: {
     position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    backgroundColor: 'rgba(11, 14, 20, 0.72)',
-    gap: 3,
+    left: 10,
+    right: 10,
+    bottom: 10,
+    gap: 6,
   },
   awardPill: {
-    alignSelf: 'flex-start',
+    alignSelf: 'flex-end',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(217, 169, 89, 0.18)',
-    borderWidth: 1,
-    borderColor: 'rgba(217, 169, 89, 0.45)',
+    backgroundColor: Colors.teal,
     borderRadius: 999,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    marginBottom: 2,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
   },
-  awardPillText: { fontSize: 10, fontWeight: '800', color: Colors.accentDark },
-  hotelName: { fontSize: 18, fontWeight: '800', color: '#FFFFFF', letterSpacing: 0.1 },
-  hotelLoc: { fontSize: 12, color: '#D1D5DB', fontWeight: '500' },
+  awardPillText: { fontSize: 10.5, fontWeight: '800', color: '#FFFFFF' },
 
-  cardFooter: {
-    padding: 12,
-    gap: 10,
+  frostedInfoBox: {
+    backgroundColor: 'rgba(255, 255, 255, 0.94)',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 6,
   },
-  pillarRow: {
+  frostedTopRow: {
     flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     gap: 8,
   },
-  pillar: {
-    flex: 1,
-    backgroundColor: Colors.bgCanvas,
-    borderRadius: 11,
-    borderWidth: 1,
-    borderColor: Colors.borderSoft,
-    paddingVertical: 8,
-    paddingHorizontal: 6,
+  hotelName: { fontSize: 16.5, fontWeight: '800', color: Colors.navy },
+  hotelLoc: { fontSize: 11.5, color: Colors.inkSecondary, marginTop: 1 },
+  frostedStatsRow: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,
+    flexWrap: 'wrap',
   },
-  pillarLbl: { fontSize: 9.5, fontWeight: '700', color: Colors.inkMuted, textTransform: 'uppercase', letterSpacing: 0.4 },
-  pillarVal: { fontSize: 12.5, fontWeight: '800', color: Colors.inkPrimary, marginTop: 2 },
-  factsStrip: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  factChip: {
-    backgroundColor: Colors.bgWarm,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: 999,
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    maxWidth: '100%',
-  },
-  factChipText: { fontSize: 11, fontWeight: '600', color: Colors.inkSecondary },
+  statText: { fontSize: 11.5, color: Colors.inkSecondary, fontWeight: '500' },
+  statBold: { fontWeight: '800', color: Colors.navy },
+  statDot: { fontSize: 11, color: Colors.inkMuted },
+
   taChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 3,
     paddingVertical: 4,
-    paddingHorizontal: 9,
+    paddingHorizontal: 8,
     borderRadius: 999,
     borderWidth: 1,
     borderColor: Colors.border,
-    backgroundColor: Colors.bgCanvas,
+    backgroundColor: '#FFFFFF',
   },
-  taChipText: { fontSize: 11, fontWeight: '600', color: Colors.inkSecondary },
+  taChipText: { fontSize: 10.5, fontWeight: '700', color: Colors.inkSecondary },
 });

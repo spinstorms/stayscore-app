@@ -2,19 +2,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { BRAND } from '../../lib/brand';
 import { Colors } from '../../lib/theme';
 
-function BrandHeaderTitle() {
+function StayOddsWordmark() {
   return (
     <View style={styles.brandRow}>
-      <View style={styles.emblemCircle}>
-        <Ionicons name="compass-outline" size={18} color={Colors.accent} />
-      </View>
-      <View>
-        <Text style={styles.brandName}>{BRAND.name}</Text>
-        <Text style={styles.brandSub}>{BRAND.subtitle}</Text>
-      </View>
+      <Text style={styles.wordmark}>
+        StayOdds<Text style={styles.wordmarkDot}>.</Text>
+      </Text>
     </View>
   );
 }
@@ -24,17 +19,15 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerStyle: {
-          backgroundColor: Colors.bgCanvas,
-          borderBottomWidth: 1,
-          borderBottomColor: Colors.borderSoft,
+          backgroundColor: Colors.navy,
         },
-        headerTintColor: Colors.inkPrimary,
+        headerTintColor: '#FFFFFF',
         headerShadowVisible: false,
         headerTitleAlign: 'left',
         tabBarActiveTintColor: Colors.accent,
         tabBarInactiveTintColor: Colors.inkMuted,
         tabBarStyle: {
-          backgroundColor: Colors.charcoal,
+          backgroundColor: '#FFFFFF',
           borderTopColor: Colors.border,
           borderTopWidth: 1,
           height: 64,
@@ -44,7 +37,7 @@ export default function TabsLayout() {
         tabBarLabelStyle: {
           fontSize: 10.5,
           fontWeight: '700',
-          letterSpacing: 0.3,
+          letterSpacing: 0.2,
         },
       }}
     >
@@ -52,9 +45,9 @@ export default function TabsLayout() {
         name="index"
         options={{
           title: 'Explore',
-          headerTitle: () => <BrandHeaderTitle />,
+          headerTitle: () => <StayOddsWordmark />,
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="compass-outline" size={size} color={typeof color === 'string' ? color : Colors.accent} />
+            <Ionicons name="search-outline" size={size} color={typeof color === 'string' ? color : Colors.accent} />
           ),
         }}
       />
@@ -62,7 +55,7 @@ export default function TabsLayout() {
         name="compare"
         options={{
           title: 'Compare',
-          headerTitle: 'Head-to-Head Compare',
+          headerTitle: 'Head-to-Head',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="git-compare-outline" size={size} color={typeof color === 'string' ? color : Colors.accent} />
           ),
@@ -93,28 +86,16 @@ export default function TabsLayout() {
 }
 
 const styles = StyleSheet.create({
-  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  emblemCircle: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: Colors.accentSoft,
-    borderWidth: 1,
-    borderColor: Colors.accentBorder,
-    alignItems: 'center',
-    justifyContent: 'center',
+  brandRow: { flexDirection: 'row', alignItems: 'center' },
+  wordmark: {
+    fontSize: 23,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: -0.6,
   },
-  brandName: {
-    fontSize: 19,
-    fontWeight: '800',
-    color: Colors.inkPrimary,
-    letterSpacing: 0.2,
-    lineHeight: 21,
-  },
-  brandSub: {
-    fontSize: 10.5,
-    fontWeight: '600',
+  wordmarkDot: {
     color: Colors.accent,
-    letterSpacing: 0.3,
+    fontSize: 27,
+    fontWeight: '900',
   },
 });
