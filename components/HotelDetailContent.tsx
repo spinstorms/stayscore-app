@@ -51,6 +51,7 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
   const router = useRouter();
   const { pushToCompare } = useStayOdds();
   const [liveGoogle, setLiveGoogle] = useState<LiveGoogleRating | null>(null);
+  const [showExplainer, setShowExplainer] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -119,17 +120,13 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
           </Text>
           {hotel.verdict ? <Text style={styles.verdict}>{hotel.verdict}</Text> : null}
 
-          {/* 4 Transparent KPI Tiles */}
+          {/* 4 Distinct, Non-Overlapping KPI Tiles */}
           <View style={styles.kpiGrid}>
             <View style={[styles.kpiTile, { backgroundColor: palette.soft, borderColor: palette.border }]}>
               <Text style={[styles.kpiBig, { color: palette.color }]}>
                 {o.greatStayOdds != null ? `${o.greatStayOdds}%` : 'Live'}
               </Text>
-              <Text style={styles.kpiLabel}>{o.statusBadge}</Text>
-            </View>
-            <View style={styles.kpiTile}>
-              <Text style={styles.kpiBig}>{o.opinionGap.deltaLabel}</Text>
-              <Text style={styles.kpiLabel}>Opinion Gap</Text>
+              <Text style={styles.kpiLabel}>StayOdds</Text>
             </View>
             <View style={styles.kpiTile}>
               <Text style={styles.kpiBig}>
@@ -139,22 +136,88 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
                   ? `${formatPersonalScore(hotel.overall)}/5`
                   : o.visited
                   ? 'Short'
-                  : 'Global'}
+                  : '—'}
               </Text>
-              <Text style={styles.kpiLabel}>My Stay</Text>
+              <Text style={styles.kpiLabel}>{o.visited && !o.firstHand ? 'Short Tour' : 'My Stay'}</Text>
+            </View>
+            <View style={styles.kpiTile}>
+              <Text style={styles.kpiBig}>
+                {o.critic100 != null
+                  ? `${o.critic100}/100`
+                  : o.editorialRatings.length > 0
+                  ? `${o.editorialRatings.length} Rev`
+                  : '—'}
+              </Text>
+              <Text style={styles.kpiLabel}>
+                {o.critic100 != null
+                  ? 'Critics'
+                  : o.editorialRatings.length > 0
+                  ? 'Editorial'
+                  : 'Critics'}
+              </Text>
             </View>
             <View style={styles.kpiTile}>
               <Text style={styles.kpiBig}>
                 {o.verifiedGuest
-                  ? `${o.verifiedGuest.rating.toFixed(1)}/${o.verifiedGuest.scale}`
+                  ? o.verifiedGuest.scale === 5
+                    ? `${o.verifiedGuest.rating.toFixed(1)}★`
+                    : `${o.verifiedGuest.rating.toFixed(1)}/${o.verifiedGuest.scale}`
                   : validLiveGoogle
                   ? `${validLiveGoogle.rating.toFixed(1)}★`
                   : '—'}
               </Text>
               <Text style={styles.kpiLabel}>
-                {o.verifiedGuest ? o.verifiedGuest.sourceName : validLiveGoogle ? 'Google Live' : 'Guest Score'}
+                {o.verifiedGuest
+                  ? o.verifiedGuest.reviewCount
+                    ? `${o.verifiedGuest.sourceName} (${o.verifiedGuest.reviewCount.toLocaleString()})`
+                    : o.verifiedGuest.sourceName
+                  : validLiveGoogle
+                  ? validLiveGoogle.reviewCount
+                    ? `Google (${validLiveGoogle.reviewCount.toLocaleString()})`
+                    : 'Google Guests'
+                  : 'Guests'}
               </Text>
             </View>
+          </View>
+
+          {/* Collapsible How StayOdds % Is Calculated Explainer */}
+          <View style={styles.explainerBox}>
+            <Pressable
+              style={styles.explainerHead}
+              onPress={() => setShowExplainer((prev) => !prev)}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
+                <Ionicons name="help-circle-outline" size={15} color={Colors.accent} />
+                <Text style={styles.explainerHeadText}>How is this StayOdds % calculated?</Text>
+              </View>
+              <Ionicons
+                name={showExplainer ? 'chevron-up' : 'chevron-down'}
+                size={15}
+                color={Colors.inkMuted}
+              />
+            </Pressable>
+            {showExplainer ? (
+              <View style={styles.explainerBody}>
+                <View style={styles.explainerEq}>
+                  <Text style={styles.explainerEqText}>{o.equationSummary}</Text>
+                </View>
+                <Text style={styles.explainerBullet}>
+                  • <Text style={styles.explainerStrong}>Zero double-counting:</Text> StayOdds % is purely the weighted average of the independent numeric scores above — never inflated or adjusted by hidden bonuses.
+                </Text>
+                <Text style={styles.explainerBullet}>
+                  • <Text style={styles.explainerStrong}>My Stay (/25):</Text> Our 5-category stay score (Value, Rooms, Vibe, Food, Service — each out of 5, × 4 for 100%).
+                </Text>
+                <Text style={styles.explainerBullet}>
+                  • <Text style={styles.explainerStrong}>Published Critics (/100):</Text> Only critics with a real numeric score. Comments-only reviews (like The Points Guy) and official awards are linked separately without invented numbers.
+                </Text>
+                <Text style={styles.explainerBullet}>
+                  • <Text style={styles.explainerStrong}>Google Guests (/5★):</Text> Live Google guest rating (stars × 20 = 100%).
+                </Text>
+                <Text style={styles.explainerBullet}>
+                  • <Text style={styles.explainerStrong}>Fixed weights:</Text> 40/30/30 (all three) • 55/45 (two with our stay) • 35/65 (Critics + Guests) • 100% (one numeric source).
+                </Text>
+              </View>
+            ) : null}
           </View>
 
           {/* Primary Actions (Mobile-Compliant Booking Routing) */}
@@ -334,29 +397,37 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
       {/* Weighting Card */}
       <View style={styles.sectionCard}>
         <Text style={styles.sectionEyebrow}>TRANSPARENT WEIGHTING</Text>
-        <Text style={styles.sectionTitle}>How This {BRAND.name} Score Is Weighted</Text>
-        <Text style={styles.sectionSub}>{o.formulaSummary}</Text>
+        <Text style={styles.sectionTitle}>How This {BRAND.name} % Is Weighted</Text>
+        <Text style={styles.sectionSub}>{o.equationSummary}</Text>
 
         <View style={styles.weightGrid}>
           <View style={styles.weightBox}>
             <Text style={styles.weightPct}>{o.weights.firstHand}%</Text>
             <Text style={styles.weightLbl}>My Stay</Text>
             <Text style={styles.weightVal}>
-              {o.ours100 != null ? `${o.ours100}/100` : 'Unrated'}
+              {o.ours100 != null
+                ? o.personalScore25 != null
+                  ? `${o.personalScore25}/25 → ${o.ours100}%`
+                  : `${o.ours100}%`
+                : 'Unrated'}
             </Text>
           </View>
           <View style={styles.weightBox}>
             <Text style={styles.weightPct}>{o.weights.critics}%</Text>
             <Text style={styles.weightLbl}>Published Critics</Text>
             <Text style={styles.weightVal}>
-              {o.critic100 != null ? `${o.critic100}/100` : '—'}
+              {o.critic100 != null ? `${o.critic100}%` : '—'}
             </Text>
           </View>
           <View style={styles.weightBox}>
             <Text style={styles.weightPct}>{o.weights.guests}%</Text>
-            <Text style={styles.weightLbl}>Verified Guests</Text>
+            <Text style={styles.weightLbl}>Google Guests</Text>
             <Text style={styles.weightVal}>
-              {o.guest100 != null ? `${o.guest100}/100` : 'Live'}
+              {o.guest100 != null
+                ? o.verifiedGuest
+                  ? `${o.verifiedGuest.rating.toFixed(1)}${o.verifiedGuest.scale === 5 ? '★' : `/${o.verifiedGuest.scale}`} → ${o.guest100}%`
+                  : `${o.guest100}%`
+                : 'Live…'}
             </Text>
           </View>
         </View>
@@ -701,4 +772,59 @@ const styles = StyleSheet.create({
   emptyNotice: { fontSize: 12.5, color: Colors.inkMuted, marginTop: 8, lineHeight: 18 },
   noteHead: { fontSize: 11.5, fontWeight: '800', textTransform: 'uppercase' },
   noteText: { fontSize: 13, color: Colors.inkPrimary, marginTop: 3, lineHeight: 19 },
+
+  explainerBox: {
+    marginTop: 10,
+    marginBottom: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.borderSoft,
+    backgroundColor: Colors.bgCanvas,
+    overflow: 'hidden',
+  },
+  explainerHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  explainerHeadText: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: Colors.inkSecondary,
+  },
+  explainerBody: {
+    paddingHorizontal: 12,
+    paddingBottom: 12,
+    paddingTop: 2,
+    borderTopWidth: 1,
+    borderTopColor: Colors.borderSoft,
+    gap: 6,
+  },
+  explainerEq: {
+    backgroundColor: Colors.bgWhite,
+    borderWidth: 1,
+    borderColor: Colors.accentBorder,
+    borderRadius: 9,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginTop: 8,
+    marginBottom: 2,
+  },
+  explainerEqText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.inkPrimary,
+    lineHeight: 17,
+  },
+  explainerBullet: {
+    fontSize: 11.5,
+    color: Colors.inkSecondary,
+    lineHeight: 17,
+  },
+  explainerStrong: {
+    fontWeight: '700',
+    color: Colors.inkPrimary,
+  },
 });

@@ -54,6 +54,7 @@ export interface StayOddsResult {
     guests: number;
   };
   formulaSummary: string;
+  equationSummary: string;
   opinionGap: OpinionGapModel;
   keyFacts: KeyFactTile[];
   redFlags: string[];
@@ -269,23 +270,40 @@ export function computeStayOdds(
     }
   }
 
+  greatStayOdds = overallIndex;
   if (sourceCount >= 2 && overallIndex != null) {
     isConsensusBadge = true;
     spread100 = Math.max(...activeScores) - Math.min(...activeScores);
     if (spread100 <= 6) {
       statusBadge = 'Strong Agreement';
       statusTone = 'accent';
-      greatStayOdds = Math.min(98, overallIndex + 2);
     } else if (spread100 <= 12) {
       statusBadge = 'Mostly Aligned';
       statusTone = 'teal';
-      greatStayOdds = overallIndex;
     } else {
       statusBadge = 'Opinions Differ';
       statusTone = 'amber';
-      greatStayOdds = Math.max(50, overallIndex - 4);
     }
   }
+
+  const eqParts: string[] = [];
+  if (weights.firstHand > 0 && ours100 != null) {
+    const rawFh = personalScore25 != null ? `${personalScore25}/25 → ` : '';
+    eqParts.push(`${weights.firstHand}% My Stay (${rawFh}${ours100}%)`);
+  }
+  if (weights.critics > 0 && critic100 != null) {
+    eqParts.push(`${weights.critics}% Published Critics (${critic100}%)`);
+  }
+  if (weights.guests > 0 && guest100 != null) {
+    const gRaw = verifiedGuest
+      ? `${verifiedGuest.rating.toFixed(1)}${verifiedGuest.scale === 5 ? '★' : `/${verifiedGuest.scale}`} → `
+      : '';
+    eqParts.push(`${weights.guests}% ${verifiedGuest?.sourceName || 'Guests'} (${gRaw}${guest100}%)`);
+  }
+  const equationSummary =
+    eqParts.length > 0 && greatStayOdds != null
+      ? `${eqParts.join(' + ')} = ${greatStayOdds}% StayOdds`
+      : 'Waiting for live Google guest rating — StayOdds blends whichever verified numeric scores exist.';
 
   const left100 = firstHand ? ours100 : critic100;
   const right100 = guest100;
@@ -367,6 +385,7 @@ export function computeStayOdds(
     statusTone,
     weights,
     formulaSummary,
+    equationSummary,
     opinionGap,
     keyFacts,
     redFlags,

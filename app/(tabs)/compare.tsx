@@ -210,8 +210,8 @@ export default function CompareScreen() {
           </View>
 
           <View style={styles.noteBox}>
-            <Text style={styles.noteTitle}>Formula</Text>
-            <Text style={styles.noteBody}>{o.formulaSummary}</Text>
+            <Text style={styles.noteTitle}>How StayOdds % Is Calculated</Text>
+            <Text style={styles.noteBody}>{o.equationSummary}</Text>
             {hotel.watchOut ? (
               <>
                 <Text style={[styles.noteTitle, { marginTop: 8, color: Colors.amber }]}>Watch-Out</Text>
