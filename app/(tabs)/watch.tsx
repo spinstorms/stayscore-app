@@ -106,7 +106,7 @@ export default function WatchScreen() {
         ) : null}
 
         <View style={styles.watchRow}>
-          <Ionicons name="logo-youtube" size={15} color={isFeatured ? '#FF7849' : '#DC2626'} />
+          <Ionicons name="logo-youtube" size={15} color={isFeatured ? Colors.accent : '#EF4444'} />
           <Text style={[styles.watchCta, isFeatured && { color: '#FFFFFF' }]}>
             Watch Full Episode on YouTube
           </Text>

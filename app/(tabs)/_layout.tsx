@@ -1,14 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { BRAND } from '../../lib/brand';
 import { Colors } from '../../lib/theme';
 
 function BrandHeaderTitle() {
   return (
     <View style={styles.brandRow}>
-      <Image source={require('../../assets/images/icon.png')} style={styles.brandIcon} />
+      <View style={styles.emblemCircle}>
+        <Ionicons name="compass-outline" size={18} color={Colors.accent} />
+      </View>
       <View>
         <Text style={styles.brandName}>{BRAND.name}</Text>
         <Text style={styles.brandSub}>{BRAND.subtitle}</Text>
@@ -21,42 +23,48 @@ export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
-        headerStyle: { backgroundColor: Colors.accent },
-        headerTintColor: '#FFFFFF',
+        headerStyle: {
+          backgroundColor: Colors.bgCanvas,
+          borderBottomWidth: 1,
+          borderBottomColor: Colors.borderSoft,
+        },
+        headerTintColor: Colors.inkPrimary,
         headerShadowVisible: false,
         headerTitleAlign: 'left',
         tabBarActiveTintColor: Colors.accent,
         tabBarInactiveTintColor: Colors.inkMuted,
         tabBarStyle: {
-          backgroundColor: '#FFFFFF',
+          backgroundColor: Colors.charcoal,
           borderTopColor: Colors.border,
-          height: 62,
-          paddingBottom: 8,
-          paddingTop: 6,
+          borderTopWidth: 1,
+          height: 64,
+          paddingBottom: 9,
+          paddingTop: 7,
         },
         tabBarLabelStyle: {
-          fontSize: 11,
+          fontSize: 10.5,
           fontWeight: '700',
+          letterSpacing: 0.3,
         },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: BRAND.name,
+          title: 'Explore',
           headerTitle: () => <BrandHeaderTitle />,
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="compass" size={size} color={typeof color === 'string' ? color : Colors.accent} />
+            <Ionicons name="compass-outline" size={size} color={typeof color === 'string' ? color : Colors.accent} />
           ),
         }}
       />
       <Tabs.Screen
         name="compare"
         options={{
-          title: 'Compare VS',
+          title: 'Compare',
           headerTitle: 'Head-to-Head Compare',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="git-compare" size={size} color={typeof color === 'string' ? color : Colors.accent} />
+            <Ionicons name="git-compare-outline" size={size} color={typeof color === 'string' ? color : Colors.accent} />
           ),
         }}
       />
@@ -64,19 +72,19 @@ export default function TabsLayout() {
         name="watch"
         options={{
           title: 'Watch',
-          headerTitle: 'Episodes & Travel Shorts',
+          headerTitle: 'Episodes & Shorts',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="play-circle" size={size} color={typeof color === 'string' ? color : Colors.accent} />
+            <Ionicons name="play-circle-outline" size={size} color={typeof color === 'string' ? color : Colors.accent} />
           ),
         }}
       />
       <Tabs.Screen
         name="deals"
         options={{
-          title: 'Deals & Gear',
-          headerTitle: 'Travel Deals & Filming Kit',
+          title: 'Deals',
+          headerTitle: 'Travel Perks & Gear',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="pricetag" size={size} color={typeof color === 'string' ? color : Colors.accent} />
+            <Ionicons name="pricetag-outline" size={size} color={typeof color === 'string' ? color : Colors.accent} />
           ),
         }}
       />
@@ -86,13 +94,27 @@ export default function TabsLayout() {
 
 const styles = StyleSheet.create({
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  brandIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.85)',
+  emblemCircle: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: Colors.accentSoft,
+    borderWidth: 1,
+    borderColor: Colors.accentBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  brandName: { fontSize: 18, fontWeight: '800', color: '#FFFFFF', lineHeight: 20 },
-  brandSub: { fontSize: 10.5, fontWeight: '600', color: 'rgba(255,255,255,0.9)' },
+  brandName: {
+    fontSize: 19,
+    fontWeight: '800',
+    color: Colors.inkPrimary,
+    letterSpacing: 0.2,
+    lineHeight: 21,
+  },
+  brandSub: {
+    fontSize: 10.5,
+    fontWeight: '600',
+    color: Colors.accent,
+    letterSpacing: 0.3,
+  },
 });

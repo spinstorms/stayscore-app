@@ -226,7 +226,7 @@ export default function CompareScreen() {
                 style={[styles.btnPrimary, { flex: 1 }]}
                 onPress={() => openExternalUrl(hotel.bookingUrl)}
               >
-                <Ionicons name="bed-outline" size={15} color="#FFFFFF" />
+                <Ionicons name="bed-outline" size={15} color={Colors.accentInk} />
                 <Text style={styles.btnPrimaryText}>Check Live Rates</Text>
               </Pressable>
             ) : null}
@@ -481,25 +481,25 @@ const styles = StyleSheet.create({
   },
   sidePill: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999 },
   sidePillA: { backgroundColor: Colors.accent },
-  sidePillB: { backgroundColor: '#0284C7' },
-  sidePillText: { fontSize: 10.5, fontWeight: '800', color: '#FFFFFF', letterSpacing: 0.5 },
+  sidePillB: { backgroundColor: Colors.teal },
+  sidePillText: { fontSize: 10.5, fontWeight: '800', color: Colors.accentInk, letterSpacing: 0.5 },
   scopeBadge: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999 },
   scopeVisited: { backgroundColor: 'rgba(15, 118, 110, 0.92)' },
-  scopeGlobal: { backgroundColor: 'rgba(25, 27, 31, 0.85)' },
+  scopeGlobal: { backgroundColor: 'rgba(11, 14, 20, 0.84)' },
   scopeBadgeText: { fontSize: 10.5, fontWeight: '700', color: '#FFFFFF' },
   scoreBadge: {
     position: 'absolute',
     bottom: 10,
     right: 10,
-    backgroundColor: 'rgba(255,255,255,0.96)',
-    borderRadius: 12,
+    backgroundColor: 'rgba(11, 14, 20, 0.88)',
+    borderRadius: 14,
     borderWidth: 2,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingHorizontal: 11,
+    paddingVertical: 6,
     alignItems: 'center',
   },
   scoreBadgeNum: { fontSize: 19, fontWeight: '900', lineHeight: 21 },
-  scoreBadgeSub: { fontSize: 8.5, fontWeight: '800', color: Colors.inkMuted, letterSpacing: 0.5 },
+  scoreBadgeSub: { fontSize: 8.5, fontWeight: '800', color: Colors.inkSecondary, letterSpacing: 0.5 },
 
   cardBody: { padding: 14 },
   hotelName: { fontSize: 18, fontWeight: '800', color: Colors.inkPrimary },
@@ -536,7 +536,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.accentBorder,
   },
-  noteTitle: { fontSize: 11, fontWeight: '800', color: Colors.teal, textTransform: 'uppercase' },
+  noteTitle: { fontSize: 11, fontWeight: '800', color: Colors.accent, textTransform: 'uppercase' },
   noteBody: { fontSize: 12.5, color: Colors.inkPrimary, marginTop: 2, lineHeight: 18 },
 
   ctaRow: { flexDirection: 'row', gap: 8, marginTop: 12 },
@@ -547,20 +547,22 @@ const styles = StyleSheet.create({
     gap: 6,
     backgroundColor: Colors.accent,
     paddingVertical: 11,
-    borderRadius: 10,
+    borderRadius: 999,
   },
-  btnPrimaryText: { color: '#FFFFFF', fontSize: 13, fontWeight: '800' },
+  btnPrimaryText: { color: Colors.accentInk, fontSize: 13, fontWeight: '800' },
   btnDark: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 5,
-    backgroundColor: Colors.charcoal,
+    backgroundColor: Colors.charcoalCard,
+    borderWidth: 1,
+    borderColor: Colors.border,
     paddingHorizontal: 14,
     paddingVertical: 11,
-    borderRadius: 10,
+    borderRadius: 999,
   },
-  btnDarkText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
+  btnDarkText: { color: Colors.inkPrimary, fontSize: 13, fontWeight: '700' },
   btnOutline: {
     marginTop: 8,
     flexDirection: 'row',
@@ -571,14 +573,14 @@ const styles = StyleSheet.create({
     borderColor: Colors.accentBorder,
     backgroundColor: Colors.accentSoft,
     paddingVertical: 10,
-    borderRadius: 10,
+    borderRadius: 999,
   },
   btnOutlineText: { color: Colors.accentDark, fontSize: 13, fontWeight: '700' },
 
   emptyBox: { padding: 36, alignItems: 'center' },
   emptyText: { color: Colors.inkMuted, fontSize: 14 },
 
-  modalWrap: { flex: 1, backgroundColor: Colors.bgWhite, paddingTop: 14 },
+  modalWrap: { flex: 1, backgroundColor: Colors.bgCanvas, paddingTop: 14 },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -598,8 +600,8 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    backgroundColor: Colors.bgCanvas,
-    borderRadius: 10,
+    backgroundColor: Colors.bgWhite,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: Colors.border,
   },
@@ -609,13 +611,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 999,
-    backgroundColor: Colors.bgCanvas,
+    backgroundColor: Colors.bgWhite,
     borderWidth: 1,
     borderColor: Colors.border,
   },
   scopeChipActive: { backgroundColor: Colors.accent, borderColor: Colors.accent },
   scopeChipText: { fontSize: 12, fontWeight: '700', color: Colors.inkSecondary },
-  scopeChipTextActive: { color: '#FFFFFF' },
+  scopeChipTextActive: { color: Colors.accentInk },
   pickerItem: {
     flexDirection: 'row',
     alignItems: 'center',

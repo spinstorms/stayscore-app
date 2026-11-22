@@ -69,10 +69,10 @@ export default function DealsScreen() {
     >
       {/* Header Banner */}
       <View style={[styles.banner, { paddingHorizontal: horizontalPadding }]}>
-        <Text style={styles.bannerEyebrow}>LIVE TRAVEL PERKS & FILMING KIT</Text>
-        <Text style={styles.bannerTitle}>Our Active Discount Codes & Gear</Text>
+        <Text style={styles.bannerEyebrow}>PERSONALLY CURATED PERKS &amp; FILMING KIT</Text>
+        <Text style={styles.bannerTitle}>Our Active Discount Codes &amp; Gear</Text>
         <Text style={styles.bannerSub}>
-          Tap any code to copy instantly. Every perk syncs directly from our live sheet so links & offers stay fresh.
+          Tap any code to copy instantly — our hand-picked travel eSIM discounts, points offers, and filming kit.
         </Text>
 
         <View style={styles.segmentWrap}>

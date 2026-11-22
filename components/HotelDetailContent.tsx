@@ -158,7 +158,7 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
                 style={[styles.btnPrimary, { flex: 1 }]}
                 onPress={() => openExternalUrl(hotel.bookingUrl)}
               >
-                <Ionicons name="bed-outline" size={16} color="#FFFFFF" />
+                <Ionicons name="bed-outline" size={16} color={Colors.accentInk} />
                 <Text style={styles.btnPrimaryText}>Check Live Rates</Text>
               </Pressable>
             ) : null}
@@ -523,20 +523,22 @@ const styles = StyleSheet.create({
     gap: 6,
     backgroundColor: Colors.accent,
     paddingVertical: 12,
-    borderRadius: 10,
+    borderRadius: 999,
   },
-  btnPrimaryText: { color: '#FFFFFF', fontSize: 13.5, fontWeight: '800' },
+  btnPrimaryText: { color: Colors.accentInk, fontSize: 13.5, fontWeight: '800' },
   btnDark: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: Colors.charcoal,
-    paddingHorizontal: 14,
+    backgroundColor: Colors.charcoalCard,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    paddingHorizontal: 16,
     paddingVertical: 12,
-    borderRadius: 10,
+    borderRadius: 999,
   },
-  btnDarkText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
+  btnDarkText: { color: Colors.inkPrimary, fontSize: 13, fontWeight: '700' },
   btnCompare: {
     marginTop: 8,
     flexDirection: 'row',
@@ -547,7 +549,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.accentBorder,
     paddingVertical: 10,
-    borderRadius: 10,
+    borderRadius: 999,
   },
   btnCompareText: { color: Colors.accentDark, fontSize: 13, fontWeight: '800' },
   vipBox: {
@@ -556,7 +558,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 7,
     backgroundColor: Colors.bgCanvas,
-    borderRadius: 10,
+    borderRadius: 12,
     borderWidth: 1,
     borderStyle: 'dashed',
     borderColor: Colors.border,
@@ -566,29 +568,31 @@ const styles = StyleSheet.create({
 
   sectionCard: {
     backgroundColor: Colors.bgWhite,
-    borderRadius: 16,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: Colors.border,
     padding: 14,
   },
-  gapCard: { borderLeftWidth: 4.5 },
+  gapCard: { borderLeftWidth: 4 },
   gapHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   gapHeadline: { fontSize: 13, fontWeight: '700', color: Colors.inkSecondary, marginTop: 4, lineHeight: 18 },
   deltaBadge: {
-    backgroundColor: Colors.charcoal,
+    backgroundColor: Colors.bgCanvas,
+    borderWidth: 1,
+    borderColor: Colors.accentBorder,
     borderRadius: 12,
     paddingHorizontal: 11,
     paddingVertical: 7,
     alignItems: 'center',
     minWidth: 74,
   },
-  deltaBig: { color: '#FF7849', fontSize: 15, fontWeight: '900' },
-  deltaSub: { color: '#D1D5DB', fontSize: 8.5, fontWeight: '800', letterSpacing: 0.6 },
+  deltaBig: { color: Colors.accent, fontSize: 15, fontWeight: '900' },
+  deltaSub: { color: Colors.inkMuted, fontSize: 8.5, fontWeight: '800', letterSpacing: 0.6 },
   googleStrip: {
     marginTop: 12,
     backgroundColor: Colors.googleSoft,
     borderWidth: 1,
-    borderColor: '#BBF7D0',
+    borderColor: 'rgba(52, 211, 153, 0.30)',
     borderRadius: 10,
     paddingHorizontal: 10,
     paddingVertical: 8,
@@ -597,8 +601,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  googleStripText: { fontSize: 12, fontWeight: '700', color: '#14532D', flex: 1 },
-  googleAttr: { fontSize: 10, fontWeight: '800', color: '#4B5563' },
+  googleStripText: { fontSize: 12, fontWeight: '700', color: Colors.emerald, flex: 1 },
+  googleAttr: { fontSize: 10, fontWeight: '800', color: Colors.inkSecondary },
   gapNarrative: {
     marginTop: 12,
     paddingTop: 10,

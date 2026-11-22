@@ -84,42 +84,63 @@ export default function StayOddsHomeScreen() {
     const o = computeStayOdds(h);
     const palette = getTonePalette(o.statusTone);
     const active = isSplitScreen && selectedHotel?.id === h.id;
+    const topAward = o.officialAwards?.[0]?.label;
 
     return (
       <Pressable
         onPress={() => handleOpenHotel(h)}
-        style={[styles.card, { borderLeftColor: palette.ring }, active && styles.cardSelected]}
+        style={[styles.card, active && styles.cardSelected]}
       >
-        <View style={styles.cardTop}>
-          <View style={[styles.ring, { borderColor: palette.ring, backgroundColor: palette.soft }]}>
-            <Text style={[styles.ringPct, { color: palette.color }]}>
-              {o.greatStayOdds != null ? `${o.greatStayOdds}%` : '—'}
-            </Text>
-            <Text style={styles.ringLabel}>{o.greatStayOdds != null ? 'ODDS' : 'PENDING'}</Text>
-          </View>
+        <View style={styles.cardHeroWrap}>
+          <Image source={{ uri: h.thumbnail }} style={styles.cardHeroImg} resizeMode="cover" />
+          <View style={styles.cardHeroScrim} />
 
-          <View style={{ flex: 1, gap: 4 }}>
-            <View style={styles.tagLine}>
-              <Text style={styles.rankText}>#{index + 1}</Text>
+          {/* Top overlay badges */}
+          <View style={styles.cardHeroTop}>
+            <View style={styles.topLeftPills}>
+              <View style={styles.rankBadge}>
+                <Text style={styles.rankBadgeText}>#{index + 1}</Text>
+              </View>
               <View
                 style={[
-                  styles.miniTag,
-                  { backgroundColor: o.firstHand ? Colors.accentSoft : Colors.slateSoft },
+                  styles.heroTag,
+                  {
+                    backgroundColor: o.firstHand ? 'rgba(217, 169, 89, 0.92)' : 'rgba(11, 14, 20, 0.78)',
+                    borderColor: o.firstHand ? Colors.accent : 'rgba(255,255,255,0.18)',
+                  },
                 ]}
               >
                 <Text
                   style={[
-                    styles.miniTagText,
-                    { color: o.firstHand ? Colors.accent : Colors.slate },
+                    styles.heroTagText,
+                    { color: o.firstHand ? Colors.accentInk : Colors.inkPrimary },
                   ]}
                 >
                   {o.tierLabel}
                 </Text>
               </View>
-              <View style={[styles.miniTag, { backgroundColor: palette.soft }]}>
-                <Text style={[styles.miniTagText, { color: palette.color }]}>{o.statusBadge}</Text>
-              </View>
             </View>
+
+            <View style={[styles.ring, { borderColor: palette.ring }]}>
+              <Text style={[styles.ringPct, { color: palette.color }]}>
+                {o.greatStayOdds != null ? `${o.greatStayOdds}%` : topAward ? '★' : '—'}
+              </Text>
+              <Text style={styles.ringLabel}>
+                {o.greatStayOdds != null ? 'ODDS' : topAward ? 'AWARD' : 'OPEN'}
+              </Text>
+            </View>
+          </View>
+
+          {/* Bottom title overlay */}
+          <View style={styles.cardHeroBottom}>
+            {topAward ? (
+              <View style={styles.awardPill}>
+                <Ionicons name="ribbon-outline" size={11} color={Colors.accent} />
+                <Text style={styles.awardPillText} numberOfLines={1}>
+                  {topAward}
+                </Text>
+              </View>
+            ) : null}
             <Text style={styles.hotelName} numberOfLines={2}>
               {h.name}
             </Text>
@@ -128,65 +149,55 @@ export default function StayOddsHomeScreen() {
               {h.brand ? ` • ${h.brand}` : ''}
             </Text>
           </View>
-
-          <Image source={{ uri: h.thumbnail }} style={styles.thumb} />
         </View>
 
-        <View style={styles.pillarRow}>
-          <View style={styles.pillar}>
-            <Text style={styles.pillarLbl}>First-Hand ({o.weights.firstHand}%)</Text>
-            <Text style={[styles.pillarVal, o.firstHand && { color: Colors.accent }]}>
-              {o.personalScore25 != null
-                ? `${o.personalScore25}/25`
-                : o.firstHand
-                ? `${formatPersonalScore(h.overall)}/5`
-                : o.visited
-                ? 'Short'
-                : 'Global'}
-            </Text>
-          </View>
-          <View style={styles.pillar}>
-            <Text style={styles.pillarLbl}>Guests ({o.weights.guests}%)</Text>
-            <Text style={[styles.pillarVal, o.verifiedGuest && { color: Colors.googleGreen }]}>
-              {o.verifiedGuest
-                ? `${o.verifiedGuest.rating.toFixed(1)}/${o.verifiedGuest.scale}`
-                : 'Live Detail'}
-            </Text>
-          </View>
-          <View style={styles.pillar}>
-            <Text style={styles.pillarLbl}>Opinion Gap</Text>
-            <Text style={styles.pillarVal}>{o.opinionGap.deltaLabel}</Text>
-          </View>
-        </View>
-
-        <View style={[styles.factsStrip, { alignItems: 'center' }]}>
-          {o.keyFacts.slice(0, 2).map((kf) => (
-            <View key={kf.label} style={styles.factChip}>
-              <Text style={styles.factChipText} numberOfLines={1}>
-                {kf.label}: {kf.value}
+        <View style={styles.cardFooter}>
+          <View style={styles.pillarRow}>
+            <View style={styles.pillar}>
+              <Text style={styles.pillarLbl}>My Stay</Text>
+              <Text style={[styles.pillarVal, o.firstHand && { color: Colors.accent }]}>
+                {o.personalScore25 != null
+                  ? `${o.personalScore25}/25`
+                  : o.firstHand
+                  ? `${formatPersonalScore(h.overall)}/5`
+                  : o.visited
+                  ? 'Short'
+                  : 'Directory'}
               </Text>
             </View>
-          ))}
-          <Pressable
-            onPress={(e) => {
-              e.stopPropagation?.();
-              openExternalUrl(getTripAdvisorUrl(h));
-            }}
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 3,
-              paddingVertical: 3,
-              paddingHorizontal: 8,
-              borderRadius: 999,
-              borderWidth: 1,
-              borderColor: Colors.border,
-              backgroundColor: Colors.bgWhite,
-            }}
-          >
-            <Text style={{ fontSize: 11, fontWeight: '600', color: Colors.inkMuted }}>TripAdvisor</Text>
-            <Ionicons name="open-outline" size={11} color={Colors.inkMuted} />
-          </Pressable>
+            <View style={styles.pillar}>
+              <Text style={styles.pillarLbl}>Guests</Text>
+              <Text style={[styles.pillarVal, o.verifiedGuest && { color: Colors.googleGreen }]}>
+                {o.verifiedGuest
+                  ? `${o.verifiedGuest.rating.toFixed(1)}/${o.verifiedGuest.scale}`
+                  : 'Live Detail'}
+              </Text>
+            </View>
+            <View style={styles.pillar}>
+              <Text style={styles.pillarLbl}>Opinion Gap</Text>
+              <Text style={styles.pillarVal}>{o.opinionGap.deltaLabel}</Text>
+            </View>
+          </View>
+
+          <View style={[styles.factsStrip, { alignItems: 'center' }]}>
+            {o.keyFacts.slice(0, 2).map((kf) => (
+              <View key={kf.label} style={styles.factChip}>
+                <Text style={styles.factChipText} numberOfLines={1}>
+                  {kf.label}: {kf.value}
+                </Text>
+              </View>
+            ))}
+            <Pressable
+              onPress={(e) => {
+                e.stopPropagation?.();
+                openExternalUrl(getTripAdvisorUrl(h));
+              }}
+              style={styles.taChip}
+            >
+              <Text style={styles.taChipText}>TripAdvisor</Text>
+              <Ionicons name="open-outline" size={11} color={Colors.inkSecondary} />
+            </Pressable>
+          </View>
         </View>
       </Pressable>
     );
@@ -304,106 +315,189 @@ const styles = StyleSheet.create({
   splitLeft: { width: '44%', minWidth: 320, borderRightWidth: 1, borderRightColor: Colors.border },
   splitRight: { flex: 1 },
 
-  listContent: { padding: 14, gap: 12, paddingBottom: 30 },
-  headerBlock: { gap: 10, marginBottom: 4 },
+  listContent: { padding: 14, gap: 16, paddingBottom: 34 },
+  headerBlock: { gap: 11, marginBottom: 4 },
 
   scopeBar: {
     flexDirection: 'row',
-    backgroundColor: Colors.charcoal,
-    borderRadius: 12,
+    backgroundColor: Colors.bgWhite,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 999,
     padding: 4,
     gap: 4,
   },
-  scopeBtn: { flex: 1, paddingVertical: 8, borderRadius: 9, alignItems: 'center' },
+  scopeBtn: { flex: 1, paddingVertical: 8, borderRadius: 999, alignItems: 'center' },
   scopeBtnActive: { backgroundColor: Colors.accent },
-  scopeText: { fontSize: 11.5, fontWeight: '700', color: '#B8BDC7' },
-  scopeTextActive: { color: '#FFFFFF' },
+  scopeText: { fontSize: 11.5, fontWeight: '700', color: Colors.inkSecondary },
+  scopeTextActive: { color: Colors.accentInk },
 
   searchWrap: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     backgroundColor: Colors.bgWhite,
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: Colors.border,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingHorizontal: 13,
+    paddingVertical: 11,
   },
   searchInput: { flex: 1, fontSize: 14, color: Colors.inkPrimary },
 
-  regionRow: { gap: 7, paddingVertical: 2 },
+  regionRow: { gap: 8, paddingVertical: 2 },
   regionPill: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
     borderRadius: 999,
     backgroundColor: Colors.bgWhite,
     borderWidth: 1,
     borderColor: Colors.border,
   },
-  regionPillActive: { backgroundColor: Colors.charcoal, borderColor: Colors.charcoal },
+  regionPillActive: { backgroundColor: Colors.accent, borderColor: Colors.accent },
   regionText: { fontSize: 12, fontWeight: '700', color: Colors.inkSecondary },
-  regionTextActive: { color: '#FFFFFF' },
+  regionTextActive: { color: Colors.accentInk },
 
   card: {
     backgroundColor: Colors.bgWhite,
-    borderRadius: 14,
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: Colors.border,
-    borderLeftWidth: 4,
-    padding: 12,
-    gap: 10,
+    overflow: 'hidden',
   },
   cardSelected: {
     borderColor: Colors.accent,
-    backgroundColor: Colors.bgWarm,
+    borderWidth: 1.5,
   },
-  cardTop: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  cardHeroWrap: {
+    position: 'relative',
+    height: 196,
+    backgroundColor: Colors.charcoal,
+  },
+  cardHeroImg: {
+    width: '100%',
+    height: '100%',
+  },
+  cardHeroScrim: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(11, 14, 20, 0.42)',
+  },
+  cardHeroTop: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    right: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  topLeftPills: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexShrink: 1,
+  },
+  rankBadge: {
+    backgroundColor: 'rgba(11, 14, 20, 0.78)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.16)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+  rankBadgeText: { fontSize: 10.5, fontWeight: '800', color: Colors.inkPrimary },
+  heroTag: {
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  heroTagText: { fontSize: 10.5, fontWeight: '800', letterSpacing: 0.2 },
+
   ring: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     borderWidth: 2.5,
+    backgroundColor: 'rgba(11, 14, 20, 0.84)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   ringPct: { fontSize: 15, fontWeight: '900', lineHeight: 17 },
-  ringLabel: { fontSize: 7.5, fontWeight: '800', color: Colors.inkMuted, letterSpacing: 0.4 },
+  ringLabel: { fontSize: 7.5, fontWeight: '800', color: Colors.inkSecondary, letterSpacing: 0.5 },
 
-  tagLine: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 5 },
-  rankText: { fontSize: 11, fontWeight: '800', color: Colors.inkMuted },
-  miniTag: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 999 },
-  miniTagText: { fontSize: 10, fontWeight: '800' },
-  hotelName: { fontSize: 15, fontWeight: '800', color: Colors.inkPrimary },
-  hotelLoc: { fontSize: 12, color: Colors.inkSecondary },
-  thumb: { width: 64, height: 64, borderRadius: 10, backgroundColor: Colors.bgCanvas },
+  cardHeroBottom: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    backgroundColor: 'rgba(11, 14, 20, 0.72)',
+    gap: 3,
+  },
+  awardPill: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(217, 169, 89, 0.18)',
+    borderWidth: 1,
+    borderColor: 'rgba(217, 169, 89, 0.45)',
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    marginBottom: 2,
+  },
+  awardPillText: { fontSize: 10, fontWeight: '800', color: Colors.accentDark },
+  hotelName: { fontSize: 18, fontWeight: '800', color: '#FFFFFF', letterSpacing: 0.1 },
+  hotelLoc: { fontSize: 12, color: '#D1D5DB', fontWeight: '500' },
 
+  cardFooter: {
+    padding: 12,
+    gap: 10,
+  },
   pillarRow: {
     flexDirection: 'row',
-    gap: 6,
-    borderTopWidth: 1,
-    borderTopColor: Colors.borderSoft,
-    paddingTop: 9,
+    gap: 8,
   },
   pillar: {
     flex: 1,
     backgroundColor: Colors.bgCanvas,
-    borderRadius: 8,
-    paddingVertical: 6,
+    borderRadius: 11,
+    borderWidth: 1,
+    borderColor: Colors.borderSoft,
+    paddingVertical: 8,
     paddingHorizontal: 6,
     alignItems: 'center',
   },
-  pillarLbl: { fontSize: 9.5, fontWeight: '700', color: Colors.inkMuted },
-  pillarVal: { fontSize: 12, fontWeight: '800', color: Colors.inkPrimary, marginTop: 2 },
+  pillarLbl: { fontSize: 9.5, fontWeight: '700', color: Colors.inkMuted, textTransform: 'uppercase', letterSpacing: 0.4 },
+  pillarVal: { fontSize: 12.5, fontWeight: '800', color: Colors.inkPrimary, marginTop: 2 },
   factsStrip: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   factChip: {
     backgroundColor: Colors.bgWarm,
     borderWidth: 1,
-    borderColor: Colors.accentBorder,
-    borderRadius: 8,
-    paddingHorizontal: 8,
+    borderColor: Colors.border,
+    borderRadius: 999,
+    paddingHorizontal: 9,
     paddingVertical: 4,
     maxWidth: '100%',
   },
   factChipText: { fontSize: 11, fontWeight: '600', color: Colors.inkSecondary },
+  taChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 4,
+    paddingHorizontal: 9,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.bgCanvas,
+  },
+  taChipText: { fontSize: 11, fontWeight: '600', color: Colors.inkSecondary },
 });
