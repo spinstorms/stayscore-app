@@ -16,7 +16,7 @@ import {
 import { getHotelVideoUrl, openExternalUrl } from '../../lib/api';
 import { BRAND } from '../../lib/brand';
 import { formatPersonalScore, useAdaptiveLayout } from '../../lib/layout';
-import { computeStayOdds, getTonePalette, isVisitedProperty } from '../../lib/scoring';
+import { computeStayOdds, getTonePalette, getTripAdvisorUrl, isVisitedProperty } from '../../lib/scoring';
 import { useStayOdds } from '../../lib/store';
 import { Colors } from '../../lib/theme';
 import type { Hotel } from '../../lib/types';
@@ -244,6 +244,25 @@ export default function CompareScreen() {
           >
             <Text style={styles.btnOutlineText}>Open Full Breakdown</Text>
             <Ionicons name="arrow-forward" size={14} color={Colors.accent} />
+          </Pressable>
+
+          <Pressable
+            onPress={() => openExternalUrl(getTripAdvisorUrl(hotel))}
+            style={{
+              alignSelf: 'flex-start',
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 4,
+              paddingVertical: 4,
+              paddingHorizontal: 9,
+              borderRadius: 999,
+              borderWidth: 1,
+              borderColor: Colors.border,
+              backgroundColor: Colors.bgWhite,
+            }}
+          >
+            <Text style={{ fontSize: 11.5, fontWeight: '600', color: Colors.inkMuted }}>TripAdvisor</Text>
+            <Ionicons name="open-outline" size={11.5} color={Colors.inkMuted} />
           </Pressable>
         </View>
       </View>

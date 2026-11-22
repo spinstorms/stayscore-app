@@ -37,6 +37,7 @@ export interface StayOddsResult {
   tierLabel: string;
   firstHand: boolean;
   visited: boolean;
+  personalScore25: number | null;
   ours100: number | null;
   critic100: number | null;
   guest100: number | null;
@@ -353,6 +354,7 @@ export function computeStayOdds(
       : 'Global Directory',
     firstHand,
     visited,
+    personalScore25,
     ours100,
     critic100,
     guest100,
@@ -407,3 +409,9 @@ export function getTonePalette(tone: StayOddsResult['statusTone']) {
     border: Colors.slateBorder,
   };
 }
+
+export function getTripAdvisorUrl(hotel: Pick<Hotel, 'name' | 'location' | 'country'>): string {
+  const query = `${hotel.name || ''} ${hotel.location || hotel.country || ''}`.trim();
+  return `https://www.tripadvisor.com/Search?q=${encodeURIComponent(query)}&ssrc=h`;
+}
+

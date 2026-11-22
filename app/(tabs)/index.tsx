@@ -14,9 +14,10 @@ import {
   View,
 } from 'react-native';
 import { HotelDetailContent } from '../../components/HotelDetailContent';
+import { openExternalUrl } from '../../lib/api';
 import { BRAND } from '../../lib/brand';
 import { formatPersonalScore, useAdaptiveLayout } from '../../lib/layout';
-import { computeStayOdds, getTonePalette, isVisitedProperty } from '../../lib/scoring';
+import { computeStayOdds, getTonePalette, getTripAdvisorUrl, isVisitedProperty } from '../../lib/scoring';
 import { useStayOdds } from '../../lib/store';
 import { Colors } from '../../lib/theme';
 import type { Hotel } from '../../lib/types';
@@ -135,7 +136,13 @@ export default function StayOddsHomeScreen() {
           <View style={styles.pillar}>
             <Text style={styles.pillarLbl}>First-Hand ({o.weights.firstHand}%)</Text>
             <Text style={[styles.pillarVal, o.firstHand && { color: Colors.accent }]}>
-              {o.firstHand ? `${formatPersonalScore(h.overall)}/5` : o.visited ? 'Short' : 'Global'}
+              {o.personalScore25 != null
+                ? `${o.personalScore25}/25`
+                : o.firstHand
+                ? `${formatPersonalScore(h.overall)}/5`
+                : o.visited
+                ? 'Short'
+                : 'Global'}
             </Text>
           </View>
           <View style={styles.pillar}>
@@ -152,17 +159,35 @@ export default function StayOddsHomeScreen() {
           </View>
         </View>
 
-        {o.keyFacts.length > 0 ? (
-          <View style={styles.factsStrip}>
-            {o.keyFacts.slice(0, 2).map((kf) => (
-              <View key={kf.label} style={styles.factChip}>
-                <Text style={styles.factChipText} numberOfLines={1}>
-                  {kf.label}: {kf.value}
-                </Text>
-              </View>
-            ))}
-          </View>
-        ) : null}
+        <View style={[styles.factsStrip, { alignItems: 'center' }]}>
+          {o.keyFacts.slice(0, 2).map((kf) => (
+            <View key={kf.label} style={styles.factChip}>
+              <Text style={styles.factChipText} numberOfLines={1}>
+                {kf.label}: {kf.value}
+              </Text>
+            </View>
+          ))}
+          <Pressable
+            onPress={(e) => {
+              e.stopPropagation?.();
+              openExternalUrl(getTripAdvisorUrl(h));
+            }}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 3,
+              paddingVertical: 3,
+              paddingHorizontal: 8,
+              borderRadius: 999,
+              borderWidth: 1,
+              borderColor: Colors.border,
+              backgroundColor: Colors.bgWhite,
+            }}
+          >
+            <Text style={{ fontSize: 11, fontWeight: '600', color: Colors.inkMuted }}>TripAdvisor</Text>
+            <Ionicons name="open-outline" size={11} color={Colors.inkMuted} />
+          </Pressable>
+        </View>
       </Pressable>
     );
   };

@@ -5,7 +5,7 @@ import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { fetchLiveGoogleRating, getHotelVideoUrl, LiveGoogleRating, openExternalUrl } from '../lib/api';
 import { BRAND } from '../lib/brand';
 import { formatPersonalScore } from '../lib/layout';
-import { computeStayOdds, getTonePalette } from '../lib/scoring';
+import { computeStayOdds, getTonePalette, getTripAdvisorUrl } from '../lib/scoring';
 import { useStayOdds } from '../lib/store';
 import { Colors } from '../lib/theme';
 import type { Hotel } from '../lib/types';
@@ -181,6 +181,25 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
           >
             <Ionicons name="git-compare-outline" size={15} color={Colors.accentDark} />
             <Text style={styles.btnCompareText}>Compare Head-to-Head</Text>
+          </Pressable>
+
+          <Pressable
+            onPress={() => openExternalUrl(getTripAdvisorUrl(hotel))}
+            style={{
+              alignSelf: 'flex-start',
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 4,
+              paddingVertical: 5,
+              paddingHorizontal: 10,
+              borderRadius: 999,
+              borderWidth: 1,
+              borderColor: Colors.border,
+              backgroundColor: Colors.bgWhite,
+            }}
+          >
+            <Text style={{ fontSize: 12, fontWeight: '600', color: Colors.inkMuted }}>TripAdvisor</Text>
+            <Ionicons name="open-outline" size={12} color={Colors.inkMuted} />
           </Pressable>
 
           <View style={styles.vipBox}>
