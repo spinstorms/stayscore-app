@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
-import { useRouter } from 'expo-router';
-import React, { useMemo, useState } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   FlatList,
   Image,
@@ -16,9 +16,11 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { ShareCardModal } from '../../components/ShareCardModal';
 import { getHotelVideoUrl, openExternalUrl } from '../../lib/api';
 import { BRAND } from '../../lib/brand';
 import { formatPersonalScore, useAdaptiveLayout } from '../../lib/layout';
+import { getPropertyStatusMeta } from '../../lib/propertyStatus';
 import { computeStayOdds, getTonePalette, getTripAdvisorUrl, isVisitedProperty } from '../../lib/scoring';
 import { useStayOdds } from '../../lib/store';
 import { Colors } from '../../lib/theme';
@@ -26,15 +28,39 @@ import type { Hotel } from '../../lib/types';
 
 type PickerTarget = 'A' | 'B' | null;
 
+function matchesHotelQuery(h: Hotel, rawQuery: string): boolean {
+  const q = rawQuery.trim().toLowerCase();
+  if (!q) return true;
+  const hay = `${h.name} ${h.location} ${h.country} ${h.brand || ''} ${h.region || ''}`.toLowerCase();
+  return q.split(/\s+/).every((tok) => hay.includes(tok));
+}
+
 export default function CompareScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ a?: string; b?: string }>();
   const { hotels, compareA, compareB, setCompareA, setCompareB, shortlist, refreshing, refresh } = useStayOdds();
   const { isSplitScreen, horizontalPadding } = useAdaptiveLayout();
 
   const [pickerTarget, setPickerTarget] = useState<PickerTarget>(null);
   const [pickerQuery, setPickerQuery] = useState('');
   const [pickerScope, setPickerScope] = useState<'all' | 'visited' | 'global' | 'saved'>('all');
+  const [inlineSearchA, setInlineSearchA] = useState('');
+  const [inlineSearchB, setInlineSearchB] = useState('');
   const [copiedLink, setCopiedLink] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+
+  // Support shareable deep-links (?a=slug1&b=slug2)
+  useEffect(() => {
+    if (!hotels.length) return;
+    const paramA = typeof params.a === 'string' ? params.a.trim() : '';
+    const paramB = typeof params.b === 'string' ? params.b.trim() : '';
+    if (paramA && hotels.some((h) => h.id === paramA) && paramA !== compareA) {
+      setCompareA(paramA);
+    }
+    if (paramB && hotels.some((h) => h.id === paramB) && paramB !== compareB) {
+      setCompareB(paramB);
+    }
+  }, [params.a, params.b, hotels]);
 
   const hotelA = useMemo(
     () => hotels.find((h) => h.id === compareA) || hotels[0] || null,
@@ -52,22 +78,24 @@ export default function CompareScreen() {
   const oddsA = useMemo(() => (hotelA ? computeStayOdds(hotelA) : null), [hotelA]);
   const oddsB = useMemo(() => (hotelB ? computeStayOdds(hotelB) : null), [hotelB]);
 
+  const inlineMatchesA = useMemo(() => {
+    if (!inlineSearchA.trim()) return [];
+    return hotels.filter((h) => matchesHotelQuery(h, inlineSearchA)).slice(0, 6);
+  }, [hotels, inlineSearchA]);
+
+  const inlineMatchesB = useMemo(() => {
+    if (!inlineSearchB.trim()) return [];
+    return hotels.filter((h) => matchesHotelQuery(h, inlineSearchB)).slice(0, 6);
+  }, [hotels, inlineSearchB]);
+
   const pickerList = useMemo(() => {
-    const q = pickerQuery.trim().toLowerCase();
     const savedSet = new Set(shortlist);
     return hotels
       .filter((h) => {
         if (pickerScope === 'visited' && !isVisitedProperty(h)) return false;
         if (pickerScope === 'global' && isVisitedProperty(h)) return false;
         if (pickerScope === 'saved' && !savedSet.has(h.id)) return false;
-        if (!q) return true;
-        return (
-          h.name.toLowerCase().includes(q) ||
-          h.location.toLowerCase().includes(q) ||
-          h.country.toLowerCase().includes(q) ||
-          h.region.toLowerCase().includes(q) ||
-          (h.brand || '').toLowerCase().includes(q)
-        );
+        return matchesHotelQuery(h, pickerQuery);
       })
       .sort((a, b) => {
         const oa = computeStayOdds(a);
@@ -137,10 +165,131 @@ export default function CompareScreen() {
     );
   };
 
+  const renderSelectorBlock = (
+    side: 'A' | 'B',
+    selected: Hotel | null,
+    selectedOdds: ReturnType<typeof computeStayOdds> | null,
+    query: string,
+    setQuery: (v: string) => void,
+    matches: Hotel[]
+  ) => {
+    const hasQuery = query.trim().length > 0;
+    return (
+      <View style={styles.selectorCard}>
+        <Pressable style={styles.selectorTop} onPress={() => setPickerTarget(side)}>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.selectorTag, side === 'B' && { color: '#38BDF8' }]}>
+              HOTEL {side}
+            </Text>
+            <Text style={styles.selectorName} numberOfLines={1}>
+              {selected ? selected.name : `Select Hotel ${side}...`}
+            </Text>
+            <Text style={styles.selectorMeta} numberOfLines={1}>
+              {selected && selectedOdds
+                ? `${selected.location}, ${selected.country} · ${selectedOdds.tierLabel}`
+                : 'Tap to browse all hotels'}
+            </Text>
+          </View>
+          <Ionicons name="chevron-down" size={18} color="#94A3B8" />
+        </Pressable>
+
+        {/* Fast Inline Search Input inside Selector */}
+        <View style={styles.inlineSearchWrap}>
+          <Ionicons name="search" size={14} color="#94A3B8" />
+          <TextInput
+            style={styles.inlineSearchInput}
+            value={query}
+            onChangeText={setQuery}
+            placeholder={`Search Hotel ${side} (name, city, country, brand)...`}
+            placeholderTextColor="#7C8594"
+            returnKeyType="search"
+          />
+          {hasQuery ? (
+            <Pressable
+              onPress={() => setQuery('')}
+              hitSlop={8}
+              accessibilityLabel={`Clear Hotel ${side} search`}
+            >
+              <Ionicons name="close-circle" size={16} color="#94A3B8" />
+            </Pressable>
+          ) : null}
+        </View>
+
+        {hasQuery ? (
+          matches.length > 0 ? (
+            <View style={styles.inlineResultsList}>
+              {matches.map((item) => {
+                const isActive = item.id === selected?.id;
+                return (
+                  <Pressable
+                    key={item.id}
+                    style={[styles.inlineResultRow, isActive && styles.inlineResultRowActive]}
+                    onPress={() => {
+                      if (side === 'A') setCompareA(item.id);
+                      else setCompareB(item.id);
+                      setQuery('');
+                    }}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.inlineResultName} numberOfLines={1}>
+                        {item.name}
+                      </Text>
+                      <Text style={styles.inlineResultSub} numberOfLines={1}>
+                        {item.location}, {item.country}
+                        {item.brand ? ` · ${item.brand}` : ''}
+                      </Text>
+                    </View>
+                    <Ionicons
+                      name={isActive ? 'checkmark-circle' : 'add-circle-outline'}
+                      size={17}
+                      color={isActive ? Colors.teal : Colors.accent}
+                    />
+                  </Pressable>
+                );
+              })}
+            </View>
+          ) : (
+            <View style={styles.inlineEmptyState}>
+              <Text style={styles.inlineEmptyText}>
+                No hotels matched &ldquo;{query.trim()}&rdquo;. Clear search or try a city, country, or brand.
+              </Text>
+            </View>
+          )
+        ) : null}
+      </View>
+    );
+  };
+
   const renderHotelCard = (hotel: Hotel, side: 'A' | 'B') => {
     const o = side === 'A' ? oddsA! : oddsB!;
     const palette = getTonePalette(o.statusTone);
     const videoUrl = getHotelVideoUrl(hotel);
+    const st = getPropertyStatusMeta(hotel);
+
+    const statusBg =
+      st.tone === 'danger'
+        ? '#FEF2F2'
+        : st.tone === 'warn'
+        ? '#FFFBEB'
+        : st.tone === 'open'
+        ? '#F0FDFA'
+        : Colors.bgCanvas;
+    const statusBorder =
+      st.tone === 'danger'
+        ? '#FCA5A5'
+        : st.tone === 'warn'
+        ? '#FCD34D'
+        : st.tone === 'open'
+        ? '#99F6E4'
+        : Colors.borderSoft;
+    const statusInk =
+      st.tone === 'danger'
+        ? '#991B1B'
+        : st.tone === 'warn'
+        ? '#92400E'
+        : st.tone === 'open'
+        ? '#0F766E'
+        : Colors.inkSecondary;
 
     return (
       <View style={[styles.vsCard, isSplitScreen && styles.vsCardHalf]}>
@@ -163,6 +312,15 @@ export default function CompareScreen() {
         </View>
 
         <View style={styles.cardBody}>
+          <View style={styles.cardBadgeRow}>
+            <View style={[styles.consensusChip, { backgroundColor: palette.soft, borderColor: palette.border }]}>
+              <Text style={[styles.consensusChipTxt, { color: palette.color }]}>{o.statusBadge}</Text>
+            </View>
+            <View style={styles.deltaChip}>
+              <Text style={styles.deltaChipTxt}>Gap: {o.opinionGap.deltaLabel}</Text>
+            </View>
+          </View>
+
           <Text style={styles.hotelName} numberOfLines={2}>
             {hotel.name}
           </Text>
@@ -170,6 +328,26 @@ export default function CompareScreen() {
             {hotel.location}, {hotel.country}
             {hotel.brand ? ` · ${hotel.brand}` : ''}
           </Text>
+
+          {/* Property Status & Works Strip */}
+          <View style={[styles.statusBox, { backgroundColor: statusBg, borderColor: statusBorder }]}>
+            <View style={styles.statusBoxHead}>
+              <Text style={[styles.statusBoxTitle, { color: statusInk }]}>PROPERTY STATUS &amp; WORKS</Text>
+              <Text style={[styles.statusBoxBadge, { color: statusInk }]}>{st.badge}</Text>
+            </View>
+            <Text style={styles.statusBoxText}>{st.shortSummary}</Text>
+            {st.sourceUrl ? (
+              <Pressable onPress={() => openExternalUrl(st.sourceUrl)} style={{ marginTop: 4 }}>
+                <Text style={styles.statusSourceLink}>Verified source ↗</Text>
+              </Pressable>
+            ) : null}
+          </View>
+
+          {/* Opinion Gap Callout */}
+          <View style={styles.opinionMiniBox}>
+            <Text style={styles.opinionMiniTitle}>{o.opinionGap.title}</Text>
+            <Text style={styles.opinionMiniText}>{o.opinionGap.headline}</Text>
+          </View>
 
           <View style={styles.metricsBox}>
             {renderMetricRow(
@@ -237,6 +415,17 @@ export default function CompareScreen() {
           <View style={styles.noteBox}>
             <Text style={styles.noteTitle}>How StayOdds % Is Calculated</Text>
             <Text style={styles.noteBody}>{o.equationSummary}</Text>
+            {o.keyFacts.length > 0 ? (
+              <View style={{ marginTop: 8, gap: 4 }}>
+                <Text style={[styles.noteTitle, { color: Colors.inkSecondary }]}>Verified Key Facts</Text>
+                {o.keyFacts.slice(0, 3).map((kf) => (
+                  <Text key={kf.label} style={styles.noteBody}>
+                    <Text style={{ fontWeight: '700' }}>{kf.label}: </Text>
+                    {kf.value}
+                  </Text>
+                ))}
+              </View>
+            ) : null}
             {hotel.watchOut ? (
               <>
                 <Text style={[styles.noteTitle, { marginTop: 8, color: Colors.amber }]}>Watch-Out</Text>
@@ -278,6 +467,7 @@ export default function CompareScreen() {
               flexDirection: 'row',
               alignItems: 'center',
               gap: 4,
+              marginTop: 8,
               paddingVertical: 4,
               paddingHorizontal: 9,
               borderRadius: 999,
@@ -298,6 +488,7 @@ export default function CompareScreen() {
     <View style={styles.screen}>
       <ScrollView
         contentContainerStyle={{ paddingBottom: 36 }}
+        keyboardShouldPersistTaps="handled"
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={Colors.accent} />}
       >
         <View style={[styles.arenaHeader, { paddingHorizontal: horizontalPadding }]}>
@@ -311,20 +502,35 @@ export default function CompareScreen() {
             </View>
             <View style={{ flexDirection: 'row', gap: 8 }}>
               <Pressable
+                style={styles.shareCardBtn}
+                onPress={() => setShowShareModal(true)}
+                accessibilityLabel="Open branded VS Scorecard share modal"
+              >
+                <Ionicons name="image-outline" size={18} color="#FFFFFF" />
+              </Pressable>
+              <Pressable
                 style={[
                   styles.swapBtn,
                   copiedLink && { backgroundColor: Colors.teal, borderColor: Colors.teal },
                 ]}
                 onPress={handleShareVsLink}
-                accessibilityLabel="Share or copy Head-to-Head comparison link"
+                accessibilityLabel="Copy shareable Head-to-Head comparison link"
               >
-                <Ionicons name={copiedLink ? 'checkmark' : 'share-outline'} size={19} color="#FFFFFF" />
+                <Ionicons name={copiedLink ? 'checkmark' : 'link-outline'} size={19} color="#FFFFFF" />
               </Pressable>
               <Pressable style={styles.swapBtn} onPress={handleSwap} accessibilityLabel="Swap hotels">
                 <Ionicons name="swap-horizontal" size={20} color="#FFFFFF" />
               </Pressable>
             </View>
           </View>
+
+          {hotelA && hotelB ? (
+            <Pressable style={styles.shareBannerBtn} onPress={() => setShowShareModal(true)}>
+              <Ionicons name="sparkles-outline" size={15} color="#FF8B5E" />
+              <Text style={styles.shareBannerTxt}>Share Branded VS Card (1:1 Feed &amp; 9:16 Story + QR)</Text>
+              <Ionicons name="arrow-forward" size={14} color="#FF8B5E" />
+            </Pressable>
+          ) : null}
 
           {copiedLink ? (
             <View
@@ -344,25 +550,8 @@ export default function CompareScreen() {
           ) : null}
 
           <View style={[styles.selectorRow, !isSplitScreen && styles.selectorCol]}>
-            <Pressable style={styles.selectorBtn} onPress={() => setPickerTarget('A')}>
-              <Text style={styles.selectorTag}>HOTEL A</Text>
-              <Text style={styles.selectorName} numberOfLines={1}>
-                {hotelA ? hotelA.name : 'Select first hotel...'}
-              </Text>
-              <Text style={styles.selectorMeta} numberOfLines={1}>
-                {hotelA && oddsA ? `${hotelA.location} · ${oddsA.tierLabel}` : ''}
-              </Text>
-            </Pressable>
-
-            <Pressable style={styles.selectorBtn} onPress={() => setPickerTarget('B')}>
-              <Text style={[styles.selectorTag, { color: '#38BDF8' }]}>HOTEL B</Text>
-              <Text style={styles.selectorName} numberOfLines={1}>
-                {hotelB ? hotelB.name : 'Select second hotel...'}
-              </Text>
-              <Text style={styles.selectorMeta} numberOfLines={1}>
-                {hotelB && oddsB ? `${hotelB.location} · ${oddsB.tierLabel}` : ''}
-              </Text>
-            </Pressable>
+            {renderSelectorBlock('A', hotelA, oddsA, inlineSearchA, setInlineSearchA, inlineMatchesA)}
+            {renderSelectorBlock('B', hotelB, oddsB, inlineSearchB, setInlineSearchB, inlineMatchesB)}
           </View>
         </View>
 
@@ -383,6 +572,18 @@ export default function CompareScreen() {
           </View>
         )}
       </ScrollView>
+
+      {hotelA && hotelB && oddsA && oddsB ? (
+        <ShareCardModal
+          visible={showShareModal}
+          onClose={() => setShowShareModal(false)}
+          mode="vs"
+          hotelA={hotelA}
+          hotelB={hotelB}
+          oddsA={oddsA}
+          oddsB={oddsB}
+        />
+      ) : null}
 
       <Modal
         visible={pickerTarget !== null}
@@ -442,6 +643,13 @@ export default function CompareScreen() {
             data={pickerList}
             keyExtractor={(item) => item.id}
             keyboardShouldPersistTaps="handled"
+            ListEmptyComponent={
+              <View style={styles.emptyBox}>
+                <Text style={styles.emptyText}>
+                  No hotels matched &ldquo;{pickerQuery.trim()}&rdquo;. Try clearing your search or switching tabs.
+                </Text>
+              </View>
+            }
             renderItem={({ item }) => {
               const o = computeStayOdds(item);
               const isSelected =
@@ -458,7 +666,7 @@ export default function CompareScreen() {
                       {item.name}
                     </Text>
                     <Text style={styles.pickerLoc} numberOfLines={1}>
-                      {item.location} · {o.tierLabel}
+                      {item.location}, {item.country} · {o.tierLabel}
                     </Text>
                   </View>
                   <View style={styles.pickerScorePill}>
@@ -485,31 +693,98 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#2E323A',
   },
-  arenaTitleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 14 },
+  arenaTitleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 12 },
   arenaEyebrow: { fontSize: 10.5, fontWeight: '800', color: Colors.accent, letterSpacing: 0.9 },
   arenaTitle: { fontSize: 21, fontWeight: '800', color: '#FFFFFF', marginTop: 2 },
   arenaSub: { fontSize: 12.5, color: '#C5C9D1', marginTop: 4, lineHeight: 18 },
+  shareCardBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#1E293B',
+    borderWidth: 1,
+    borderColor: Colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   swapBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     backgroundColor: Colors.accent,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  shareBannerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255, 93, 34, 0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 93, 34, 0.45)',
+    borderRadius: 12,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+    marginBottom: 12,
+  },
+  shareBannerTxt: { color: '#FFD6C4', fontSize: 12.5, fontWeight: '700' },
+
   selectorRow: { flexDirection: 'row', gap: 10 },
   selectorCol: { flexDirection: 'column' },
-  selectorBtn: {
+  selectorCard: {
     flex: 1,
     backgroundColor: Colors.charcoalCard,
-    borderRadius: 12,
-    padding: 12,
+    borderRadius: 14,
+    padding: 11,
     borderWidth: 1,
     borderColor: '#373B44',
+    gap: 8,
   },
+  selectorTop: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   selectorTag: { fontSize: 10, fontWeight: '800', color: Colors.accent, letterSpacing: 0.7 },
-  selectorName: { fontSize: 15, fontWeight: '700', color: '#FFFFFF', marginTop: 3 },
+  selectorName: { fontSize: 15, fontWeight: '700', color: '#FFFFFF', marginTop: 2 },
   selectorMeta: { fontSize: 11.5, color: '#A5AAB4', marginTop: 2 },
+
+  inlineSearchWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    backgroundColor: '#111827',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#334155',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  inlineSearchInput: { flex: 1, color: '#FFFFFF', fontSize: 13, paddingVertical: 0 },
+  inlineResultsList: {
+    backgroundColor: '#0F172A',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#334155',
+    overflow: 'hidden',
+  },
+  inlineResultRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(148,163,184,0.14)',
+  },
+  inlineResultRowActive: { backgroundColor: 'rgba(20,184,166,0.12)' },
+  inlineResultName: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
+  inlineResultSub: { color: '#94A3B8', fontSize: 11, marginTop: 1 },
+  inlineEmptyState: {
+    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(251, 191, 36, 0.45)',
+    borderRadius: 10,
+    padding: 9,
+  },
+  inlineEmptyText: { color: '#FDE68A', fontSize: 12, lineHeight: 16 },
 
   vsGrid: { paddingTop: 16, gap: 16 },
   vsGridRow: { flexDirection: 'row', alignItems: 'flex-start' },
@@ -557,8 +832,48 @@ const styles = StyleSheet.create({
   scoreBadgeSub: { fontSize: 8.5, fontWeight: '800', color: Colors.inkMuted, letterSpacing: 0.5 },
 
   cardBody: { padding: 14 },
+  cardBadgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 8 },
+  consensusChip: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, borderWidth: 1 },
+  consensusChipTxt: { fontSize: 10.5, fontWeight: '800' },
+  deltaChip: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+    backgroundColor: Colors.navy,
+  },
+  deltaChipTxt: { fontSize: 10.5, fontWeight: '800', color: '#FFFFFF' },
+
   hotelName: { fontSize: 18, fontWeight: '800', color: Colors.inkPrimary },
   hotelLoc: { fontSize: 12.5, color: Colors.inkSecondary, marginTop: 2 },
+
+  statusBox: {
+    marginTop: 10,
+    borderRadius: 11,
+    borderWidth: 1,
+    padding: 10,
+  },
+  statusBoxHead: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+  },
+  statusBoxTitle: { fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
+  statusBoxBadge: { fontSize: 10.5, fontWeight: '800' },
+  statusBoxText: { fontSize: 12, color: Colors.inkPrimary, lineHeight: 17 },
+  statusSourceLink: { fontSize: 11.5, fontWeight: '700', color: Colors.accent, textDecorationLine: 'underline' },
+
+  opinionMiniBox: {
+    marginTop: 10,
+    backgroundColor: Colors.bgCanvas,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.borderSoft,
+    padding: 9,
+  },
+  opinionMiniTitle: { fontSize: 10.5, fontWeight: '800', color: Colors.teal, textTransform: 'uppercase' },
+  opinionMiniText: { fontSize: 12, color: Colors.inkPrimary, marginTop: 2, lineHeight: 17 },
 
   metricsBox: {
     marginTop: 12,
@@ -631,7 +946,7 @@ const styles = StyleSheet.create({
   btnOutlineText: { color: Colors.accentDark, fontSize: 13, fontWeight: '700' },
 
   emptyBox: { padding: 36, alignItems: 'center' },
-  emptyText: { color: Colors.inkMuted, fontSize: 14 },
+  emptyText: { color: Colors.inkMuted, fontSize: 14, textAlign: 'center' },
 
   modalWrap: { flex: 1, backgroundColor: Colors.bgCanvas, paddingTop: 14 },
   modalHeader: {

@@ -13,6 +13,15 @@ export interface KeyFacts {
   transferLogistics?: string;
 }
 
+export interface PropertyStatus {
+  operatingStatus?: string;
+  renovationsExtensions?: string;
+  nearbyConstruction?: string;
+  sourceUrl?: string;
+  sourceNote?: string;
+  verifiedAt?: string;
+}
+
 export interface EditorialRating {
   sourceName: string;
   sourceUrl: string;
@@ -97,6 +106,7 @@ export interface Hotel {
   standout: string;
   watchOut: string;
   keyFacts?: KeyFacts;
+  propertyStatus?: PropertyStatus | null;
   bookingUrl: string;
   bookingLinks?: BookingLink[];
   shorts?: HotelShort[];

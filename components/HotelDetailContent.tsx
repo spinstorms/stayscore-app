@@ -5,10 +5,12 @@ import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { fetchLiveGoogleRating, getHotelVideoUrl, LiveGoogleRating, openExternalUrl } from '../lib/api';
 import { BRAND } from '../lib/brand';
 import { formatPersonalScore } from '../lib/layout';
+import { getPropertyStatusMeta } from '../lib/propertyStatus';
 import { computeStayOdds, getTonePalette, getTripAdvisorUrl } from '../lib/scoring';
 import { useStayOdds } from '../lib/store';
 import { Colors } from '../lib/theme';
 import type { Hotel } from '../lib/types';
+import { ShareCardModal } from './ShareCardModal';
 
 interface Props {
   hotel: Hotel;
@@ -52,6 +54,7 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
   const { pushToCompare, toggleShortlist, isShortlisted } = useStayOdds();
   const [liveGoogle, setLiveGoogle] = useState<LiveGoogleRating | null>(null);
   const [showExplainer, setShowExplainer] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const saved = isShortlisted(hotel.id);
 
   useEffect(() => {
@@ -83,8 +86,10 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
   const palette = getTonePalette(o.statusTone);
   const videoUrl = getHotelVideoUrl(hotel);
   const s = hotel.scores;
+  const propStatus = getPropertyStatusMeta(hotel);
 
   return (
+    <>
     <ScrollView
       style={styles.scroll}
       contentContainerStyle={[styles.content, isSidePane && styles.contentSidePane]}
@@ -111,6 +116,25 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
             <View style={[styles.pill, { backgroundColor: palette.soft, borderColor: palette.border }]}>
               <Text style={[styles.pillText, { color: palette.color }]}>{o.statusBadge}</Text>
             </View>
+            {propStatus.tone === 'danger' || propStatus.tone === 'warn' ? (
+              <View
+                style={[
+                  styles.pill,
+                  propStatus.tone === 'danger'
+                    ? { backgroundColor: '#FEE2E2', borderColor: '#FCA5A5' }
+                    : { backgroundColor: '#FEF3C7', borderColor: '#FCD34D' },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.pillText,
+                    { color: propStatus.tone === 'danger' ? '#991B1B' : '#92400E' },
+                  ]}
+                >
+                  {propStatus.badge}
+                </Text>
+              </View>
+            ) : null}
           </View>
 
           <Text style={styles.title}>{hotel.name}</Text>
@@ -292,6 +316,19 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
           </View>
 
           <Pressable
+            style={[
+              styles.btnCompare,
+              { backgroundColor: Colors.navy, borderColor: Colors.navy },
+            ]}
+            onPress={() => setShowShareModal(true)}
+          >
+            <Ionicons name="share-outline" size={15} color="#FFFFFF" />
+            <Text style={[styles.btnCompareText, { color: '#FFFFFF' }]}>
+              Share StayOdds Card (1:1 &amp; 9:16 + QR)
+            </Text>
+          </Pressable>
+
+          <Pressable
             onPress={() => openExternalUrl(getTripAdvisorUrl(hotel))}
             style={{
               alignSelf: 'flex-start',
@@ -418,6 +455,91 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
             ))}
           </View>
         ) : null}
+
+        {/* Property Status & Works (Strictly Verified Only) */}
+        <View
+          style={[
+            styles.statusPanel,
+            propStatus.tone === 'danger'
+              ? styles.statusPanelDanger
+              : propStatus.tone === 'warn'
+              ? styles.statusPanelWarn
+              : propStatus.tone === 'open'
+              ? styles.statusPanelOpen
+              : null,
+          ]}
+        >
+          <View style={styles.statusPanelHead}>
+            <Text style={styles.statusPanelTitle}>Property Status &amp; Works</Text>
+            <View
+              style={[
+                styles.statusBadgeChip,
+                propStatus.tone === 'danger'
+                  ? { backgroundColor: '#FEE2E2' }
+                  : propStatus.tone === 'warn'
+                  ? { backgroundColor: '#FEF3C7' }
+                  : propStatus.tone === 'open'
+                  ? { backgroundColor: '#CCFBF1' }
+                  : { backgroundColor: '#E2E8F0' },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.statusBadgeTxt,
+                  propStatus.tone === 'danger'
+                    ? { color: '#991B1B' }
+                    : propStatus.tone === 'warn'
+                    ? { color: '#92400E' }
+                    : propStatus.tone === 'open'
+                    ? { color: '#115E59' }
+                    : { color: '#334155' },
+                ]}
+              >
+                {propStatus.badge}
+              </Text>
+            </View>
+          </View>
+
+          {propStatus.hasDetails ? (
+            <View style={{ gap: 6, marginTop: 6 }}>
+              {propStatus.operatingStatus ? (
+                <Text style={styles.statusDetailLine}>
+                  <Text style={styles.statusDetailKey}>Operating / Closure Status: </Text>
+                  {propStatus.operatingStatus}
+                </Text>
+              ) : null}
+              {propStatus.renovationsExtensions ? (
+                <Text style={styles.statusDetailLine}>
+                  <Text style={styles.statusDetailKey}>Renovations &amp; Extensions: </Text>
+                  {propStatus.renovationsExtensions}
+                </Text>
+              ) : null}
+              <Text style={styles.statusDetailLine}>
+                <Text style={styles.statusDetailKey}>Nearby Construction: </Text>
+                {propStatus.nearbyConstruction || 'No confirmed nearby construction listed.'}
+              </Text>
+              {propStatus.sourceNote || propStatus.sourceUrl ? (
+                <View style={styles.statusSourceRow}>
+                  {propStatus.sourceNote ? (
+                    <Text style={styles.statusSourceTxt}>
+                      Source: {propStatus.sourceNote}
+                      {propStatus.verifiedAt ? ` • Checked ${propStatus.verifiedAt.slice(0, 10)}` : ''}
+                    </Text>
+                  ) : null}
+                  {propStatus.sourceUrl ? (
+                    <Pressable onPress={() => openExternalUrl(propStatus.sourceUrl)}>
+                      <Text style={styles.statusSourceLink}>View verified report ↗</Text>
+                    </Pressable>
+                  ) : null}
+                </View>
+              ) : null}
+            </View>
+          ) : (
+            <Text style={styles.statusNeutralTxt}>
+              No confirmed renovations, closures, or nearby works listed. StayOdds never invents renovation dates or construction notices.
+            </Text>
+          )}
+        </View>
 
         {hotel.standout ? (
           <>
@@ -608,6 +730,14 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
         </View>
       </View>
     </ScrollView>
+    <ShareCardModal
+      visible={showShareModal}
+      onClose={() => setShowShareModal(false)}
+      mode="single"
+      hotel={hotel}
+      odds={o}
+    />
+    </>
   );
 }
 
@@ -881,5 +1011,77 @@ const styles = StyleSheet.create({
   explainerStrong: {
     fontWeight: '700',
     color: Colors.inkPrimary,
+  },
+  statusPanel: {
+    marginTop: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.bgWhite,
+    padding: 11,
+  },
+  statusPanelDanger: {
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FCA5A5',
+  },
+  statusPanelWarn: {
+    backgroundColor: '#FFFBEB',
+    borderColor: '#FCD34D',
+  },
+  statusPanelOpen: {
+    backgroundColor: '#F0FDFA',
+    borderColor: '#99F6E4',
+  },
+  statusPanelHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  statusPanelTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+    color: Colors.inkPrimary,
+  },
+  statusBadgeChip: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+  },
+  statusBadgeTxt: {
+    fontSize: 10.5,
+    fontWeight: '800',
+  },
+  statusDetailLine: {
+    fontSize: 12.5,
+    color: Colors.inkPrimary,
+    lineHeight: 18,
+  },
+  statusDetailKey: {
+    fontWeight: '800',
+    color: Colors.inkSecondary,
+  },
+  statusNeutralTxt: {
+    marginTop: 6,
+    fontSize: 12.5,
+    color: Colors.inkSecondary,
+    lineHeight: 18,
+  },
+  statusSourceRow: {
+    marginTop: 4,
+    gap: 4,
+  },
+  statusSourceTxt: {
+    fontSize: 11,
+    color: Colors.inkMuted,
+  },
+  statusSourceLink: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.accent,
+    textDecorationLine: 'underline',
   },
 });

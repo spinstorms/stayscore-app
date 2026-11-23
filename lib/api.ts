@@ -5,7 +5,7 @@ import { BRAND } from './brand';
 import type { AffiliateDeal, Hotel, VideoItem } from './types';
 
 export const LIVE_BASE_URL = BRAND.liveApiBaseUrl;
-const CACHE_KEY = 'stayodds_supabase_cache_v7';
+const CACHE_KEY = 'stayodds_supabase_cache_v8';
 
 function resolveHotelThumbnail(id: string, rawHero?: string | null): string {
   const hero = String(rawHero || '').trim();
@@ -281,6 +281,17 @@ async function fetchStayOddsDataFromNetwork(): Promise<StayOddsPayload> {
         renovationYear: f.renovation_year || null,
         transferLogistics: f.transfer_logistics || undefined,
       },
+      propertyStatus:
+        f.operating_status || f.renovations_extensions || f.nearby_construction
+          ? {
+              operatingStatus: f.operating_status || undefined,
+              renovationsExtensions: f.renovations_extensions || undefined,
+              nearbyConstruction: f.nearby_construction || undefined,
+              sourceUrl: f.status_source_url || undefined,
+              sourceNote: f.status_source_note || undefined,
+              verifiedAt: f.status_verified_at || undefined,
+            }
+          : null,
       redFlags: Array.isArray(f.red_flag_tags) ? f.red_flag_tags : [],
       bookingUrl: mobileBooking,
       bookingLinks: links,
