@@ -5,7 +5,19 @@ import { BRAND } from './brand';
 import type { AffiliateDeal, Hotel, VideoItem } from './types';
 
 export const LIVE_BASE_URL = BRAND.liveApiBaseUrl;
-const CACHE_KEY = 'stayodds_supabase_cache_v4';
+const CACHE_KEY = 'stayodds_supabase_cache_v5';
+
+function resolveHotelThumbnail(id: string, rawHero?: string | null): string {
+  const hero = String(rawHero || '').trim();
+  const isBlocked =
+    !hero ||
+    hero.includes('www.fourseasons.com') ||
+    hero.includes('www.lungarnocollection.com') ||
+    hero.endsWith('/logo.jpg');
+  if (!isBlocked && /^https?:\/\//i.test(hero)) return hero;
+  if (!isBlocked && hero.startsWith('assets/')) return `${LIVE_BASE_URL}/${hero}`;
+  return `${LIVE_BASE_URL}/assets/placeholders/${id}.webp`;
+}
 
 export interface StayOddsPayload {
   hotels: Hotel[];
@@ -176,14 +188,14 @@ export async function fetchStayOddsData(): Promise<StayOddsPayload> {
       coverageType: fh?.coverage_type || 'Global Directory',
       tier: p.tier || 'global_directory',
       googlePlaceId: p.google_place_id || null,
-      thumbnail: String(p.hero_image_url || ''),
+      thumbnail: resolveHotelThumbnail(id, p.hero_image_url),
       scores: rated && fh
         ? {
-            rooms: Number(fh.rooms_score),
-            grounds: Number(fh.grounds_score),
-            food: Number(fh.food_score),
-            service: Number(fh.service_score),
-            value: Number(fh.value_score),
+            rooms: fh.rooms_score != null ? Number(fh.rooms_score) : null,
+            grounds: fh.grounds_score != null ? Number(fh.grounds_score) : null,
+            food: fh.food_score != null ? Number(fh.food_score) : null,
+            service: fh.service_score != null ? Number(fh.service_score) : null,
+            value: fh.value_score != null ? Number(fh.value_score) : null,
           }
         : null,
       overall: rated && fh ? Number(fh.overall_score) : null,
