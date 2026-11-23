@@ -14,6 +14,7 @@ import {
   View,
 } from 'react-native';
 import { HotelDetailContent } from '../../components/HotelDetailContent';
+import { RequestResortModal } from '../../components/SupportModals';
 import { openExternalUrl } from '../../lib/api';
 import { BRAND } from '../../lib/brand';
 import { formatPersonalScore, useAdaptiveLayout } from '../../lib/layout';
@@ -33,6 +34,7 @@ export default function StayOddsHomeScreen() {
   const [region, setRegion] = useState('All');
   const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState<string>('taaktana-labuan-bajo');
+  const [requestOpen, setRequestOpen] = useState(false);
 
   const scopedHotels = useMemo(() => {
     if (scope === 'visited') return hotels.filter(isVisitedProperty);
@@ -248,6 +250,12 @@ export default function StayOddsHomeScreen() {
             </Pressable>
           );
         })}
+        <Pressable
+          onPress={() => setRequestOpen(true)}
+          style={[styles.regionPill, { borderColor: Colors.accent, backgroundColor: 'rgba(255, 93, 34, 0.22)' }]}
+        >
+          <Text style={[styles.regionText, { color: '#FFFFFF', fontWeight: '700' }]}>+ Request Resort</Text>
+        </Pressable>
       </ScrollView>
     </View>
   );
@@ -277,6 +285,7 @@ export default function StayOddsHomeScreen() {
         <View style={styles.splitRight}>
           {selectedHotel ? <HotelDetailContent hotel={selectedHotel} isSidePane /> : null}
         </View>
+        <RequestResortModal visible={requestOpen} onClose={() => setRequestOpen(false)} />
       </View>
     );
   }
@@ -291,6 +300,7 @@ export default function StayOddsHomeScreen() {
         contentContainerStyle={styles.listContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={Colors.accent} />}
       />
+      <RequestResortModal visible={requestOpen} onClose={() => setRequestOpen(false)} />
     </View>
   );
 }

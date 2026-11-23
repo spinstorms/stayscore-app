@@ -11,7 +11,9 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { QuickFeedbackModal, RequestResortModal } from '../../components/SupportModals';
 import { openExternalUrl } from '../../lib/api';
+import { BRAND } from '../../lib/brand';
 import { useAdaptiveLayout } from '../../lib/layout';
 import { useStayOdds } from '../../lib/store';
 import { Colors } from '../../lib/theme';
@@ -26,6 +28,8 @@ export default function DealsScreen() {
   const [section, setSection] = useState<DealSection>('all');
   const [query, setQuery] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [requestOpen, setRequestOpen] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   const promoCount = useMemo(
     () => deals.filter((d) => d.section === 'Promotions & Codes').length,
@@ -192,6 +196,60 @@ export default function DealsScreen() {
         })}
       </View>
 
+      {/* StayOdds Hub, Feedback & Resort Request */}
+      <View
+        style={{
+          marginHorizontal: horizontalPadding,
+          marginTop: 18,
+          backgroundColor: Colors.navy,
+          borderRadius: 16,
+          padding: 16,
+          gap: 10,
+        }}
+      >
+        <Text style={{ color: '#FFFFFF', fontSize: 15, fontWeight: '800' }}>
+          StayOdds. Community &amp; Support
+        </Text>
+        <Text style={{ color: 'rgba(255,255,255,0.78)', fontSize: 12.5, lineHeight: 18 }}>
+          Missing a resort, spotted a renovation, or want to read how our scoring works?
+        </Text>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+          <Pressable
+            onPress={() => setRequestOpen(true)}
+            style={{
+              backgroundColor: Colors.accent,
+              paddingHorizontal: 13,
+              paddingVertical: 9,
+              borderRadius: 10,
+            }}
+          >
+            <Text style={{ color: '#FFFFFF', fontSize: 12.5, fontWeight: '800' }}>+ Request a Resort</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => setFeedbackOpen(true)}
+            style={{
+              backgroundColor: 'rgba(255,255,255,0.14)',
+              paddingHorizontal: 13,
+              paddingVertical: 9,
+              borderRadius: 10,
+            }}
+          >
+            <Text style={{ color: '#FFFFFF', fontSize: 12.5, fontWeight: '700' }}>Send Feedback</Text>
+          </Pressable>
+        </View>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 14, marginTop: 4 }}>
+          <Pressable onPress={() => openExternalUrl(BRAND.aboutUrl)}>
+            <Text style={{ color: '#FF9C70', fontSize: 12.5, fontWeight: '700' }}>About Us ↗</Text>
+          </Pressable>
+          <Pressable onPress={() => openExternalUrl(BRAND.faqUrl)}>
+            <Text style={{ color: '#FF9C70', fontSize: 12.5, fontWeight: '700' }}>FAQ &amp; Scoring ↗</Text>
+          </Pressable>
+          <Pressable onPress={() => openExternalUrl(BRAND.contactUrl)}>
+            <Text style={{ color: '#FF9C70', fontSize: 12.5, fontWeight: '700' }}>Contact ↗</Text>
+          </Pressable>
+        </View>
+      </View>
+
       {/* Affiliate Disclosure */}
       <View style={[styles.disclosure, { marginHorizontal: horizontalPadding }]}>
         <Ionicons name="information-circle-outline" size={16} color={Colors.inkMuted} />
@@ -199,6 +257,9 @@ export default function DealsScreen() {
           Disclosure: Links on this screen may be affiliate or referral links. If you book or purchase through them, The Uncharted Itinerary earns a small commission at no extra cost to you. As an Amazon Associate, we earn from qualifying purchases.
         </Text>
       </View>
+
+      <RequestResortModal visible={requestOpen} onClose={() => setRequestOpen(false)} />
+      <QuickFeedbackModal visible={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
     </ScrollView>
   );
 }
