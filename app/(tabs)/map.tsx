@@ -1,0 +1,663 @@
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import React, { useMemo, useState } from 'react';
+import {
+  ActivityIndicator,
+  Image,
+  LayoutChangeEvent,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { openExternalUrl } from '../../lib/api';
+import { computeStayOdds, getTonePalette, isVisitedProperty } from '../../lib/scoring';
+import { useStayOdds } from '../../lib/store';
+import { Colors } from '../../lib/theme';
+import type { Hotel } from '../../lib/types';
+
+type MapScope = 'all' | 'visited' | 'saved';
+
+interface RegionViewport {
+  id: string;
+  label: string;
+  regionFilter: string | null;
+  minLat: number;
+  maxLat: number;
+  minLng: number;
+  maxLng: number;
+}
+
+const REGION_VIEWPORTS: RegionViewport[] = [
+  { id: 'world', label: 'World', regionFilter: null, minLat: -42, maxLat: 64, minLng: -158, maxLng: 158 },
+  { id: 'maldives', label: 'Maldives', regionFilter: 'Maldives', minLat: -1.2, maxLat: 7.4, minLng: 71.8, maxLng: 74.6 },
+  { id: 'bali', label: 'Bali & Indonesia', regionFilter: 'Bali & Indonesia', minLat: -10.8, maxLat: -6.5, minLng: 109.5, maxLng: 121.0 },
+  { id: 'europe', label: 'Europe', regionFilter: 'Europe', minLat: 35.0, maxLat: 58.0, minLng: -11.0, maxLng: 30.0 },
+  { id: 'americas', label: 'Americas', regionFilter: 'Los Angeles & Americas', minLat: 10.0, maxLat: 49.0, minLng: -126.0, maxLng: -58.0 },
+  { id: 'asia', label: 'Asia', regionFilter: 'Asia', minLat: 0.0, maxLat: 42.0, minLng: 98.0, maxLng: 145.0 },
+  { id: 'middle-east', label: 'Middle East', regionFilter: 'Middle East', minLat: 19.0, maxLat: 31.0, minLng: 35.0, maxLng: 60.0 },
+  { id: 'thailand', label: 'Thailand', regionFilter: 'Thailand', minLat: 6.5, maxLat: 20.5, minLng: 97.5, maxLng: 103.5 },
+  { id: 'indian-ocean', label: 'Indian Ocean & Africa', regionFilter: 'Indian Ocean & Africa', minLat: -36.0, maxLat: 10.0, minLng: 15.0, maxLng: 61.0 },
+];
+
+export default function WorldMapScreen() {
+  const router = useRouter();
+  const { hotels, shortlist, isShortlisted, toggleShortlist, pushToCompare, loading } = useStayOdds();
+
+  const [viewportId, setViewportId] = useState<string>('world');
+  const [scope, setScope] = useState<MapScope>('all');
+  const [selectedId, setSelectedId] = useState<string>('taaktana-labuan-bajo');
+  const [canvasSize, setCanvasSize] = useState({ width: 340, height: 290 });
+
+  const viewport = useMemo(
+    () => REGION_VIEWPORTS.find((v) => v.id === viewportId) || REGION_VIEWPORTS[0],
+    [viewportId]
+  );
+
+  const visibleHotels = useMemo(() => {
+    const savedSet = new Set(shortlist);
+    return hotels.filter((h) => {
+      if (typeof h.lat !== 'number' || typeof h.lng !== 'number') return false;
+      if (scope === 'visited' && !isVisitedProperty(h)) return false;
+      if (scope === 'saved' && !savedSet.has(h.id)) return false;
+      if (viewport.regionFilter && h.region !== viewport.regionFilter) return false;
+      return true;
+    });
+  }, [hotels, scope, shortlist, viewport]);
+
+  const selectedHotel: Hotel | null = useMemo(() => {
+    return (
+      visibleHotels.find((h) => h.id === selectedId) ||
+      visibleHotels[0] ||
+      hotels.find((h) => h.id === selectedId) ||
+      null
+    );
+  }, [visibleHotels, hotels, selectedId]);
+
+  const selectedOdds = useMemo(
+    () => (selectedHotel ? computeStayOdds(selectedHotel) : null),
+    [selectedHotel]
+  );
+
+  const onCanvasLayout = (e: LayoutChangeEvent) => {
+    const { width, height } = e.nativeEvent.layout;
+    if (width > 0 && height > 0) {
+      setCanvasSize({ width, height });
+    }
+  };
+
+  const project = (lat: number, lng: number) => {
+    const padX = 16;
+    const padY = 16;
+    const w = Math.max(1, canvasSize.width - padX * 2);
+    const h = Math.max(1, canvasSize.height - padY * 2);
+    const xRatio = (lng - viewport.minLng) / Math.max(0.1, viewport.maxLng - viewport.minLng);
+    const yRatio = (viewport.maxLat - lat) / Math.max(0.1, viewport.maxLat - viewport.minLat);
+    return {
+      x: padX + Math.max(0, Math.min(1, xRatio)) * w,
+      y: padY + Math.max(0, Math.min(1, yRatio)) * h,
+    };
+  };
+
+  const openWebMap = () => {
+    const q = viewport.regionFilter ? `?region=${encodeURIComponent(viewport.regionFilter)}` : '';
+    openExternalUrl(`https://live.uncharteditinerary.com/hotels/${q}`);
+  };
+
+  if (loading && !hotels.length) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color={Colors.accent} />
+        <Text style={styles.loadingText}>Plotting 300 luxury stays…</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.screen}>
+      {/* Top Coastal Navy Controls */}
+      <View style={styles.headerPanel}>
+        <View style={styles.topRow}>
+          <View style={styles.scopeRow}>
+            {(
+              [
+                ['all', `All (${hotels.length})`],
+                ['visited', 'Verified'],
+                ['saved', `♥ ${shortlist.length}`],
+              ] as const
+            ).map(([k, lbl]) => (
+              <Pressable
+                key={k}
+                onPress={() => setScope(k)}
+                style={[styles.scopeBtn, scope === k && styles.scopeBtnActive]}
+              >
+                <Text style={[styles.scopeText, scope === k && styles.scopeTextActive]}>{lbl}</Text>
+              </Pressable>
+            ))}
+          </View>
+
+          <Pressable style={styles.webMapBtn} onPress={openWebMap}>
+            <Ionicons name="globe-outline" size={14} color="#FFFFFF" />
+            <Text style={styles.webMapBtnText}>Street Map ↗</Text>
+          </Pressable>
+        </View>
+
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.regionStrip}>
+          {REGION_VIEWPORTS.map((rv) => {
+            const active = rv.id === viewportId;
+            return (
+              <Pressable
+                key={rv.id}
+                onPress={() => setViewportId(rv.id)}
+                style={[styles.regionPill, active && styles.regionPillActive]}
+              >
+                <Text style={[styles.regionText, active && styles.regionTextActive]}>{rv.label}</Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      </View>
+
+      {/* Interactive Coordinate Map Canvas (100% Expo Go & Web compatible) */}
+      <View style={styles.mapContainer}>
+        <View style={styles.mapCanvas} onLayout={onCanvasLayout}>
+          {/* Subtle coordinate gridlines */}
+          {[0.2, 0.4, 0.6, 0.8].map((frac) => (
+            <React.Fragment key={frac}>
+              <View style={[styles.gridLineH, { top: `${frac * 100}%` }]} pointerEvents="none" />
+              <View style={[styles.gridLineV, { left: `${frac * 100}%` }]} pointerEvents="none" />
+            </React.Fragment>
+          ))}
+
+          {/* Legend & Count Badge */}
+          <View style={styles.mapOverlayBadge} pointerEvents="none">
+            <Text style={styles.mapOverlayBadgeText}>
+              {viewport.label} • {visibleHotels.length} {visibleHotels.length === 1 ? 'stay' : 'stays'}
+            </Text>
+          </View>
+
+          <View style={styles.legendRow} pointerEvents="none">
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: Colors.accent }]} />
+              <Text style={styles.legendText}>First-Hand</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: '#14B8A6' }]} />
+              <Text style={styles.legendText}>Global</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: '#F43F5E' }]} />
+              <Text style={styles.legendText}>Saved</Text>
+            </View>
+          </View>
+
+          {/* Plotted real lat/lng hotel pins */}
+          {visibleHotels.map((h) => {
+            const pos = project(h.lat, h.lng);
+            const isSelected = selectedHotel?.id === h.id;
+            const visited = isVisitedProperty(h);
+            const saved = isShortlisted(h.id);
+            const hasAward = (h.officialAwards || []).length > 0;
+            const pinSize = isSelected ? 18 : visited ? 12 : 9;
+            const bgColor = saved
+              ? '#F43F5E'
+              : visited
+              ? Colors.accent
+              : '#14B8A6';
+
+            return (
+              <Pressable
+                key={h.id}
+                onPress={() => setSelectedId(h.id)}
+                hitSlop={8}
+                accessibilityLabel={`${h.name}, ${h.location}`}
+                style={[
+                  styles.pinWrap,
+                  {
+                    left: pos.x - pinSize / 2,
+                    top: pos.y - pinSize / 2,
+                    width: pinSize,
+                    height: pinSize,
+                    borderRadius: pinSize / 2,
+                    backgroundColor: bgColor,
+                    borderWidth: isSelected ? 2.5 : hasAward ? 1.5 : 1,
+                    borderColor: isSelected ? '#FFFFFF' : hasAward ? '#FDE047' : 'rgba(255,255,255,0.65)',
+                    zIndex: isSelected ? 30 : visited ? 15 : 5,
+                  },
+                ]}
+              />
+            );
+          })}
+        </View>
+      </View>
+
+      {/* Selected Hotel Preview Sheet */}
+      {selectedHotel && selectedOdds ? (
+        <View style={styles.previewWrap}>
+          <View style={styles.previewCard}>
+            <View style={styles.previewTop}>
+              <Image source={{ uri: selectedHotel.thumbnail }} style={styles.previewThumb} />
+              <View style={{ flex: 1 }}>
+                <View style={styles.previewMetaRow}>
+                  <Text
+                    style={[
+                      styles.previewTier,
+                      { color: selectedOdds.firstHand ? Colors.accent : Colors.teal },
+                    ]}
+                  >
+                    {selectedOdds.tierLabel}
+                  </Text>
+                  <Text style={styles.previewCoords}>
+                    {selectedHotel.lat.toFixed(2)}°, {selectedHotel.lng.toFixed(2)}°
+                  </Text>
+                </View>
+                <Text style={styles.previewTitle} numberOfLines={1}>
+                  {selectedHotel.name}
+                </Text>
+                <Text style={styles.previewLoc} numberOfLines={1}>
+                  {selectedHotel.location}, {selectedHotel.country}
+                  {selectedHotel.brand ? ` • ${selectedHotel.brand}` : ''}
+                </Text>
+              </View>
+
+              <View
+                style={[
+                  styles.previewRing,
+                  { borderColor: getTonePalette(selectedOdds.statusTone).ring },
+                ]}
+              >
+                <Text style={styles.previewRingNum}>
+                  {selectedOdds.greatStayOdds != null ? `${selectedOdds.greatStayOdds}%` : '—'}
+                </Text>
+                <Text style={styles.previewRingLbl}>ODDS</Text>
+              </View>
+            </View>
+
+            <View style={styles.previewActions}>
+              <Pressable
+                style={[styles.btnPrimary, { flex: 1 }]}
+                onPress={() =>
+                  router.push({ pathname: '/hotel/[id]', params: { id: selectedHotel.id } })
+                }
+              >
+                <Text style={styles.btnPrimaryText}>Full Breakdown →</Text>
+              </Pressable>
+
+              <Pressable
+                style={styles.btnOutline}
+                onPress={() => {
+                  pushToCompare(selectedHotel.id);
+                  router.push('/(tabs)/compare');
+                }}
+              >
+                <Ionicons name="git-compare-outline" size={14} color={Colors.accentDark} />
+                <Text style={styles.btnOutlineText}>VS</Text>
+              </Pressable>
+
+              <Pressable
+                style={[
+                  styles.btnOutline,
+                  isShortlisted(selectedHotel.id) && {
+                    backgroundColor: '#FFF1F2',
+                    borderColor: '#F43F5E',
+                  },
+                ]}
+                onPress={() => toggleShortlist(selectedHotel.id)}
+              >
+                <Ionicons
+                  name={isShortlisted(selectedHotel.id) ? 'heart' : 'heart-outline'}
+                  size={15}
+                  color={isShortlisted(selectedHotel.id) ? '#E11D48' : Colors.inkSecondary}
+                />
+              </Pressable>
+            </View>
+          </View>
+
+          {/* Quick Horizontal Switcher for Pins in This Region */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.nearbyRow}
+          >
+            {visibleHotels.slice(0, 20).map((h) => {
+              const active = h.id === selectedHotel.id;
+              return (
+                <Pressable
+                  key={h.id}
+                  onPress={() => setSelectedId(h.id)}
+                  style={[styles.nearbyChip, active && styles.nearbyChipActive]}
+                >
+                  <Text
+                    style={[styles.nearbyChipText, active && styles.nearbyChipTextActive]}
+                    numberOfLines={1}
+                  >
+                    {h.name}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
+      ) : (
+        <View style={styles.emptyPreview}>
+          <Text style={styles.emptyTitle}>
+            {scope === 'saved'
+              ? 'No saved hotels in this region yet'
+              : 'No hotels matched this map filter'}
+          </Text>
+          <Text style={styles.emptySub}>
+            Switch to World or All to see all {hotels.length} plotted luxury properties.
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: Colors.bgCanvas },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: Colors.bgCanvas },
+  loadingText: { color: Colors.inkSecondary, fontSize: 14, fontWeight: '600' },
+
+  headerPanel: {
+    backgroundColor: Colors.navy,
+    paddingHorizontal: 14,
+    paddingTop: 10,
+    paddingBottom: 12,
+    gap: 10,
+  },
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  scopeRow: {
+    flexDirection: 'row',
+    gap: 6,
+    flex: 1,
+  },
+  scopeBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.14)',
+  },
+  scopeBtnActive: {
+    backgroundColor: Colors.accent,
+    borderColor: Colors.accent,
+  },
+  scopeText: {
+    color: 'rgba(255,255,255,0.82)',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  scopeTextActive: {
+    color: '#FFFFFF',
+  },
+  webMapBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: 'rgba(20, 184, 166, 0.22)',
+    borderWidth: 1,
+    borderColor: 'rgba(45, 212, 191, 0.5)',
+  },
+  webMapBtnText: {
+    color: '#CCFBF1',
+    fontSize: 11.5,
+    fontWeight: '700',
+  },
+  regionStrip: {
+    gap: 8,
+    paddingRight: 8,
+  },
+  regionPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+  },
+  regionPillActive: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#FFFFFF',
+  },
+  regionText: {
+    color: 'rgba(255,255,255,0.86)',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  regionTextActive: {
+    color: Colors.navy,
+    fontWeight: '700',
+  },
+
+  mapContainer: {
+    flex: 1,
+    padding: 12,
+    minHeight: 220,
+  },
+  mapCanvas: {
+    flex: 1,
+    backgroundColor: '#071B30',
+    borderRadius: 18,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#1E3A5F',
+    position: 'relative',
+  },
+  gridLineH: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    height: 1,
+    backgroundColor: 'rgba(148, 163, 184, 0.14)',
+  },
+  gridLineV: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    width: 1,
+    backgroundColor: 'rgba(148, 163, 184, 0.14)',
+  },
+  mapOverlayBadge: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: 'rgba(7, 19, 35, 0.85)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.16)',
+    zIndex: 40,
+  },
+  mapOverlayBadgeText: {
+    color: '#F8FAFC',
+    fontSize: 11.5,
+    fontWeight: '700',
+  },
+  legendRow: {
+    position: 'absolute',
+    bottom: 10,
+    left: 10,
+    flexDirection: 'row',
+    gap: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    backgroundColor: 'rgba(7, 19, 35, 0.82)',
+    zIndex: 40,
+  },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  legendDot: { width: 8, height: 8, borderRadius: 4 },
+  legendText: { color: '#CBD5E1', fontSize: 10.5, fontWeight: '600' },
+
+  pinWrap: {
+    position: 'absolute',
+    shadowColor: '#000',
+    shadowOpacity: 0.4,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 4,
+  },
+
+  previewWrap: {
+    paddingHorizontal: 12,
+    paddingBottom: 12,
+    gap: 8,
+  },
+  previewCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    gap: 10,
+  },
+  previewTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  previewThumb: {
+    width: 60,
+    height: 60,
+    borderRadius: 12,
+    backgroundColor: Colors.slateSoft,
+  },
+  previewMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 6,
+  },
+  previewTier: {
+    fontSize: 11,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+  previewCoords: {
+    fontSize: 10.5,
+    color: Colors.inkMuted,
+    fontWeight: '600',
+  },
+  previewTitle: {
+    fontSize: 15.5,
+    fontWeight: '800',
+    color: Colors.inkPrimary,
+    marginTop: 1,
+  },
+  previewLoc: {
+    fontSize: 12.5,
+    color: Colors.inkSecondary,
+    marginTop: 1,
+  },
+  previewRing: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    borderWidth: 3,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  previewRingNum: {
+    fontSize: 13.5,
+    fontWeight: '900',
+    color: Colors.inkPrimary,
+  },
+  previewRingLbl: {
+    fontSize: 8.5,
+    fontWeight: '700',
+    color: Colors.inkMuted,
+  },
+  previewActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  btnPrimary: {
+    backgroundColor: Colors.accent,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  btnPrimaryText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  btnOutline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 11,
+    backgroundColor: Colors.bgWarm,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  btnOutlineText: {
+    color: Colors.accentDark,
+    fontSize: 12.5,
+    fontWeight: '800',
+  },
+  nearbyRow: {
+    gap: 8,
+    paddingHorizontal: 2,
+  },
+  nearbyChip: {
+    maxWidth: 185,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  nearbyChipActive: {
+    backgroundColor: Colors.navy,
+    borderColor: Colors.navy,
+  },
+  nearbyChipText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.inkPrimary,
+  },
+  nearbyChipTextActive: {
+    color: '#FFFFFF',
+  },
+  emptyPreview: {
+    margin: 12,
+    padding: 18,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: Colors.border,
+    alignItems: 'center',
+    gap: 4,
+  },
+  emptyTitle: {
+    fontSize: 14.5,
+    fontWeight: '700',
+    color: Colors.inkPrimary,
+  },
+  emptySub: {
+    fontSize: 12.5,
+    color: Colors.inkSecondary,
+    textAlign: 'center',
+  },
+});

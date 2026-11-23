@@ -23,24 +23,79 @@ import { useStayOdds } from '../../lib/store';
 import { Colors } from '../../lib/theme';
 import type { Hotel } from '../../lib/types';
 
-type Scope = 'all' | 'visited' | 'world';
+type Scope = 'all' | 'visited' | 'world' | 'saved';
+type VerifiedFeature = 'all' | 'michelin' | 'forbes' | 'video' | 'points' | 'beach';
+
+const POINTS_BRAND_RE =
+  /\b(marriott|st\.?\s*regis|ritz-carlton|luxury collection|w hotels|edition|jw marriott|hyatt|park hyatt|alila|andaz|hilton|waldorf|conrad|lxr|ihg|six senses|regent|intercontinental|kimpton)\b/i;
+
+const FEATURE_FILTERS: { id: VerifiedFeature; label: string; match: (h: Hotel) => boolean }[] = [
+  { id: 'all', label: 'All Data', match: () => true },
+  {
+    id: 'michelin',
+    label: 'MICHELIN Key',
+    match: (h) =>
+      (h.officialAwards || []).some((a) => /michelin/i.test(`${a.awardBody || ''} ${a.label || ''}`)),
+  },
+  {
+    id: 'forbes',
+    label: 'Forbes 5★',
+    match: (h) =>
+      (h.officialAwards || []).some((a) => /forbes/i.test(`${a.awardBody || ''} ${a.label || ''}`)),
+  },
+  {
+    id: 'video',
+    label: 'Video Reviews',
+    match: (h) => Boolean(h.videoId || (h.youtubeReviews && h.youtubeReviews.length > 0)),
+  },
+  {
+    id: 'points',
+    label: 'Points Brands',
+    match: (h) => POINTS_BRAND_RE.test(`${h.brand || ''} ${h.name || ''}`),
+  },
+  {
+    id: 'beach',
+    label: 'Beach / Reef',
+    match: (h) => Boolean(h.keyFacts?.beachOrReef || h.region === 'Maldives'),
+  },
+];
 
 export default function StayOddsHomeScreen() {
   const router = useRouter();
   const { isSplitScreen } = useAdaptiveLayout();
-  const { hotels, visitedCount, worldCount, loading, refreshing, refresh } = useStayOdds();
+  const {
+    hotels,
+    visitedCount,
+    worldCount,
+    shortlist,
+    toggleShortlist,
+    isShortlisted,
+    loading,
+    refreshing,
+    refresh,
+  } = useStayOdds();
 
   const [scope, setScope] = useState<Scope>('all');
   const [region, setRegion] = useState('All');
+  const [feature, setFeature] = useState<VerifiedFeature>('all');
   const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState<string>('taaktana-labuan-bajo');
   const [requestOpen, setRequestOpen] = useState(false);
 
+  const savedCount = useMemo(
+    () => hotels.filter((h) => shortlist.includes(h.id)).length,
+    [hotels, shortlist]
+  );
+
   const scopedHotels = useMemo(() => {
     if (scope === 'visited') return hotels.filter(isVisitedProperty);
     if (scope === 'world') return hotels.filter((h) => !isVisitedProperty(h));
+    if (scope === 'saved') {
+      const set = new Set(shortlist);
+      return hotels.filter((h) => set.has(h.id));
+    }
     return hotels;
-  }, [hotels, scope]);
+  }, [hotels, scope, shortlist]);
 
   const regions = useMemo(() => {
     const set = new Set(scopedHotels.map((h) => h.region));
@@ -49,9 +104,11 @@ export default function StayOddsHomeScreen() {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
+    const activeFeat = FEATURE_FILTERS.find((f) => f.id === feature) || FEATURE_FILTERS[0];
     return scopedHotels
       .filter((h) => {
         if (region !== 'All' && h.region !== region) return false;
+        if (activeFeat.id !== 'all' && !activeFeat.match(h)) return false;
         if (!q) return true;
         return [h.name, h.location, h.country, h.region, h.brand, h.verdict, h.standout]
           .filter(Boolean)
@@ -67,7 +124,7 @@ export default function StayOddsHomeScreen() {
         if (tierRank(ob) !== tierRank(oa)) return tierRank(ob) - tierRank(oa);
         return (ob.greatStayOdds ?? -1) - (oa.greatStayOdds ?? -1) || a.name.localeCompare(b.name);
       });
-  }, [scopedHotels, region, search]);
+  }, [scopedHotels, region, feature, search]);
 
   const selectedHotel = useMemo(
     () => hotels.find((h) => h.id === selectedId) || filtered[0] || hotels[0] || null,
@@ -87,6 +144,7 @@ export default function StayOddsHomeScreen() {
     const palette = getTonePalette(o.statusTone);
     const active = isSplitScreen && selectedHotel?.id === h.id;
     const topAward = o.officialAwards?.[0]?.label;
+    const saved = isShortlisted(h.id);
 
     return (
       <Pressable
@@ -96,7 +154,7 @@ export default function StayOddsHomeScreen() {
         <View style={styles.cardHeroWrap}>
           <Image source={{ uri: h.thumbnail }} style={styles.cardHeroImg} resizeMode="cover" />
 
-          {/* Top overlay: tier pill + floating white-and-orange StayOdds ring */}
+          {/* Top overlay: tier pill + heart shortlist toggle + floating StayOdds ring */}
           <View style={styles.cardHeroTop}>
             <View style={styles.topLeftPills}>
               <View style={styles.rankBadge}>
@@ -114,18 +172,44 @@ export default function StayOddsHomeScreen() {
               </View>
             </View>
 
-            <View
-              style={[
-                styles.ring,
-                { borderColor: o.greatStayOdds != null ? Colors.accent : palette.ring },
-              ]}
-            >
-              <Text style={styles.ringPct}>
-                {o.greatStayOdds != null ? `${o.greatStayOdds}%` : topAward ? '★' : '—'}
-              </Text>
-              <Text style={styles.ringLabel}>
-                {o.greatStayOdds != null ? 'ODDS' : topAward ? 'AWARD' : 'OPEN'}
-              </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Pressable
+                onPress={(e) => {
+                  e.stopPropagation?.();
+                  toggleShortlist(h.id);
+                }}
+                accessibilityLabel={saved ? 'Remove from shortlist' : 'Save to shortlist'}
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 18,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: saved ? '#FFF1F2' : 'rgba(15, 23, 42, 0.72)',
+                  borderWidth: 1.5,
+                  borderColor: saved ? '#F43F5E' : 'rgba(255, 255, 255, 0.25)',
+                }}
+              >
+                <Ionicons
+                  name={saved ? 'heart' : 'heart-outline'}
+                  size={18}
+                  color={saved ? '#E11D48' : '#FFFFFF'}
+                />
+              </Pressable>
+
+              <View
+                style={[
+                  styles.ring,
+                  { borderColor: o.greatStayOdds != null ? Colors.accent : palette.ring },
+                ]}
+              >
+                <Text style={styles.ringPct}>
+                  {o.greatStayOdds != null ? `${o.greatStayOdds}%` : topAward ? '★' : '—'}
+                </Text>
+                <Text style={styles.ringLabel}>
+                  {o.greatStayOdds != null ? 'ODDS' : topAward ? 'AWARD' : 'OPEN'}
+                </Text>
+              </View>
             </View>
           </View>
 
@@ -220,8 +304,9 @@ export default function StayOddsHomeScreen() {
         {(
           [
             ['all', `All (${hotels.length})`],
-            ['visited', `First-Hand (${visitedCount})`],
+            ['visited', `Verified (${visitedCount})`],
             ['world', `Global (${worldCount})`],
+            ['saved', `♥ ${savedCount}`],
           ] as const
         ).map(([val, lbl]) => (
           <Pressable
@@ -232,7 +317,9 @@ export default function StayOddsHomeScreen() {
             }}
             style={[styles.scopeBtn, scope === val && styles.scopeBtnActive]}
           >
-            <Text style={[styles.scopeText, scope === val && styles.scopeTextActive]}>{lbl}</Text>
+            <Text style={[styles.scopeText, scope === val && styles.scopeTextActive]} numberOfLines={1}>
+              {lbl}
+            </Text>
           </Pressable>
         ))}
       </View>
@@ -257,6 +344,58 @@ export default function StayOddsHomeScreen() {
           <Text style={[styles.regionText, { color: '#FFFFFF', fontWeight: '700' }]}>+ Request Resort</Text>
         </Pressable>
       </ScrollView>
+
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={[styles.regionRow, { paddingTop: 2 }]}
+      >
+        {FEATURE_FILTERS.map((f) => {
+          const isActive = feature === f.id;
+          return (
+            <Pressable
+              key={f.id}
+              onPress={() => setFeature(f.id)}
+              style={[
+                styles.regionPill,
+                {
+                  borderColor: isActive ? '#38BDF8' : 'rgba(255,255,255,0.14)',
+                  backgroundColor: isActive ? 'rgba(56, 189, 248, 0.22)' : 'rgba(255,255,255,0.06)',
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.regionText,
+                  { color: isActive ? '#E0F2FE' : 'rgba(255,255,255,0.78)', fontSize: 11.5 },
+                ]}
+              >
+                {f.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+    </View>
+  );
+
+  const emptyList = (
+    <View style={{ padding: 32, alignItems: 'center', gap: 8 }}>
+      <Ionicons
+        name={scope === 'saved' ? 'heart-outline' : 'search-outline'}
+        size={34}
+        color={Colors.inkMuted}
+      />
+      <Text style={{ fontSize: 15, fontWeight: '700', color: Colors.inkPrimary, textAlign: 'center' }}>
+        {scope === 'saved' && savedCount === 0
+          ? 'Your Shortlist is empty'
+          : 'No resorts matched these filters'}
+      </Text>
+      <Text style={{ fontSize: 13, color: Colors.inkSecondary, textAlign: 'center', lineHeight: 19 }}>
+        {scope === 'saved' && savedCount === 0
+          ? 'Tap the heart icon on any hotel card or breakdown page to save favourites right on your device.'
+          : 'Try switching back to All or clearing a filter pill.'}
+      </Text>
     </View>
   );
 
@@ -278,6 +417,7 @@ export default function StayOddsHomeScreen() {
             keyExtractor={(item) => item.id}
             renderItem={renderCard}
             ListHeaderComponent={listHeader}
+            ListEmptyComponent={emptyList}
             contentContainerStyle={styles.listContent}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={Colors.accent} />}
           />
@@ -297,6 +437,7 @@ export default function StayOddsHomeScreen() {
         keyExtractor={(item) => item.id}
         renderItem={renderCard}
         ListHeaderComponent={listHeader}
+        ListEmptyComponent={emptyList}
         contentContainerStyle={styles.listContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={Colors.accent} />}
       />

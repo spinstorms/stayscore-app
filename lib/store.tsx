@@ -1,6 +1,9 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { fetchStayOddsData, loadCachedData } from './api';
 import type { AffiliateDeal, Hotel, VideoItem } from './types';
+
+const SHORTLIST_STORAGE_KEY = 'stayodds_shortlist_v1';
 
 interface StayOddsContextValue {
   hotels: Hotel[];
@@ -14,9 +17,12 @@ interface StayOddsContextValue {
   error: string | null;
   compareA: string;
   compareB: string;
+  shortlist: string[];
   setCompareA: (id: string) => void;
   setCompareB: (id: string) => void;
   pushToCompare: (id: string) => void;
+  toggleShortlist: (id: string) => void;
+  isShortlisted: (id: string) => boolean;
   refresh: () => Promise<void>;
 }
 
@@ -34,6 +40,7 @@ export function StayOddsProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [compareA, setCompareA] = useState('taaktana-labuan-bajo');
   const [compareB, setCompareB] = useState('ritz-carlton-bali');
+  const [shortlist, setShortlist] = useState<string[]>([]);
 
   const hydrate = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -55,6 +62,16 @@ export function StayOddsProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    AsyncStorage.getItem(SHORTLIST_STORAGE_KEY)
+      .then((raw) => {
+        if (!raw) return;
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          setShortlist(parsed.filter((x): x is string => typeof x === 'string' && x.trim().length > 0));
+        }
+      })
+      .catch(() => {});
+
     loadCachedData().then((cached) => {
       if (cached && cached.hotels.length) {
         setHotels(cached.hotels);
@@ -78,6 +95,17 @@ export function StayOddsProvider({ children }: { children: React.ReactNode }) {
     [compareA]
   );
 
+  const toggleShortlist = useCallback((id: string) => {
+    setShortlist((prev) => {
+      const exists = prev.includes(id);
+      const next = exists ? prev.filter((x) => x !== id) : [id, ...prev];
+      AsyncStorage.setItem(SHORTLIST_STORAGE_KEY, JSON.stringify(next)).catch(() => {});
+      return next;
+    });
+  }, []);
+
+  const isShortlisted = useCallback((id: string) => shortlist.includes(id), [shortlist]);
+
   return (
     <StayOddsContext.Provider
       value={{
@@ -92,9 +120,12 @@ export function StayOddsProvider({ children }: { children: React.ReactNode }) {
         error,
         compareA,
         compareB,
+        shortlist,
         setCompareA,
         setCompareB,
         pushToCompare,
+        toggleShortlist,
+        isShortlisted,
         refresh: () => hydrate(true),
       }}
     >

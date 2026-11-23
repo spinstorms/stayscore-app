@@ -52,6 +52,16 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="map"
+        options={{
+          title: 'Map',
+          headerTitle: 'World Hotel Map',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="map-outline" size={size} color={typeof color === 'string' ? color : Colors.accent} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="compare"
         options={{
           title: 'Compare',

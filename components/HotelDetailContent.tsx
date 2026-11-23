@@ -49,9 +49,10 @@ function ScoreBar({
 
 export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
   const router = useRouter();
-  const { pushToCompare } = useStayOdds();
+  const { pushToCompare, toggleShortlist, isShortlisted } = useStayOdds();
   const [liveGoogle, setLiveGoogle] = useState<LiveGoogleRating | null>(null);
   const [showExplainer, setShowExplainer] = useState(false);
+  const saved = isShortlisted(hotel.id);
 
   useEffect(() => {
     let active = true;
@@ -241,16 +242,44 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
             ) : null}
           </View>
 
-          <Pressable
-            style={styles.btnCompare}
-            onPress={() => {
-              pushToCompare(hotel.id);
-              router.push('/(tabs)/compare');
-            }}
-          >
-            <Ionicons name="git-compare-outline" size={15} color={Colors.accentDark} />
-            <Text style={styles.btnCompareText}>Compare Head-to-Head</Text>
-          </Pressable>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <Pressable
+              style={[styles.btnCompare, { flex: 1 }]}
+              onPress={() => {
+                pushToCompare(hotel.id);
+                router.push('/(tabs)/compare');
+              }}
+            >
+              <Ionicons name="git-compare-outline" size={15} color={Colors.accentDark} />
+              <Text style={styles.btnCompareText}>Compare VS</Text>
+            </Pressable>
+
+            <Pressable
+              style={[
+                styles.btnCompare,
+                {
+                  flex: 1,
+                  backgroundColor: saved ? '#FFF1F2' : Colors.bgWhite,
+                  borderColor: saved ? '#F43F5E' : Colors.border,
+                },
+              ]}
+              onPress={() => toggleShortlist(hotel.id)}
+            >
+              <Ionicons
+                name={saved ? 'heart' : 'heart-outline'}
+                size={15}
+                color={saved ? '#E11D48' : Colors.inkSecondary}
+              />
+              <Text
+                style={[
+                  styles.btnCompareText,
+                  { color: saved ? '#BE123C' : Colors.inkPrimary },
+                ]}
+              >
+                {saved ? 'Saved' : 'Shortlist'}
+              </Text>
+            </Pressable>
+          </View>
 
           <Pressable
             onPress={() => openExternalUrl(getTripAdvisorUrl(hotel))}

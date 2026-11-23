@@ -1,13 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as Clipboard from 'expo-clipboard';
 import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import {
   FlatList,
   Image,
   Modal,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   TextInput,
@@ -25,12 +28,13 @@ type PickerTarget = 'A' | 'B' | null;
 
 export default function CompareScreen() {
   const router = useRouter();
-  const { hotels, compareA, compareB, setCompareA, setCompareB, refreshing, refresh } = useStayOdds();
+  const { hotels, compareA, compareB, setCompareA, setCompareB, shortlist, refreshing, refresh } = useStayOdds();
   const { isSplitScreen, horizontalPadding } = useAdaptiveLayout();
 
   const [pickerTarget, setPickerTarget] = useState<PickerTarget>(null);
   const [pickerQuery, setPickerQuery] = useState('');
-  const [pickerScope, setPickerScope] = useState<'all' | 'visited' | 'global'>('all');
+  const [pickerScope, setPickerScope] = useState<'all' | 'visited' | 'global' | 'saved'>('all');
+  const [copiedLink, setCopiedLink] = useState(false);
 
   const hotelA = useMemo(
     () => hotels.find((h) => h.id === compareA) || hotels[0] || null,
@@ -50,10 +54,12 @@ export default function CompareScreen() {
 
   const pickerList = useMemo(() => {
     const q = pickerQuery.trim().toLowerCase();
+    const savedSet = new Set(shortlist);
     return hotels
       .filter((h) => {
         if (pickerScope === 'visited' && !isVisitedProperty(h)) return false;
         if (pickerScope === 'global' && isVisitedProperty(h)) return false;
+        if (pickerScope === 'saved' && !savedSet.has(h.id)) return false;
         if (!q) return true;
         return (
           h.name.toLowerCase().includes(q) ||
@@ -71,13 +77,32 @@ export default function CompareScreen() {
         if (bv !== av) return bv - av;
         return (ob.greatStayOdds ?? -1) - (oa.greatStayOdds ?? -1) || a.name.localeCompare(b.name);
       });
-  }, [hotels, pickerQuery, pickerScope]);
+  }, [hotels, pickerQuery, pickerScope, shortlist]);
 
   const handleSwap = () => {
     if (!hotelA || !hotelB) return;
     const prevA = hotelA.id;
     setCompareA(hotelB.id);
     setCompareB(prevA);
+  };
+
+  const handleShareVsLink = async () => {
+    if (!hotelA || !hotelB) return;
+    const shareUrl = `https://live.uncharteditinerary.com/compare/?a=${encodeURIComponent(
+      hotelA.id
+    )}&b=${encodeURIComponent(hotelB.id)}`;
+    await Clipboard.setStringAsync(shareUrl).catch(() => {});
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2200);
+    if (Platform.OS !== 'web') {
+      try {
+        await Share.share({
+          title: `${hotelA.name} vs ${hotelB.name} — StayOdds`,
+          message: `Compare ${hotelA.name} vs ${hotelB.name} on StayOdds: ${shareUrl}`,
+          url: shareUrl,
+        });
+      } catch (_) {}
+    }
   };
 
   const handleSelectHotel = (id: string) => {
@@ -284,10 +309,39 @@ export default function CompareScreen() {
                 Zero guessed numbers — green ★ highlights verified winners across {hotels.length} luxury stays.
               </Text>
             </View>
-            <Pressable style={styles.swapBtn} onPress={handleSwap} accessibilityLabel="Swap hotels">
-              <Ionicons name="swap-horizontal" size={20} color="#FFFFFF" />
-            </Pressable>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <Pressable
+                style={[
+                  styles.swapBtn,
+                  copiedLink && { backgroundColor: Colors.teal, borderColor: Colors.teal },
+                ]}
+                onPress={handleShareVsLink}
+                accessibilityLabel="Share or copy Head-to-Head comparison link"
+              >
+                <Ionicons name={copiedLink ? 'checkmark' : 'share-outline'} size={19} color="#FFFFFF" />
+              </Pressable>
+              <Pressable style={styles.swapBtn} onPress={handleSwap} accessibilityLabel="Swap hotels">
+                <Ionicons name="swap-horizontal" size={20} color="#FFFFFF" />
+              </Pressable>
+            </View>
           </View>
+
+          {copiedLink ? (
+            <View
+              style={{
+                alignSelf: 'flex-start',
+                backgroundColor: Colors.teal,
+                paddingHorizontal: 10,
+                paddingVertical: 4,
+                borderRadius: 999,
+                marginBottom: 10,
+              }}
+            >
+              <Text style={{ color: '#FFFFFF', fontSize: 11.5, fontWeight: '700' }}>
+                ✓ Shareable VS link copied!
+              </Text>
+            </View>
+          ) : null}
 
           <View style={[styles.selectorRow, !isSplitScreen && styles.selectorCol]}>
             <Pressable style={styles.selectorBtn} onPress={() => setPickerTarget('A')}>
@@ -366,9 +420,10 @@ export default function CompareScreen() {
           <View style={styles.modalScopeRow}>
             {(
               [
-                ['all', 'All Luxury'],
+                ['all', 'All'],
                 ['visited', 'First-Hand'],
-                ['global', 'Global Directory'],
+                ['global', 'Global'],
+                ['saved', `♥ Saved (${shortlist.length})`],
               ] as const
             ).map(([key, label]) => (
               <Pressable
