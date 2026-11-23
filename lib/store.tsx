@@ -39,7 +39,7 @@ export function StayOddsProvider({ children }: { children: React.ReactNode }) {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [compareA, setCompareA] = useState('taaktana-labuan-bajo');
-  const [compareB, setCompareB] = useState('ritz-carlton-bali');
+  const [compareB, setCompareB] = useState('st-regis-bali');
   const [shortlist, setShortlist] = useState<string[]>([]);
 
   const hydrate = useCallback(async (isRefresh = false) => {

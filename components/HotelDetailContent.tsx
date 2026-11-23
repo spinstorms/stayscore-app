@@ -131,15 +131,25 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
             </View>
             <View style={styles.kpiTile}>
               <Text style={styles.kpiBig}>
-                {o.personalScore25 != null
-                  ? `${o.personalScore25}/25`
+                {o.personalScoreLabel
+                  ? o.personalScoreLabel.replace(/ /g, '')
                   : o.firstHand
                   ? `${formatPersonalScore(hotel.overall)}/5`
                   : o.visited
-                  ? 'Short'
+                  ? hotel.coverageType === 'Short Tour'
+                    ? 'Short'
+                    : 'Filmed'
                   : '—'}
               </Text>
-              <Text style={styles.kpiLabel}>{o.visited && !o.firstHand ? 'Short Tour' : 'My Stay'}</Text>
+              <Text style={styles.kpiLabel}>
+                {o.firstHand
+                  ? 'My Stay'
+                  : o.visited
+                  ? hotel.coverageType === 'Short Tour'
+                    ? 'Short Tour'
+                    : 'Full Video'
+                  : 'My Stay'}
+              </Text>
             </View>
             <View style={styles.kpiTile}>
               <Text style={styles.kpiBig}>
@@ -435,10 +445,10 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
             <Text style={styles.weightLbl}>My Stay</Text>
             <Text style={styles.weightVal}>
               {o.ours100 != null
-                ? o.personalScore25 != null
-                  ? `${o.personalScore25}/25 → ${o.ours100}%`
+                ? o.personalScoreLabel
+                  ? `${o.personalScoreLabel.replace(/ /g, '')} → ${o.ours100}%`
                   : `${o.ours100}%`
-                : 'Unrated'}
+                : 'Unscored'}
             </Text>
           </View>
           <View style={styles.weightBox}>
@@ -462,26 +472,42 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
         </View>
       </View>
 
-      {/* First-Hand 5-Category Scorecard (/25) */}
+      {/* First-Hand Uncharted Scorecard */}
       <View style={styles.sectionCard}>
         <Text style={styles.sectionEyebrow}>TIER 1 • MY STAY SCORECARD</Text>
-        <Text style={styles.sectionTitle}>My 5-Category Scorecard ({o.opinionGap.leftDisplay})</Text>
+        <Text style={styles.sectionTitle}>
+          My Uncharted Scorecard{o.personalScoreLabel ? ` (${o.personalScoreLabel})` : ''}
+        </Text>
         {o.firstHand && s ? (
           <View style={{ marginTop: 10, gap: 10 }}>
-            <ScoreBar label="Value" value={s.value} max={5} suffix=" / 5" color={Colors.accent} whole />
-            <ScoreBar label="Room Quality" value={s.rooms} max={5} suffix=" / 5" color={Colors.accent} whole />
-            <ScoreBar label="Vibe" value={s.grounds} max={5} suffix=" / 5" color={Colors.accent} whole />
-            <ScoreBar label="Food" value={s.food} max={5} suffix=" / 5" color={Colors.accent} whole />
-            <ScoreBar label="Service" value={s.service} max={5} suffix=" / 5" color={Colors.accent} whole />
+            {s.value != null ? (
+              <ScoreBar label="Value" value={s.value} max={5} suffix=" / 5" color={Colors.accent} whole />
+            ) : null}
+            {s.rooms != null ? (
+              <ScoreBar label="Room Quality" value={s.rooms} max={5} suffix=" / 5" color={Colors.accent} whole />
+            ) : null}
+            {s.grounds != null ? (
+              <ScoreBar label="Vibe / Layout" value={s.grounds} max={5} suffix=" / 5" color={Colors.accent} whole />
+            ) : null}
+            {s.food != null ? (
+              <ScoreBar label="Food" value={s.food} max={5} suffix=" / 5" color={Colors.accent} whole />
+            ) : null}
+            {s.service != null ? (
+              <ScoreBar label="Service" value={s.service} max={5} suffix=" / 5" color={Colors.accent} whole />
+            ) : null}
           </View>
         ) : (
           <View style={styles.noticeBox}>
             <Text style={styles.noticeTitle}>
-              {o.visited ? 'Short Preview — Full Scorecard Pending' : 'Global Directory — Not Stayed Yet'}
+              {o.visited
+                ? hotel.coverageType === 'Short Tour'
+                  ? 'Short Tour Preview (Unscored)'
+                  : 'Filmed Stay Review (Qualitative Only)'
+                : 'Global Directory — Not Stayed Yet'}
             </Text>
             <Text style={styles.noticeText}>
               {o.visited
-                ? `${BRAND.foundingContributor} filmed quick Shorts here without assigning a full /25 stay scorecard yet.`
+                ? `${BRAND.foundingContributor} filmed this property qualitatively without assigning a numeric scorecard — we never invent scores after the fact.`
                 : `${BRAND.foundingContributor} has not filmed a first-hand stay at ${hotel.name} yet.`}
             </Text>
           </View>

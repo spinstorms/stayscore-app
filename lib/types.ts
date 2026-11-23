@@ -1,9 +1,9 @@
 export interface HotelScores {
-  rooms: number;
-  grounds: number;
-  food: number;
-  service: number;
-  value: number;
+  rooms?: number | null;
+  grounds?: number | null;
+  food?: number | null;
+  service?: number | null;
+  value?: number | null;
 }
 
 export interface KeyFacts {

@@ -250,12 +250,14 @@ export default function StayOddsHomeScreen() {
               <View style={styles.frostedStatsRow}>
                 <Text style={styles.statText}>
                   <Text style={styles.statBold}>
-                    {o.personalScore25 != null
-                      ? `${o.personalScore25}/25`
+                    {o.personalScoreLabel
+                      ? o.personalScoreLabel.replace(/ /g, '')
                       : o.firstHand
                       ? `${formatPersonalScore(h.overall)}/5`
                       : o.visited
-                      ? 'Short'
+                      ? h.coverageType === 'Short Tour'
+                        ? 'Short'
+                        : 'Filmed'
                       : 'Global'}
                   </Text>{' '}
                   {o.firstHand ? 'My Stay' : 'Tier'}

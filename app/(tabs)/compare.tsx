@@ -182,10 +182,10 @@ export default function CompareScreen() {
             )}
             {renderMetricRow(
               'First-Hand Score',
-              oddsA?.firstHand ? hotelA?.overall : null,
-              oddsB?.firstHand ? hotelB?.overall : null,
-              oddsA?.firstHand ? `${formatPersonalScore(hotelA?.overall)} / 5` : 'Not Rated',
-              oddsB?.firstHand ? `${formatPersonalScore(hotelB?.overall)} / 5` : 'Not Rated',
+              oddsA?.firstHand ? oddsA.ours100 : null,
+              oddsB?.firstHand ? oddsB.ours100 : null,
+              oddsA?.personalScoreLabel || (oddsA?.visited ? 'Filmed (Unscored)' : 'Not Visited'),
+              oddsB?.personalScoreLabel || (oddsB?.visited ? 'Filmed (Unscored)' : 'Not Visited'),
               side
             )}
             {renderMetricRow(
@@ -212,24 +212,24 @@ export default function CompareScreen() {
               'Rooms & Villas',
               oddsA?.firstHand ? hotelA?.scores?.rooms : null,
               oddsB?.firstHand ? hotelB?.scores?.rooms : null,
-              oddsA?.firstHand ? `${formatPersonalScore(hotelA?.scores?.rooms)} / 5` : '—',
-              oddsB?.firstHand ? `${formatPersonalScore(hotelB?.scores?.rooms)} / 5` : '—',
+              oddsA?.firstHand && hotelA?.scores?.rooms != null ? `${formatPersonalScore(hotelA.scores.rooms)} / 5` : '—',
+              oddsB?.firstHand && hotelB?.scores?.rooms != null ? `${formatPersonalScore(hotelB.scores.rooms)} / 5` : '—',
               side
             )}
             {renderMetricRow(
               'Service',
               oddsA?.firstHand ? hotelA?.scores?.service : null,
               oddsB?.firstHand ? hotelB?.scores?.service : null,
-              oddsA?.firstHand ? `${formatPersonalScore(hotelA?.scores?.service)} / 5` : '—',
-              oddsB?.firstHand ? `${formatPersonalScore(hotelB?.scores?.service)} / 5` : '—',
+              oddsA?.firstHand && hotelA?.scores?.service != null ? `${formatPersonalScore(hotelA.scores.service)} / 5` : '—',
+              oddsB?.firstHand && hotelB?.scores?.service != null ? `${formatPersonalScore(hotelB.scores.service)} / 5` : '—',
               side
             )}
             {renderMetricRow(
               'Value for Money',
               oddsA?.firstHand ? hotelA?.scores?.value : null,
               oddsB?.firstHand ? hotelB?.scores?.value : null,
-              oddsA?.firstHand ? `${formatPersonalScore(hotelA?.scores?.value)} / 5` : '—',
-              oddsB?.firstHand ? `${formatPersonalScore(hotelB?.scores?.value)} / 5` : '—',
+              oddsA?.firstHand && hotelA?.scores?.value != null ? `${formatPersonalScore(hotelA.scores.value)} / 5` : '—',
+              oddsB?.firstHand && hotelB?.scores?.value != null ? `${formatPersonalScore(hotelB.scores.value)} / 5` : '—',
               side
             )}
           </View>

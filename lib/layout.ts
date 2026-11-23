@@ -23,7 +23,7 @@ export function useAdaptiveLayout() {
 export function formatPersonalScore(val: number | null | undefined): string {
   if (val == null || Number.isNaN(Number(val))) return '—';
   const num = Number(val);
-  return Number.isInteger(num) ? String(num) : num.toFixed(1);
+  return Number.isInteger(num) ? String(num) : String(Number(num.toFixed(2)));
 }
 
 export function isRatedHotel(h: { overall: number | null; scores: unknown }): boolean {
