@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import { fetchStayOddsData, loadCachedData } from './api';
+import { fetchStayOddsData, loadCachedDataWithMeta } from './api';
 import type { AffiliateDeal, Hotel, VideoItem } from './types';
 
 const SHORTLIST_STORAGE_KEY = 'stayodds_shortlist_v1';
@@ -45,7 +45,7 @@ export function StayOddsProvider({ children }: { children: React.ReactNode }) {
   const hydrate = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     try {
-      const data = await fetchStayOddsData();
+      const data = await fetchStayOddsData({ forceRefresh: isRefresh });
       setHotels(data.hotels);
       setVisitedCount(data.visitedCount);
       setWorldCount(data.worldCount);
@@ -72,18 +72,23 @@ export function StayOddsProvider({ children }: { children: React.ReactNode }) {
       })
       .catch(() => {});
 
-    loadCachedData().then((cached) => {
-      if (cached && cached.hotels.length) {
-        setHotels(cached.hotels);
-        setVisitedCount(cached.visitedCount);
-        setWorldCount(cached.worldCount);
-        setVideos(cached.videos);
-        setShorts(cached.shorts);
-        setDeals(cached.deals);
-        setLoading(false);
-      }
-      hydrate(false);
-    });
+    loadCachedDataWithMeta()
+      .then((cached) => {
+        if (cached && cached.data.hotels.length) {
+          setHotels(cached.data.hotels);
+          setVisitedCount(cached.data.visitedCount);
+          setWorldCount(cached.data.worldCount);
+          setVideos(cached.data.videos);
+          setShorts(cached.data.shorts);
+          setDeals(cached.data.deals);
+          setLoading(false);
+          if (cached.isFresh) return;
+        }
+        hydrate(false);
+      })
+      .catch(() => {
+        hydrate(false);
+      });
   }, [hydrate]);
 
   const pushToCompare = useCallback(

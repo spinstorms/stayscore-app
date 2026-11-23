@@ -63,20 +63,85 @@ async function fetchLiveJson<T>(path: string): Promise<T> {
   return (await res.json()) as T;
 }
 
-export async function loadCachedData(): Promise<StayOddsPayload | null> {
+const CACHE_TTL_MS = 60 * 60 * 1000; // 60 minutes
+
+interface CachedEnvelope {
+  cachedAt: number;
+  data: StayOddsPayload;
+}
+
+let inFlightDirectoryFetch: Promise<StayOddsPayload> | null = null;
+
+function parseCachedPayload(raw: string | null): { data: StayOddsPayload; isFresh: boolean } | null {
+  if (!raw) return null;
   try {
-    const raw = await AsyncStorage.getItem(CACHE_KEY);
-    return raw ? (JSON.parse(raw) as StayOddsPayload) : null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+
+    // Support both new { cachedAt, data } envelope and legacy raw StayOddsPayload
+    const data: StayOddsPayload | null =
+      parsed.data && Array.isArray(parsed.data.hotels)
+        ? (parsed.data as StayOddsPayload)
+        : Array.isArray(parsed.hotels)
+        ? (parsed as StayOddsPayload)
+        : null;
+
+    if (!data || !Array.isArray(data.hotels) || data.hotels.length === 0) return null;
+
+    const cachedAt =
+      typeof parsed.cachedAt === 'number'
+        ? parsed.cachedAt
+        : data.updatedAt
+        ? Date.parse(data.updatedAt)
+        : 0;
+    const ageMs = Number.isFinite(cachedAt) && cachedAt > 0 ? Date.now() - cachedAt : Infinity;
+    return { data, isFresh: ageMs >= 0 && ageMs < CACHE_TTL_MS };
   } catch {
     return null;
   }
 }
 
+export async function loadCachedDataWithMeta(): Promise<{ data: StayOddsPayload; isFresh: boolean } | null> {
+  try {
+    const raw = await AsyncStorage.getItem(CACHE_KEY);
+    return parseCachedPayload(raw);
+  } catch {
+    return null;
+  }
+}
+
+export async function loadCachedData(): Promise<StayOddsPayload | null> {
+  const cached = await loadCachedDataWithMeta();
+  return cached ? cached.data : null;
+}
+
 /**
- * Fetches live 250-hotel directory directly from Supabase Postgres (public RLS read),
+ * Fetches live luxury hotel directory directly from Supabase Postgres (public RLS read),
  * paired with live-synced YouTube episodes & Google Sheet deals.
+ * Uses a 60-minute client cache and in-flight deduplication to minimize Supabase egress
+ * while failing gracefully to live Supabase queries if storage is unavailable.
  */
-export async function fetchStayOddsData(): Promise<StayOddsPayload> {
+export async function fetchStayOddsData(options?: { forceRefresh?: boolean }): Promise<StayOddsPayload> {
+  const forceRefresh = Boolean(options?.forceRefresh);
+
+  if (!forceRefresh) {
+    const cached = await loadCachedDataWithMeta();
+    if (cached && cached.isFresh && cached.data.hotels.length > 0) {
+      return cached.data;
+    }
+  }
+
+  if (inFlightDirectoryFetch) {
+    return inFlightDirectoryFetch;
+  }
+
+  inFlightDirectoryFetch = fetchStayOddsDataFromNetwork().finally(() => {
+    inFlightDirectoryFetch = null;
+  });
+  return inFlightDirectoryFetch;
+}
+
+async function fetchStayOddsDataFromNetwork(): Promise<StayOddsPayload> {
   const [props, facts, fhReviews, licensedScores, awards, editorial, ytReviews, bookingLinks, videosRes, affRes] =
     await Promise.all([
       sbSelect<Record<string, any>>('properties'),
@@ -243,23 +308,83 @@ export async function fetchStayOddsData(): Promise<StayOddsPayload> {
     updatedAt: new Date().toISOString(),
   };
 
-  AsyncStorage.setItem(CACHE_KEY, JSON.stringify(payload)).catch(() => {});
+  // Never cache empty or failed responses; silently ignore storage errors (private mode / quota)
+  if (payload.hotels.length > 0) {
+    try {
+      const envelope: CachedEnvelope = { cachedAt: Date.now(), data: payload };
+      AsyncStorage.setItem(CACHE_KEY, JSON.stringify(envelope)).catch(() => {});
+    } catch {
+      // Ignore storage serialization/quota errors
+    }
+  }
   return payload;
 }
 
+const liveGoogleMemoryCache = new Map<string, LiveGoogleRating>();
+const liveGoogleInFlight = new Map<string, Promise<LiveGoogleRating | null>>();
+
 /**
  * ToS-compliant on-demand live Google Places rating fetch for Detail screens ONLY.
- * Never cached permanently in Postgres or AsyncStorage.
+ * Deduplicated in memory during the active app session; never cached permanently in Postgres or AsyncStorage.
  */
 export async function fetchLiveGoogleRating(placeId?: string | null): Promise<LiveGoogleRating | null> {
   if (!placeId) return null;
+  const cached = liveGoogleMemoryCache.get(placeId);
+  if (cached) return cached;
+  const pending = liveGoogleInFlight.get(placeId);
+  if (pending) return pending;
+
   const fallbackMapsUrl = `https://www.google.com/maps/place/?q=place_id:${encodeURIComponent(placeId)}`;
-  try {
-    const res = await fetch(
-      `${BRAND.liveGoogleEdgeUrl}?place_id=${encodeURIComponent(placeId)}`,
-      { headers: { Accept: 'application/json' } }
-    );
-    if (!res.ok) {
+  const req = (async (): Promise<LiveGoogleRating | null> => {
+    try {
+      const res = await fetch(
+        `${BRAND.liveGoogleEdgeUrl}?place_id=${encodeURIComponent(placeId)}`,
+        { headers: { Accept: 'application/json' } }
+      );
+      if (!res.ok) {
+        return {
+          status: 'unavailable',
+          placeId,
+          rating: null,
+          scale: 5,
+          normalized100: null,
+          reviewCount: null,
+          googleMapsUri: fallbackMapsUrl,
+          attribution: 'Google Maps',
+          policyNotice: '',
+          fetchedAt: new Date().toISOString(),
+        };
+      }
+      const data = await res.json();
+      if (data.status !== 'ok' || typeof data.rating !== 'number') {
+        return {
+          status: data.status === 'cap_reached' ? 'cap_reached' : 'unavailable',
+          placeId,
+          rating: null,
+          scale: 5,
+          normalized100: null,
+          reviewCount: null,
+          googleMapsUri: data.googleMapsUri || fallbackMapsUrl,
+          attribution: 'Google Maps',
+          policyNotice: '',
+          fetchedAt: new Date().toISOString(),
+        };
+      }
+      const okResult: LiveGoogleRating = {
+        status: 'ok',
+        placeId,
+        rating: data.rating,
+        scale: 5,
+        normalized100: data.normalized100 ?? Math.round(data.rating * 20),
+        reviewCount: typeof data.reviewCount === 'number' ? data.reviewCount : null,
+        googleMapsUri: data.googleMapsUri || fallbackMapsUrl,
+        attribution: data.attribution || 'Powered by Google',
+        policyNotice: data.policyNotice || 'Reviews are not verified by Google.',
+        fetchedAt: data.fetchedAt || new Date().toISOString(),
+      };
+      liveGoogleMemoryCache.set(placeId, okResult);
+      return okResult;
+    } catch {
       return {
         status: 'unavailable',
         placeId,
@@ -272,48 +397,13 @@ export async function fetchLiveGoogleRating(placeId?: string | null): Promise<Li
         policyNotice: '',
         fetchedAt: new Date().toISOString(),
       };
+    } finally {
+      liveGoogleInFlight.delete(placeId);
     }
-    const data = await res.json();
-    if (data.status !== 'ok' || typeof data.rating !== 'number') {
-      return {
-        status: data.status === 'cap_reached' ? 'cap_reached' : 'unavailable',
-        placeId,
-        rating: null,
-        scale: 5,
-        normalized100: null,
-        reviewCount: null,
-        googleMapsUri: data.googleMapsUri || fallbackMapsUrl,
-        attribution: 'Google Maps',
-        policyNotice: '',
-        fetchedAt: new Date().toISOString(),
-      };
-    }
-    return {
-      status: 'ok',
-      placeId,
-      rating: data.rating,
-      scale: 5,
-      normalized100: data.normalized100 ?? Math.round(data.rating * 20),
-      reviewCount: typeof data.reviewCount === 'number' ? data.reviewCount : null,
-      googleMapsUri: data.googleMapsUri || fallbackMapsUrl,
-      attribution: data.attribution || 'Powered by Google',
-      policyNotice: data.policyNotice || 'Reviews are not verified by Google.',
-      fetchedAt: data.fetchedAt || new Date().toISOString(),
-    };
-  } catch {
-    return {
-      status: 'unavailable',
-      placeId,
-      rating: null,
-      scale: 5,
-      normalized100: null,
-      reviewCount: null,
-      googleMapsUri: fallbackMapsUrl,
-      attribution: 'Google Maps',
-      policyNotice: '',
-      fetchedAt: new Date().toISOString(),
-    };
-  }
+  })();
+
+  liveGoogleInFlight.set(placeId, req);
+  return req;
 }
 
 export async function openExternalUrl(url: string) {
