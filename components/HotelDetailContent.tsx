@@ -6,7 +6,7 @@ import { fetchLiveGoogleRating, getHotelVideoUrl, LiveGoogleRating, openExternal
 import { BRAND } from '../lib/brand';
 import { formatPersonalScore } from '../lib/layout';
 import { getPropertyStatusMeta } from '../lib/propertyStatus';
-import { computeStayOdds, getTonePalette, getTripAdvisorUrl } from '../lib/scoring';
+import { computeStayOdds, getTonePalette, getTripAdvisorUrl, isScoreUnverified } from '../lib/scoring';
 import { useStayOdds } from '../lib/store';
 import { Colors } from '../lib/theme';
 import type { Hotel } from '../lib/types';
@@ -577,7 +577,11 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
             <Text style={styles.weightPct}>{o.weights.critics}%</Text>
             <Text style={styles.weightLbl}>Published Critics</Text>
             <Text style={styles.weightVal}>
-              {o.critic100 != null ? `${o.critic100}%` : '—'}
+              {o.critic100 != null
+                ? `${o.critic100}%`
+                : o.unverifiedEditorial && o.unverifiedEditorial.length > 0
+                ? 'Unverified'
+                : '—'}
             </Text>
           </View>
           <View style={styles.weightBox}>
@@ -592,6 +596,14 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
             </Text>
           </View>
         </View>
+        {o.unverifiedEditorial && o.unverifiedEditorial.length > 0 ? (
+          <View style={[styles.noticeBox, { marginTop: 10, backgroundColor: '#FFFBEB', borderColor: '#FDE68A' }]}>
+            <Text style={[styles.noticeTitle, { color: '#92400E' }]}>Score Verification Transparency</Text>
+            <Text style={[styles.noticeText, { color: '#92400E' }]}>
+              {o.unverifiedEditorial.map((u) => u.sourceName).join(', ')} awards a points/rating score in their linked review, but the exact figure could not be verified from published text or captions — marked “Score/points awarded — unable to verify exact figure” and excluded from numeric StayOdds calculations.
+            </Text>
+          </View>
+        ) : null}
       </View>
 
       {/* First-Hand Uncharted Scorecard */}
@@ -662,23 +674,30 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
                 </View>
               </Pressable>
             ))}
-            {o.editorialRatings.map((item, idx) => (
-              <Pressable
-                key={`${item.sourceName}-${idx}`}
-                style={styles.sourceRow}
-                onPress={() => openExternalUrl(item.sourceUrl)}
-              >
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.sourceTitle}>{item.sourceName} ↗</Text>
-                  {item.takeaway ? <Text style={styles.sourceBody}>{item.takeaway}</Text> : null}
-                </View>
-                <View style={styles.sourceScorePill}>
-                  <Text style={styles.sourceScoreText}>
-                    {item.normalized100 != null ? (item.rawScore || `${item.normalized100}/100`) : 'Review ↗'}
-                  </Text>
-                </View>
-              </Pressable>
-            ))}
+            {o.editorialRatings.map((item, idx) => {
+              const unverified = isScoreUnverified(item);
+              return (
+                <Pressable
+                  key={`${item.sourceName}-${idx}`}
+                  style={styles.sourceRow}
+                  onPress={() => openExternalUrl(item.sourceUrl)}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.sourceTitle}>{item.sourceName} ↗</Text>
+                    {item.takeaway ? <Text style={styles.sourceBody}>{item.takeaway}</Text> : null}
+                  </View>
+                  <View style={[styles.sourceScorePill, unverified && { backgroundColor: '#FEF3C7' }]}>
+                    <Text style={[styles.sourceScoreText, unverified && { color: '#92400E' }]}>
+                      {unverified
+                        ? 'Score awarded — unverified'
+                        : item.normalized100 != null
+                        ? item.rawScore || `${item.normalized100}/100`
+                        : 'Review ↗'}
+                    </Text>
+                  </View>
+                </Pressable>
+              );
+            })}
           </View>
         ) : (
           <Text style={styles.emptyNotice}>
@@ -707,21 +726,29 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
               </View>
             </Pressable>
           ) : null}
-          {o.youtubeReviews.map((yt, idx) => (
-            <Pressable
-              key={`${yt.creatorName}-${idx}`}
-              style={styles.sourceRow}
-              onPress={() => openExternalUrl(yt.sourceUrl)}
-            >
-              <Ionicons name="logo-youtube" size={18} color="#DC2626" />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.sourceTitle}>
-                  {yt.creatorName} {yt.sentiment ? `• ${yt.sentiment}` : ''} ↗
-                </Text>
-                {yt.takeaway ? <Text style={styles.sourceBody}>{yt.takeaway}</Text> : null}
-              </View>
-            </Pressable>
-          ))}
+          {o.youtubeReviews.map((yt, idx) => {
+            const unverified = isScoreUnverified(yt);
+            return (
+              <Pressable
+                key={`${yt.creatorName}-${idx}`}
+                style={styles.sourceRow}
+                onPress={() => openExternalUrl(yt.sourceUrl)}
+              >
+                <Ionicons name="logo-youtube" size={18} color="#DC2626" />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.sourceTitle}>
+                    {yt.creatorName} {yt.sentiment ? `• ${yt.sentiment}` : ''} ↗
+                  </Text>
+                  {yt.takeaway ? <Text style={styles.sourceBody}>{yt.takeaway}</Text> : null}
+                </View>
+                {unverified ? (
+                  <View style={[styles.sourceScorePill, { backgroundColor: '#FEF3C7' }]}>
+                    <Text style={[styles.sourceScoreText, { color: '#92400E' }]}>Unverified Score</Text>
+                  </View>
+                ) : null}
+              </Pressable>
+            );
+          })}
           {!videoUrl && o.youtubeReviews.length === 0 ? (
             <Text style={styles.emptyNotice}>
               No YouTube video reviews linked yet. Creators are never attributed without a direct YouTube link.

@@ -61,9 +61,16 @@ export interface StayOddsResult {
   keyFacts: KeyFactTile[];
   redFlags: string[];
   editorialRatings: EditorialRating[];
+  unverifiedEditorial?: EditorialRating[];
   youtubeReviews: LinkedYoutubeReview[];
   officialAwards: OfficialAward[];
   verifiedGuest: VerifiedGuestResolved | null;
+}
+
+export function isScoreUnverified(entry?: { rawScore?: string | null; takeaway?: string | null; sentiment?: string | null } | null): boolean {
+  if (!entry || typeof entry !== 'object') return false;
+  const text = `${entry.rawScore || ''} ${entry.takeaway || ''} ${entry.sentiment || ''}`;
+  return /unable to verify|unverified/i.test(text);
 }
 
 export function isValidHttpUrl(url?: string | null): boolean {
@@ -214,8 +221,9 @@ export function computeStayOdds(
       : null;
 
   const scoredEditorial = editorialRatings.filter(
-    (r) => r.normalized100 != null && !Number.isNaN(Number(r.normalized100))
+    (r) => r.normalized100 != null && !Number.isNaN(Number(r.normalized100)) && !isScoreUnverified(r)
   );
+  const unverifiedEditorial = editorialRatings.filter((r) => isScoreUnverified(r));
   const scoredCritics = scoredEditorial.map((r) => Number(r.normalized100));
   const critic100 =
     scoredCritics.length > 0
@@ -324,6 +332,8 @@ export function computeStayOdds(
 
   let headline = firstHand
     ? 'My first-hand stay notes below — compare directly with real guest reviews'
+    : unverifiedEditorial.length > 0 && scoredEditorial.length === 0
+    ? `${unverifiedEditorial.map((u) => u.sourceName).join(', ')} awards a score/points total (unable to verify exact figure — excluded from numeric math)`
     : officialAwards.length > 0
     ? `Recognised with ${officialAwards.map((a) => a.label).join(' • ')}`
     : 'Published critics & verified guest reviews compared side-by-side';
@@ -354,6 +364,8 @@ export function computeStayOdds(
       ? 'My First-Hand Stay'
       : scoredEditorial.length === 1 && primaryCritic
       ? primaryCritic.sourceName
+      : scoredEditorial.length === 0 && unverifiedEditorial.length === 1
+      ? unverifiedEditorial[0].sourceName
       : 'Published Critics',
     left100,
     leftDisplay: firstHand
@@ -362,6 +374,8 @@ export function computeStayOdds(
       ? primaryCritic.rawScore || `${critic100} / 100`
       : critic100 != null
       ? `${critic100} / 100`
+      : unverifiedEditorial.length > 0
+      ? 'Score awarded — unverified'
       : 'No critic score',
     rightLabel: verifiedGuest ? verifiedGuest.sourceName : 'Real Guest Score',
     right100,
@@ -406,6 +420,7 @@ export function computeStayOdds(
     keyFacts,
     redFlags,
     editorialRatings,
+    unverifiedEditorial,
     youtubeReviews,
     officialAwards,
     verifiedGuest,
