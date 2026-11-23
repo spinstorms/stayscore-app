@@ -5,7 +5,7 @@ import { BRAND } from './brand';
 import type { AffiliateDeal, Hotel, VideoItem } from './types';
 
 export const LIVE_BASE_URL = BRAND.liveApiBaseUrl;
-const CACHE_KEY = 'stayodds_supabase_cache_v6';
+const CACHE_KEY = 'stayodds_supabase_cache_v7';
 
 function resolveHotelThumbnail(id: string, rawHero?: string | null): string {
   const hero = String(rawHero || '').trim();
@@ -43,16 +43,23 @@ export interface LiveGoogleRating {
 }
 
 async function sbSelect<T>(table: string, select = '*'): Promise<T[]> {
-  const url = `${BRAND.supabaseUrl}/rest/v1/${table}?select=${encodeURIComponent(select)}&limit=1000`;
-  const res = await fetch(url, {
-    headers: {
-      apikey: BRAND.supabasePublishableKey,
-      Authorization: `Bearer ${BRAND.supabasePublishableKey}`,
-      Accept: 'application/json',
-    },
-  });
-  if (!res.ok) throw new Error(`Supabase ${table} HTTP ${res.status}`);
-  return (await res.json()) as T[];
+  const pageSize = 1000;
+  const all: T[] = [];
+  for (let offset = 0; offset < 5000; offset += pageSize) {
+    const url = `${BRAND.supabaseUrl}/rest/v1/${table}?select=${encodeURIComponent(select)}&limit=${pageSize}&offset=${offset}`;
+    const res = await fetch(url, {
+      headers: {
+        apikey: BRAND.supabasePublishableKey,
+        Authorization: `Bearer ${BRAND.supabasePublishableKey}`,
+        Accept: 'application/json',
+      },
+    });
+    if (!res.ok) throw new Error(`Supabase ${table} HTTP ${res.status}`);
+    const page = (await res.json()) as T[];
+    all.push(...page);
+    if (page.length < pageSize) break;
+  }
+  return all;
 }
 
 async function fetchLiveJson<T>(path: string): Promise<T> {

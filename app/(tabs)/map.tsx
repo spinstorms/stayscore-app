@@ -30,12 +30,14 @@ interface RegionViewport {
 }
 
 const REGION_VIEWPORTS: RegionViewport[] = [
-  { id: 'world', label: 'World', regionFilter: null, minLat: -42, maxLat: 64, minLng: -158, maxLng: 158 },
+  { id: 'world', label: 'World', regionFilter: null, minLat: -55, maxLat: 66, minLng: -162, maxLng: 179.5 },
+  { id: 'mexico', label: 'Mexico', regionFilter: 'Mexico', minLat: 16.5, maxLat: 26.0, minLng: -112.0, maxLng: -85.5 },
+  { id: 'caribbean', label: 'Caribbean', regionFilter: 'Caribbean', minLat: 10.5, maxLat: 33.0, minLng: -85.5, maxLng: -58.5 },
   { id: 'maldives', label: 'Maldives', regionFilter: 'Maldives', minLat: -1.2, maxLat: 7.4, minLng: 71.8, maxLng: 74.6 },
   { id: 'bali', label: 'Bali & Indonesia', regionFilter: 'Bali & Indonesia', minLat: -10.8, maxLat: -6.5, minLng: 109.5, maxLng: 121.0 },
-  { id: 'europe', label: 'Europe', regionFilter: 'Europe', minLat: 35.0, maxLat: 58.0, minLng: -11.0, maxLng: 30.0 },
-  { id: 'americas', label: 'Americas', regionFilter: 'Los Angeles & Americas', minLat: 10.0, maxLat: 49.0, minLng: -126.0, maxLng: -58.0 },
-  { id: 'asia', label: 'Asia', regionFilter: 'Asia', minLat: 0.0, maxLat: 42.0, minLng: 98.0, maxLng: 145.0 },
+  { id: 'europe', label: 'Europe', regionFilter: 'Europe', minLat: 35.0, maxLat: 65.5, minLng: -25.0, maxLng: 30.0 },
+  { id: 'americas', label: 'Americas', regionFilter: 'Los Angeles & Americas', minLat: -54.0, maxLat: 54.0, minLng: -162.0, maxLng: -34.0 },
+  { id: 'asia', label: 'Asia & Pacific', regionFilter: 'Asia', minLat: -42.0, maxLat: 42.0, minLng: 70.0, maxLng: 179.0 },
   { id: 'middle-east', label: 'Middle East', regionFilter: 'Middle East', minLat: 19.0, maxLat: 31.0, minLng: 35.0, maxLng: 60.0 },
   { id: 'thailand', label: 'Thailand', regionFilter: 'Thailand', minLat: 6.5, maxLat: 20.5, minLng: 97.5, maxLng: 103.5 },
   { id: 'indian-ocean', label: 'Indian Ocean & Africa', regionFilter: 'Indian Ocean & Africa', minLat: -36.0, maxLat: 10.0, minLng: 15.0, maxLng: 61.0 },
