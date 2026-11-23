@@ -207,8 +207,8 @@ export function buildRedditMarkdownVs(
     `| **Status & Works** | ${stA.hasDetails ? `${stA.operatingStatus}: ${stA.shortSummary}` : 'No confirmed works listed'} | ${stB.hasDetails ? `${stB.operatingStatus}: ${stB.shortSummary}` : 'No confirmed works listed'} |`,
     `| **Verified Key Facts** | ${factsA.replace(/\|/g, '/')} | ${factsB.replace(/\|/g, '/')} |`,
     ``,
-    `*Zero fabricated scores — real verified ratings, awards, and property facts only.*`,
-    `Full interactive comparison: ${url}`,
+    `*Zero fabricated scores — real verified ratings, awards, and property facts only at **[stayodds.com](https://stayodds.com)**.*`,
+    `Explore at https://stayodds.com • Direct comparison: ${url}`,
   ].join('\n');
 }
 
@@ -231,6 +231,10 @@ export function buildRedditMarkdownSingle(hotel: Hotel, odds: StayOddsResult): s
   for (const f of facts) {
     lines.push(`| **${f.label}** | ${f.value.replace(/\|/g, '/')} |`);
   }
-  lines.push(``, `*Zero fabricated scores — real verified data only.*`, `Full breakdown: ${url}`);
+  lines.push(
+    ``,
+    `*Zero fabricated scores — real verified data only at **[stayodds.com](https://stayodds.com)**.*`,
+    `Explore at https://stayodds.com • Direct breakdown: ${url}`
+  );
   return lines.join('\n');
 }

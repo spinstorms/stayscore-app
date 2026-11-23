@@ -136,14 +136,14 @@ export function ShareCardModal(props: ShareCardModalProps) {
       const verdict = buildFactualVsVerdict(props.hotelA, props.hotelB, props.oddsA, props.oddsB);
       const deepLink = buildVsDeepLink(props.hotelA, props.hotelB);
       const title = `${props.hotelA.name} vs ${props.hotelB.name}`;
-      const tweetText = `${props.hotelA.name} vs ${props.hotelB.name} on StayOdds: ${verdict.headline}. Verified scores & key facts — zero made-up numbers:`;
+      const tweetText = `${props.hotelA.name} vs ${props.hotelB.name} on StayOdds (stayodds.com): ${verdict.headline}. Verified scores & key facts — zero made-up numbers:`;
       const redditMd = buildRedditMarkdownVs(props.hotelA, props.hotelB, props.oddsA, props.oddsB);
       return { verdict, deepLink, title, tweetText, redditMd };
     }
     const deepLink = buildSingleDeepLink(props.hotel);
     const scorePart = props.odds.greatStayOdds != null ? ` (${props.odds.greatStayOdds}% StayOdds)` : '';
     const title = `${props.hotel.name} — StayOdds Card`;
-    const tweetText = `${props.hotel.name}${scorePart} — ${props.odds.statusBadge} on StayOdds. Verified guest ratings, awards & property status:`;
+    const tweetText = `${props.hotel.name}${scorePart} — ${props.odds.statusBadge} on StayOdds (stayodds.com). Verified guest ratings, awards & property status:`;
     const redditMd = buildRedditMarkdownSingle(props.hotel, props.odds);
     return { verdict: null, deepLink, title, tweetText, redditMd };
   }, [props]);
@@ -475,10 +475,8 @@ export function ShareCardModal(props: ShareCardModalProps) {
                 <View style={styles.storyFooter}>
                   <View style={{ flex: 1, paddingRight: 10 }}>
                     <Text style={styles.storyFooterEyebrow}>SCAN TO OPEN LIVE BREAKDOWN</Text>
-                    <Text style={styles.storyFooterUrl} numberOfLines={2}>
-                      {props.mode === 'vs'
-                        ? 'live.uncharteditinerary.com/compare'
-                        : `live.uncharteditinerary.com/stayodds/${props.hotel.id}/`}
+                    <Text style={styles.storyFooterUrl} numberOfLines={1}>
+                      stayodds.com
                     </Text>
                     <Text style={styles.storyFooterNote}>
                       Zero fabricated scores • Real verified guest ratings, awards &amp; property status.
@@ -489,11 +487,9 @@ export function ShareCardModal(props: ShareCardModalProps) {
               ) : (
                 <View style={styles.squareFooter}>
                   <Text style={styles.squareFooterUrl} numberOfLines={1}>
-                    {props.mode === 'vs'
-                      ? 'live.uncharteditinerary.com/compare'
-                      : `live.uncharteditinerary.com/stayodds/${props.hotel.id}/`}
+                    stayodds.com
                   </Text>
-                  <Text style={styles.squareFooterNote}>Zero fabricated scores</Text>
+                  <Text style={styles.squareFooterNote}>Zero fabricated scores • Verified data only</Text>
                 </View>
               )}
             </ViewShot>
