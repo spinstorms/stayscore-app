@@ -5,7 +5,7 @@ import { BRAND } from './brand';
 import type { AffiliateDeal, Hotel, VideoItem } from './types';
 
 export const LIVE_BASE_URL = BRAND.liveApiBaseUrl;
-const CACHE_KEY = 'stayodds_supabase_cache_v9';
+const CACHE_KEY = 'stayodds_supabase_cache_v10';
 
 function resolveHotelThumbnail(id: string, rawHero?: string | null): string {
   const hero = String(rawHero || '').trim();
@@ -14,9 +14,11 @@ function resolveHotelThumbnail(id: string, rawHero?: string | null): string {
     hero.includes('www.fourseasons.com') ||
     hero.includes('www.lungarnocollection.com') ||
     hero.endsWith('/logo.jpg');
-  if (!isBlocked && /^https?:\/\//i.test(hero)) return hero;
-  if (!isBlocked && hero.startsWith('assets/')) return `${LIVE_BASE_URL}/${hero}`;
-  return `${LIVE_BASE_URL}/assets/placeholders/${id}.webp`;
+  if (!isBlocked && /^https?:\/\//i.test(hero)) {
+    return hero.includes('live.uncharteditinerary.com/assets/') && !hero.includes('?') ? `${hero}?v=169` : hero;
+  }
+  if (!isBlocked && hero.startsWith('assets/')) return `${LIVE_BASE_URL}/${hero}?v=169`;
+  return `${LIVE_BASE_URL}/assets/placeholders/${id}.webp?v=169`;
 }
 
 export interface StayOddsPayload {
