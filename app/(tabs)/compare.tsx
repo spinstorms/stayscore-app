@@ -163,7 +163,7 @@ export default function CompareScreen() {
 
   const handleShareVsLink = async () => {
     if (!hotelA || !hotelB) return;
-    const base = `https://uncharteditinerary.com/compare/?a=${encodeURIComponent(
+    const base = `https://stayodds.com/?a=${encodeURIComponent(
       hotelA.id
     )}&b=${encodeURIComponent(hotelB.id)}`;
     const shareUrl = hotelC ? `${base}&c=${encodeURIComponent(hotelC.id)}` : base;

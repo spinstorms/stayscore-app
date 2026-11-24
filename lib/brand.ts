@@ -7,7 +7,7 @@ export const BRAND = {
   foundingContributorUrl: 'https://uncharteditinerary.com/',
   youtubeChannelUrl: 'https://www.youtube.com/@TheUnchartedItinerary',
   liveApiBaseUrl: 'https://uncharteditinerary.com',
-  stayOddsUrl: 'https://uncharteditinerary.com/compare/',
+  stayOddsUrl: 'https://stayodds.com/',
   aboutUrl: 'https://uncharteditinerary.com/about/',
   faqUrl: 'https://uncharteditinerary.com/faq/',
   contactUrl: 'https://uncharteditinerary.com/contact/',

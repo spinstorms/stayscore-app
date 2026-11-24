@@ -213,11 +213,11 @@ export function formatCriticSlot(odds: StayOddsResult): { compact: string; sub: 
 }
 
 export function buildVsDeepLink(hotelA: Hotel, hotelB: Hotel): string {
-  return `https://uncharteditinerary.com/compare/?a=${encodeURIComponent(hotelA.id)}&b=${encodeURIComponent(hotelB.id)}`;
+  return `https://stayodds.com/?a=${encodeURIComponent(hotelA.id)}&b=${encodeURIComponent(hotelB.id)}`;
 }
 
 export function buildSingleDeepLink(hotel: Hotel): string {
-  return `https://uncharteditinerary.com/stayodds/${encodeURIComponent(hotel.id)}/`;
+  return `https://stayodds.com/stayodds/${encodeURIComponent(hotel.id)}/`;
 }
 
 export function buildRedditMarkdownVs(
@@ -263,8 +263,8 @@ export function buildRedditMarkdownVs(
     `| **Status & Works** | ${stA.hasDetails ? `${stA.operatingStatus}: ${stA.shortSummary}` : 'No confirmed works listed'} | ${stB.hasDetails ? `${stB.operatingStatus}: ${stB.shortSummary}` : 'No confirmed works listed'} |`,
     `| **Verified Key Facts** | ${factsA.replace(/\|/g, '/')} | ${factsB.replace(/\|/g, '/')} |`,
     ``,
-    `*Zero fabricated scores — real verified ratings, awards, and property facts only at **[uncharteditinerary.com](https://uncharteditinerary.com/compare/)**.*`,
-    `Explore at https://uncharteditinerary.com/compare/ • Direct comparison: ${url}`,
+    `*Zero fabricated scores — real verified ratings, awards, and property facts only at **[stayodds.com](https://stayodds.com)**.*`,
+    `Explore at https://stayodds.com • Direct comparison: ${url}`,
   ].join('\n');
 }
 
@@ -290,8 +290,8 @@ export function buildRedditMarkdownSingle(hotel: Hotel, odds: StayOddsResult): s
   }
   lines.push(
     ``,
-    `*Zero fabricated scores — real verified data only at **[uncharteditinerary.com](https://uncharteditinerary.com/compare/)**.*`,
-    `Explore at https://uncharteditinerary.com/compare/ • Direct breakdown: ${url}`
+    `*Zero fabricated scores — real verified data only at **[stayodds.com](https://stayodds.com)**.*`,
+    `Explore at https://stayodds.com • Direct breakdown: ${url}`
   );
   return lines.join('\n');
 }
