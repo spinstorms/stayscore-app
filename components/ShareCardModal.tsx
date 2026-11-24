@@ -708,7 +708,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   wordmark: { fontSize: 22, fontWeight: '900', color: '#FFFFFF', letterSpacing: -0.5 },
-  brandSub: { fontSize: 11, fontWeight: '800', color: '#FFD166' },
+  brandSub: { fontSize: 11, fontWeight: '800', color: '#FF5D22' },
   headerBadge: {
     backgroundColor: 'rgba(255,93,34,0.18)',
     borderColor: 'rgba(255,93,34,0.55)',
