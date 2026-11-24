@@ -464,7 +464,7 @@ export default function CompareScreen() {
 
           <View style={styles.metricsBox}>
             {renderMetricRow(
-              o.scoreTrack === 'verified' ? 'Verified StayOdds' : 'Market Odds',
+              o.scoreTrack === 'verified' ? 'StayOdds (Founder Verified)' : o.scoreTrackLabel,
               oddsA?.greatStayOdds,
               oddsB?.greatStayOdds,
               oddsA?.greatStayOdds != null ? `${oddsA.greatStayOdds}%` : 'Live',
@@ -484,7 +484,7 @@ export default function CompareScreen() {
               oddsC?.personalScoreLabel || (oddsC?.visited ? 'Filmed (Unscored)' : 'Not Visited')
             )}
             {renderMetricRow(
-              'Market Odds Baseline',
+              'Guest & Critic Consensus',
               oddsA?.marketOdds,
               oddsB?.marketOdds,
               oddsA?.marketOdds != null ? `${oddsA.marketOdds}%` : '—',

@@ -249,7 +249,7 @@ export function computeStayOdds(
 
   const guest100 = verifiedGuest ? verifiedGuest.normalized100 : null;
 
-  // LAYER 1: Universal External Baseline ("Market Odds")
+  // LAYER 1: Universal External Consensus Baseline
   let marketOdds: number | null = null;
   let marketSourceCount = 0;
   if (critic100 != null && guest100 != null) {
@@ -263,14 +263,21 @@ export function computeStayOdds(
     marketSourceCount = 1;
   }
 
-  // LAYER 2: Two-Track Score ("Verified StayOdds" vs "Market Odds")
+  // LAYER 2: Two-Track Score ("Founder Verified" vs "StayOdds")
   const scoreTrack: 'verified' | 'market' = firstHand && ours100 != null ? 'verified' : 'market';
-  const scoreTrackLabel = scoreTrack === 'verified' ? 'Verified StayOdds' : 'Market Odds';
+  const scoreTrackLabel =
+    scoreTrack === 'verified'
+      ? 'Founder Verified'
+      : marketSourceCount >= 2
+      ? `StayOdds • ${marketSourceCount} Sources`
+      : marketSourceCount === 1
+      ? 'StayOdds • 1 Source'
+      : 'StayOdds';
   const founderVsMarketDelta =
     firstHand && ours100 != null && marketOdds != null ? ours100 - marketOdds : null;
   const founderVsMarketLabel =
     founderVsMarketDelta != null
-      ? `${founderVsMarketDelta > 0 ? '+' : ''}${founderVsMarketDelta} pts vs Market`
+      ? `${founderVsMarketDelta > 0 ? '+' : ''}${founderVsMarketDelta} pts vs Consensus`
       : null;
 
   let weights = { firstHand: 0, market: 0, critics: 0, guests: 0 };
@@ -297,7 +304,7 @@ export function computeStayOdds(
         critics: critic100 != null && guest100 != null ? 11 : critic100 != null ? 30 : 0,
         guests: critic100 != null && guest100 != null ? 19 : guest100 != null ? 30 : 0,
       };
-      formulaSummary = `70% My Stay • 30% Market Odds (${marketOdds}%)`;
+      formulaSummary = `70% My Stay • 30% Consensus (${marketOdds}%)`;
     } else {
       overallIndex = ours100;
       weights = { firstHand: 100, market: 0, critics: 0, guests: 0 };
@@ -309,17 +316,18 @@ export function computeStayOdds(
     overallIndex = marketOdds;
     if (critic100 != null && guest100 != null) {
       weights = { firstHand: 0, market: 100, critics: 35, guests: 65 };
-      formulaSummary = 'Market Odds: 35% Critics • 65% Verified Guests';
+      formulaSummary = 'Based on 2 sources: Critics (35%) + Verified Guests (65%)';
     } else if (guest100 != null) {
       weights = { firstHand: 0, market: 100, critics: 0, guests: 100 };
-      statusBadge = 'Market Odds (1 Source)';
+      statusBadge = '1 Data Source';
       statusTone = 'teal';
-      formulaSummary = 'Market Odds: 100% Verified Guest Ratings';
+      const gName = verifiedGuest?.sourceName || 'Verified Guests';
+      formulaSummary = `Based on 1 source (${gName})`;
     } else if (critic100 != null) {
       weights = { firstHand: 0, market: 100, critics: 100, guests: 0 };
-      statusBadge = 'Critic Reviewed';
+      statusBadge = '1 Data Source';
       statusTone = 'slate';
-      formulaSummary = 'Market Odds: 100% Published Critic Reviews';
+      formulaSummary = 'Based on 1 source (Published Critics)';
     }
   }
 
@@ -345,23 +353,23 @@ export function computeStayOdds(
   const equationSummary =
     scoreTrack === 'verified' && ours100 != null && greatStayOdds != null
       ? marketOdds != null
-        ? `70% My Stay (${personalScoreLabel ? `${personalScoreLabel.replace(/ /g, '')} → ` : ''}${ours100}%) + 30% Market Odds (${marketOdds}%) = ${greatStayOdds}% Verified StayOdds`
-        : `100% My First-Hand Stay (${personalScoreLabel ? `${personalScoreLabel.replace(/ /g, '')} → ` : ''}${ours100}%) = ${greatStayOdds}% Verified StayOdds`
+        ? `70% My Stay (${personalScoreLabel ? `${personalScoreLabel.replace(/ /g, '')} → ` : ''}${ours100}%) + 30% Consensus (${marketOdds}%) = ${greatStayOdds}% StayOdds`
+        : `100% My First-Hand Stay (${personalScoreLabel ? `${personalScoreLabel.replace(/ /g, '')} → ` : ''}${ours100}%) = ${greatStayOdds}% StayOdds`
       : marketOdds != null
-      ? `${formulaSummary} = ${marketOdds}% Market Odds`
-      : 'Waiting for live Google guest rating — Market Odds blends verified external scores.';
+      ? `${formulaSummary} = ${marketOdds}% StayOdds`
+      : 'Waiting for live Google guest rating — StayOdds blends verified external scores.';
 
   const left100 = firstHand ? ours100 : critic100;
   const right100 = firstHand ? marketOdds : guest100;
   const delta100 = left100 != null && right100 != null ? left100 - right100 : null;
 
   let headline = firstHand
-    ? 'My first-hand stay score leads here — compare directly with Market Odds'
+    ? 'My first-hand stay score leads here — compare directly with guest & critic consensus'
     : unverifiedEditorial.length > 0 && scoredEditorial.length === 0
     ? `${unverifiedEditorial.map((u) => u.sourceName).join(', ')} awards a score (unverified figure — excluded from numeric math)`
     : officialAwards.length > 0
     ? `Recognised with ${officialAwards.map((a) => a.label).join(' • ')}`
-    : 'Market Odds baseline from published critics & verified guests';
+    : formulaSummary;
   if (delta100 != null) {
     const criticName =
       scoredEditorial.length === 1 && primaryCritic
@@ -369,22 +377,22 @@ export function computeStayOdds(
         : `${scoredEditorial.length} published critics`;
     if (Math.abs(delta100) <= 5) {
       headline = firstHand
-        ? `Tight agreement (${delta100 >= 0 ? `+${delta100}` : delta100} pts) — my stay matched Market Odds`
+        ? `Tight agreement (${delta100 >= 0 ? `+${delta100}` : delta100} pts) — my stay matched the wider consensus`
         : `Tight agreement (${delta100 >= 0 ? `+${delta100}` : delta100} pts) — ${criticName} & real guests agree`;
     } else if (delta100 > 5) {
       headline = firstHand
-        ? `I rated this +${delta100} pts higher than Market Odds`
+        ? `I rated this +${delta100} pts higher than the wider consensus`
         : `${criticName} rated this +${delta100} pts higher than real guests`;
     } else {
       headline = firstHand
-        ? `I rated this ${delta100} pts stricter than Market Odds — see what held it back`
+        ? `I rated this ${delta100} pts stricter than the wider consensus — see what held it back`
         : `Real guests rated this +${Math.abs(delta100)} pts higher than ${criticName}`;
     }
   }
 
   const opinionGap: OpinionGapModel = {
     mode: firstHand ? 'my_vs_guests' : 'critics_vs_guests',
-    title: firstHand ? 'Founder vs. Market Odds' : 'Published Critics vs. Real Guests',
+    title: firstHand ? 'Founder vs. Consensus' : 'Published Critics vs. Real Guests',
     leftLabel: firstHand
       ? 'My First-Hand Stay'
       : scoredEditorial.length === 1 && primaryCritic
@@ -402,7 +410,7 @@ export function computeStayOdds(
       : unverifiedEditorial.length > 0
       ? 'Score awarded — unverified'
       : 'No critic score',
-    rightLabel: firstHand ? 'Market Odds' : verifiedGuest ? verifiedGuest.sourceName : 'Real Guest Score',
+    rightLabel: firstHand ? 'Guest & Critic Consensus' : verifiedGuest ? verifiedGuest.sourceName : 'Real Guest Score',
     right100,
     rightDisplay: firstHand
       ? marketOdds != null
@@ -421,12 +429,12 @@ export function computeStayOdds(
   return {
     tier: firstHand ? 'first_hand_verified' : visited ? 'short_preview' : 'global_directory',
     tierLabel: firstHand
-      ? 'Verified StayOdds'
+      ? 'Founder Verified'
       : isFullUnscored
       ? 'Filmed Stay'
       : visited
       ? 'Short Tour'
-      : 'Market Odds',
+      : 'Global Directory',
     scoreTrack,
     scoreTrackLabel,
     firstHand,

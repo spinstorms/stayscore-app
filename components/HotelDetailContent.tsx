@@ -210,6 +210,45 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
             </View>
           ) : null}
 
+          {/* At-a-Glance Executive Summary */}
+          <View
+            style={{
+              marginTop: 12,
+              padding: 13,
+              borderRadius: 14,
+              backgroundColor: '#F8FAFC',
+              borderWidth: 1,
+              borderColor: '#E2E8F0',
+              gap: 6,
+            }}
+          >
+            <Text style={{ fontSize: 11, fontWeight: '800', color: Colors.accent, letterSpacing: 0.6 }}>
+              AT A GLANCE — KEY TAKEAWAYS
+            </Text>
+            <Text style={{ fontSize: 13, color: '#0F172A', lineHeight: 19 }}>
+              <Text style={{ fontWeight: '700' }}>Score: </Text>
+              {o.greatStayOdds != null ? `${o.greatStayOdds}% StayOdds` : 'Live Google check'} ({o.formulaSummary})
+            </Text>
+            <Text style={{ fontSize: 13, color: '#334155', lineHeight: 19 }}>
+              <Text style={{ fontWeight: '700', color: '#0F172A' }}>Best For: </Text>
+              {bestMonths.shortLabel}
+              {hotel.priceRange ? ` • ${hotel.priceRange}` : ''}
+              {o.officialAwards.length ? ` • ${o.officialAwards[0].label}` : ''}
+            </Text>
+            {hotel.standout ? (
+              <Text style={{ fontSize: 13, color: '#0F766E', lineHeight: 19 }} numberOfLines={2}>
+                <Text style={{ fontWeight: '700' }}>Top Highlight: </Text>
+                {hotel.standout}
+              </Text>
+            ) : null}
+            {hotel.watchOut ? (
+              <Text style={{ fontSize: 13, color: '#B45309', lineHeight: 19 }} numberOfLines={2}>
+                <Text style={{ fontWeight: '700' }}>Watch-Out: </Text>
+                {hotel.watchOut}
+              </Text>
+            ) : null}
+          </View>
+
           {/* 4 Distinct, Non-Overlapping KPI Tiles */}
           <View style={styles.kpiGrid}>
             <View
@@ -224,7 +263,7 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
                 {o.greatStayOdds != null ? `${o.greatStayOdds}%` : 'Live'}
               </Text>
               <Text style={[styles.kpiLabel, { color: o.scoreTrack === 'verified' ? '#FDBA74' : '#0F766E' }]}>
-                {o.scoreTrack === 'verified' ? 'Verified StayOdds' : 'Market Odds'}
+                {o.scoreTrack === 'verified' ? '★ Founder Verified' : o.scoreTrackLabel}
               </Text>
             </View>
             <View style={styles.kpiTile}>
