@@ -44,6 +44,7 @@ const SUBBRAND_PARENT_MAP: Record<string, string> = {
   'Tribute Portfolio': 'Marriott Bonvoy',
   'Courtyard by Marriott': 'Marriott Bonvoy',
   'Element by Westin': 'Marriott Bonvoy',
+  Sheraton: 'Marriott Bonvoy',
   Westin: 'Marriott Bonvoy',
   'Park Hyatt': 'World of Hyatt',
   Alila: 'World of Hyatt',
@@ -53,6 +54,8 @@ const SUBBRAND_PARENT_MAP: Record<string, string> = {
   'Hyatt Centric': 'World of Hyatt',
   'Thompson Hotels': 'World of Hyatt',
   'Secrets Resorts': 'World of Hyatt',
+  'Dreams Resorts': 'World of Hyatt',
+  'Alua Hotels': 'World of Hyatt',
   'Zoëtry': 'World of Hyatt',
   'Hyatt All-Inclusive': 'World of Hyatt',
   Miraval: 'World of Hyatt',
@@ -87,6 +90,7 @@ const CANONICAL_BRAND_PATTERNS: [RegExp, string][] = [
   [/\bedition\b/i, 'EDITION'],
   [/\bjw\s+marriott\b/i, 'JW Marriott'],
   [/\belement\s+by\s+westin\b/i, 'Element by Westin'],
+  [/\bsheraton\b/i, 'Sheraton'],
   [/\bwestin\b/i, 'Westin'],
   [/\ble\s+m[eé]ridien\b/i, 'Le Méridien'],
   [/\bautograph\s+collection\b/i, 'Autograph Collection'],
@@ -102,6 +106,8 @@ const CANONICAL_BRAND_PATTERNS: [RegExp, string][] = [
   [/\bhyatt\s+centric\b/i, 'Hyatt Centric'],
   [/\bthompson\b/i, 'Thompson Hotels'],
   [/\bsecrets\b/i, 'Secrets Resorts'],
+  [/\bdreams\b/i, 'Dreams Resorts'],
+  [/\balua\b/i, 'Alua Hotels'],
   [/\bzo[eë]try\b/i, 'Zoëtry'],
   [/\bhyatt\s+(?:zilara|ziva)\b/i, 'Hyatt All-Inclusive'],
   [/\bwaldorf\s+astoria\b/i, 'Waldorf Astoria'],
@@ -275,6 +281,13 @@ export function getBestMonths(hotel: Hotel): BestMonthsInfo {
   }
   if (country.includes('new zealand')) {
     return { months: [11, 12, 1, 2, 3, 4], shortLabel: 'Nov–Apr', note: 'Long sunlit summer & autumn days' };
+  }
+  if (/tenerife|lanzarote|gran canaria|fuerteventura|la gomera|la palma|costa adeje|maspalomas|meloneras|playa blanca|corralejo|canary/i.test(loc)) {
+    return {
+      months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+      shortLabel: 'Year-Round (Oct–May Winter Sun)',
+      note: 'Warm subtropical Canary Islands sunshine year-round',
+    };
   }
   if (country.includes('greece') || country.includes('turkey') || country.includes('italy') || country.includes('spain') || country.includes('portugal') || country.includes('croatia')) {
     return { months: [5, 6, 9, 10], shortLabel: 'May–Jun, Sep–Oct', note: 'Warm Mediterranean sun without peak-August crowds' };
