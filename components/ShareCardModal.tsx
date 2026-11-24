@@ -5,6 +5,7 @@ import QRCode from 'qrcode';
 import React, { useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   Modal,
   Platform,
   Pressable,
@@ -16,6 +17,7 @@ import {
 } from 'react-native';
 import ViewShot from 'react-native-view-shot';
 import { openExternalUrl } from '../lib/api';
+import { getCleanCardPhotoUrl } from '../lib/insights';
 import {
   buildFactualVsVerdict,
   buildRedditMarkdownSingle,
@@ -41,6 +43,8 @@ export type ShareCardModalProps =
       hotelB: Hotel;
       oddsA: StayOddsResult;
       oddsB: StayOddsResult;
+      hotelC?: Hotel | null;
+      oddsC?: StayOddsResult | null;
     }
   | {
       visible: boolean;
@@ -135,10 +139,19 @@ export function ShareCardModal(props: ShareCardModalProps) {
   const meta = useMemo(() => {
     if (props.mode === 'vs') {
       const verdict = buildFactualVsVerdict(props.hotelA, props.hotelB, props.oddsA, props.oddsB);
-      const deepLink = buildVsDeepLink(props.hotelA, props.hotelB);
-      const title = `${props.hotelA.name} vs ${props.hotelB.name}`;
-      const tweetText = `${props.hotelA.name} vs ${props.hotelB.name} on StayOdds (stayodds.com): ${verdict.headline}. Verified scores & key facts — zero made-up numbers:`;
-      const redditMd = buildRedditMarkdownVs(props.hotelA, props.hotelB, props.oddsA, props.oddsB);
+      const hasC = Boolean(props.hotelC && props.oddsC);
+      const baseLink = buildVsDeepLink(props.hotelA, props.hotelB);
+      const deepLink =
+        hasC && props.hotelC ? `${baseLink}&c=${encodeURIComponent(props.hotelC.id)}` : baseLink;
+      const title =
+        hasC && props.hotelC
+          ? `${props.hotelA.name} vs ${props.hotelB.name} vs ${props.hotelC.name}`
+          : `${props.hotelA.name} vs ${props.hotelB.name}`;
+      const tweetText = `${title} on StayOdds (stayodds.com): ${verdict.headline}. Verified scores & key facts — zero made-up numbers:`;
+      let redditMd = buildRedditMarkdownVs(props.hotelA, props.hotelB, props.oddsA, props.oddsB);
+      if (hasC && props.hotelC && props.oddsC) {
+        redditMd += `\n\n**3rd Hotel Compared:** ${props.hotelC.name} (${props.hotelC.location}, ${props.hotelC.country}) — StayOdds: ${props.oddsC.greatStayOdds != null ? `${props.oddsC.greatStayOdds}%` : 'Live'} | Status: ${props.oddsC.statusBadge}`;
+      }
       return { verdict, deepLink, title, tweetText, redditMd };
     }
     const deepLink = buildSingleDeepLink(props.hotel);
@@ -207,11 +220,62 @@ export function ShareCardModal(props: ShareCardModalProps) {
 
   const isStory = format === '9:16';
 
-  const renderVsMiniCard = (hotel: Hotel, odds: StayOddsResult, side: 'A' | 'B', isWinner: boolean) => {
-    const accent = side === 'A' ? '#FF5D22' : '#14B8A6';
+  const renderCleanPhotoStrip = (hotel: Hotel, height: number) => {
+    const photoUrl = getCleanCardPhotoUrl(hotel);
+    const hasYoutube = Boolean(hotel.videoId);
+    const ytLabel = hotel.coverageType === 'Short Tour' ? '▶ YOUTUBE SHORT' : '▶ VIDEO ON YOUTUBE';
+    return (
+      <View
+        style={{
+          width: '100%',
+          height,
+          borderRadius: 10,
+          overflow: 'hidden',
+          marginBottom: 8,
+          backgroundColor: '#0F223D',
+          position: 'relative',
+        }}
+      >
+        <Image source={{ uri: photoUrl }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+        {hasYoutube ? (
+          <View
+            style={{
+              position: 'absolute',
+              right: 6,
+              bottom: 6,
+              backgroundColor: '#DC2626',
+              paddingHorizontal: 8,
+              paddingVertical: 3,
+              borderRadius: 999,
+            }}
+          >
+            <Text style={{ color: '#FFFFFF', fontSize: 8.5, fontWeight: '800', letterSpacing: 0.4 }}>
+              {ytLabel}
+            </Text>
+          </View>
+        ) : null}
+      </View>
+    );
+  };
+
+  const renderVsMiniCard = (
+    hotel: Hotel,
+    odds: StayOddsResult,
+    side: 'A' | 'B' | 'C',
+    isWinner: boolean,
+    compact = false
+  ) => {
+    const accent = side === 'A' ? '#FF5D22' : side === 'B' ? '#14B8A6' : '#38BDF8';
+    const pillBg =
+      side === 'A'
+        ? 'rgba(255,93,34,0.22)'
+        : side === 'B'
+        ? 'rgba(20,184,166,0.22)'
+        : 'rgba(56,189,248,0.22)';
+    const pillFg = side === 'A' ? '#FF8B5E' : side === 'B' ? '#5EEAD4' : '#7DD3FC';
     const st = getPropertyStatusMeta(hotel);
     const stPal = statusPillPalette(st.tone);
-    const facts = extractTopKeyFacts(hotel, odds, isStory ? 3 : 2);
+    const facts = extractTopKeyFacts(hotel, odds, compact ? 1 : isStory ? 3 : 2);
 
     return (
       <View
@@ -220,11 +284,12 @@ export function ShareCardModal(props: ShareCardModalProps) {
           { borderColor: isWinner ? accent : 'rgba(255,255,255,0.14)' },
         ]}
       >
+        {renderCleanPhotoStrip(hotel, compact ? 58 : isStory ? 84 : 68)}
         <View style={styles.hotelBoxTop}>
           <View style={{ flex: 1, paddingRight: 8 }}>
             <View style={styles.miniTagRow}>
-              <View style={[styles.miniPill, { backgroundColor: side === 'A' ? 'rgba(255,93,34,0.22)' : 'rgba(20,184,166,0.22)' }]}>
-                <Text style={[styles.miniPillTxt, { color: side === 'A' ? '#FF8B5E' : '#5EEAD4' }]}>
+              <View style={[styles.miniPill, { backgroundColor: pillBg }]}>
+                <Text style={[styles.miniPillTxt, { color: pillFg }]}>
                   HOTEL {side}{isWinner ? ' ★' : ''}
                 </Text>
               </View>
@@ -232,7 +297,7 @@ export function ShareCardModal(props: ShareCardModalProps) {
                 {odds.statusBadge}
               </Text>
             </View>
-            <Text style={styles.cardHotelName} numberOfLines={2}>
+            <Text style={styles.cardHotelName} numberOfLines={compact ? 1 : 2}>
               {hotel.name}
             </Text>
             <Text style={styles.cardHotelLoc} numberOfLines={1}>
@@ -285,24 +350,26 @@ export function ShareCardModal(props: ShareCardModalProps) {
           </View>
         </View>
 
-        <View
-          style={[
-            styles.statusStrip,
-            { backgroundColor: stPal.bg, borderColor: stPal.border },
-          ]}
-        >
-          <Text style={[styles.statusStripHead, { color: stPal.fg }]}>
-            STATUS &amp; WORKS • {st.badge.toUpperCase()}
-          </Text>
-          <Text style={styles.statusStripBody} numberOfLines={2}>
-            {st.shortSummary}
-          </Text>
-        </View>
+        {!compact ? (
+          <View
+            style={[
+              styles.statusStrip,
+              { backgroundColor: stPal.bg, borderColor: stPal.border },
+            ]}
+          >
+            <Text style={[styles.statusStripHead, { color: stPal.fg }]}>
+              STATUS &amp; WORKS • {st.badge.toUpperCase()}
+            </Text>
+            <Text style={styles.statusStripBody} numberOfLines={2}>
+              {st.shortSummary}
+            </Text>
+          </View>
+        ) : null}
 
         {facts.length > 0 ? (
           <View style={styles.factsBox}>
             {facts.map((f) => (
-              <Text key={f.label} style={styles.factLine} numberOfLines={2}>
+              <Text key={f.label} style={styles.factLine} numberOfLines={compact ? 1 : 2}>
                 <Text style={{ color: accent, fontWeight: '800' }}>• {f.label}: </Text>
                 {f.value}
               </Text>
@@ -321,6 +388,7 @@ export function ShareCardModal(props: ShareCardModalProps) {
     return (
       <>
         <View style={styles.hotelBox}>
+          {renderCleanPhotoStrip(hotel, isStory ? 132 : 108)}
           <View style={styles.hotelBoxTop}>
             <View style={{ flex: 1, paddingRight: 8 }}>
               <View style={styles.miniTagRow}>
@@ -442,7 +510,7 @@ export function ShareCardModal(props: ShareCardModalProps) {
             </Pressable>
           </View>
 
-          {/* Capturable Branded Card (100% vector/local views — zero remote image CORS issues) */}
+          {/* Capturable Branded Card */}
           <View style={styles.previewShell}>
             <ViewShot
               ref={shotRef}
@@ -459,25 +527,49 @@ export function ShareCardModal(props: ShareCardModalProps) {
                 </View>
                 <View style={styles.headerBadge}>
                   <Text style={styles.headerBadgeTxt}>
-                    {props.mode === 'vs' ? 'VERIFIED HEAD-TO-HEAD' : 'VERIFIED SCORECARD'}
+                    {props.mode === 'vs'
+                      ? props.hotelC && props.oddsC
+                        ? '3-WAY HEAD-TO-HEAD'
+                        : 'VERIFIED HEAD-TO-HEAD'
+                      : 'VERIFIED SCORECARD'}
                   </Text>
                 </View>
               </View>
 
               {props.mode === 'vs' && meta.verdict ? (
                 <>
-                  <View style={styles.verdictBox}>
-                    <Text style={styles.verdictEyebrow}>VERIFIED VERDICT</Text>
-                    <Text style={styles.verdictHeadline} numberOfLines={2}>
-                      {meta.verdict.headline}
-                    </Text>
-                    <Text style={styles.verdictDetail} numberOfLines={2}>
-                      {meta.verdict.detail}
-                    </Text>
-                  </View>
+                  {!(props.hotelC && props.oddsC) ? (
+                    <View style={styles.verdictBox}>
+                      <Text style={styles.verdictEyebrow}>VERIFIED VERDICT</Text>
+                      <Text style={styles.verdictHeadline} numberOfLines={2}>
+                        {meta.verdict.headline}
+                      </Text>
+                      <Text style={styles.verdictDetail} numberOfLines={2}>
+                        {meta.verdict.detail}
+                      </Text>
+                    </View>
+                  ) : null}
 
-                  {renderVsMiniCard(props.hotelA, props.oddsA, 'A', meta.verdict.winnerSide === 'A')}
-                  {renderVsMiniCard(props.hotelB, props.oddsB, 'B', meta.verdict.winnerSide === 'B')}
+                  {(() => {
+                    const isThreeWay = Boolean(props.hotelC && props.oddsC);
+                    const scores = [
+                      { s: 'A' as const, v: props.oddsA.greatStayOdds ?? -1 },
+                      { s: 'B' as const, v: props.oddsB.greatStayOdds ?? -1 },
+                      ...(isThreeWay && props.oddsC ? [{ s: 'C' as const, v: props.oddsC.greatStayOdds ?? -1 }] : []),
+                    ];
+                    const maxV = Math.max(...scores.map((x) => x.v));
+                    const winners = scores.filter((x) => x.v === maxV && maxV >= 0).map((x) => x.s);
+                    const singleWinner = winners.length === 1 ? winners[0] : null;
+                    return (
+                      <>
+                        {renderVsMiniCard(props.hotelA, props.oddsA, 'A', singleWinner === 'A', isThreeWay)}
+                        {renderVsMiniCard(props.hotelB, props.oddsB, 'B', singleWinner === 'B', isThreeWay)}
+                        {isThreeWay && props.hotelC && props.oddsC
+                          ? renderVsMiniCard(props.hotelC, props.oddsC, 'C', singleWinner === 'C', true)
+                          : null}
+                      </>
+                    );
+                  })()}
                 </>
               ) : props.mode === 'single' ? (
                 renderSingleCardContent(props.hotel, props.odds)

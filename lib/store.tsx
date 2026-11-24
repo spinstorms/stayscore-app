@@ -17,9 +17,11 @@ interface StayOddsContextValue {
   error: string | null;
   compareA: string;
   compareB: string;
+  compareC: string | null;
   shortlist: string[];
   setCompareA: (id: string) => void;
   setCompareB: (id: string) => void;
+  setCompareC: (id: string | null) => void;
   pushToCompare: (id: string) => void;
   toggleShortlist: (id: string) => void;
   isShortlisted: (id: string) => boolean;
@@ -40,6 +42,7 @@ export function StayOddsProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [compareA, setCompareA] = useState('taaktana-labuan-bajo');
   const [compareB, setCompareB] = useState('st-regis-bali');
+  const [compareC, setCompareC] = useState<string | null>(null);
   const [shortlist, setShortlist] = useState<string[]>([]);
 
   const hydrate = useCallback(async (isRefresh = false) => {
@@ -125,9 +128,11 @@ export function StayOddsProvider({ children }: { children: React.ReactNode }) {
         error,
         compareA,
         compareB,
+        compareC,
         shortlist,
         setCompareA,
         setCompareB,
+        setCompareC,
         pushToCompare,
         toggleShortlist,
         isShortlisted,

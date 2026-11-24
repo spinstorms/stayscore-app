@@ -19,6 +19,13 @@ import {
 import { ShareCardModal } from '../../components/ShareCardModal';
 import { getHotelVideoUrl, openExternalUrl } from '../../lib/api';
 import { BRAND } from '../../lib/brand';
+import {
+  getBestMonths,
+  getBrandCategories,
+  getGuestProfile,
+  getPartnerPrograms,
+  getVerifiedRoomTip,
+} from '../../lib/insights';
 import { formatPersonalScore, useAdaptiveLayout } from '../../lib/layout';
 import { formatCriticSlot, getPropertyStatusMeta } from '../../lib/propertyStatus';
 import { computeStayOdds, getTonePalette, getTripAdvisorUrl, isVisitedProperty } from '../../lib/scoring';
@@ -26,19 +33,31 @@ import { useStayOdds } from '../../lib/store';
 import { Colors } from '../../lib/theme';
 import type { Hotel } from '../../lib/types';
 
-type PickerTarget = 'A' | 'B' | null;
+type PickerTarget = 'A' | 'B' | 'C' | null;
 
 function matchesHotelQuery(h: Hotel, rawQuery: string): boolean {
   const q = rawQuery.trim().toLowerCase();
   if (!q) return true;
-  const hay = `${h.name} ${h.location} ${h.country} ${h.brand || ''} ${h.region || ''}`.toLowerCase();
+  const brands = getBrandCategories(h).allBrands.join(' ');
+  const hay = `${h.name} ${h.location} ${h.country} ${h.brand || ''} ${brands} ${h.region || ''}`.toLowerCase();
   return q.split(/\s+/).every((tok) => hay.includes(tok));
 }
 
 export default function CompareScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ a?: string; b?: string }>();
-  const { hotels, compareA, compareB, setCompareA, setCompareB, shortlist, refreshing, refresh } = useStayOdds();
+  const params = useLocalSearchParams<{ a?: string; b?: string; c?: string }>();
+  const {
+    hotels,
+    compareA,
+    compareB,
+    compareC,
+    setCompareA,
+    setCompareB,
+    setCompareC,
+    shortlist,
+    refreshing,
+    refresh,
+  } = useStayOdds();
   const { isSplitScreen, horizontalPadding } = useAdaptiveLayout();
 
   const [pickerTarget, setPickerTarget] = useState<PickerTarget>(null);
@@ -46,21 +65,26 @@ export default function CompareScreen() {
   const [pickerScope, setPickerScope] = useState<'all' | 'visited' | 'global' | 'saved'>('all');
   const [inlineSearchA, setInlineSearchA] = useState('');
   const [inlineSearchB, setInlineSearchB] = useState('');
+  const [inlineSearchC, setInlineSearchC] = useState('');
   const [copiedLink, setCopiedLink] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
 
-  // Support shareable deep-links (?a=slug1&b=slug2)
+  // Support shareable deep-links (?a=slug1&b=slug2&c=slug3)
   useEffect(() => {
     if (!hotels.length) return;
     const paramA = typeof params.a === 'string' ? params.a.trim() : '';
     const paramB = typeof params.b === 'string' ? params.b.trim() : '';
+    const paramC = typeof params.c === 'string' ? params.c.trim() : '';
     if (paramA && hotels.some((h) => h.id === paramA) && paramA !== compareA) {
       setCompareA(paramA);
     }
     if (paramB && hotels.some((h) => h.id === paramB) && paramB !== compareB) {
       setCompareB(paramB);
     }
-  }, [params.a, params.b, hotels]);
+    if (paramC && hotels.some((h) => h.id === paramC) && paramC !== compareC) {
+      setCompareC(paramC);
+    }
+  }, [params.a, params.b, params.c, hotels]);
 
   const hotelA = useMemo(
     () => hotels.find((h) => h.id === compareA) || hotels[0] || null,
@@ -74,9 +98,15 @@ export default function CompareScreen() {
       null,
     [hotels, compareB, hotelA]
   );
+  const hotelC = useMemo(
+    () => (compareC ? hotels.find((h) => h.id === compareC) || null : null),
+    [hotels, compareC]
+  );
+  const isThreeWay = Boolean(hotelC);
 
   const oddsA = useMemo(() => (hotelA ? computeStayOdds(hotelA) : null), [hotelA]);
   const oddsB = useMemo(() => (hotelB ? computeStayOdds(hotelB) : null), [hotelB]);
+  const oddsC = useMemo(() => (hotelC ? computeStayOdds(hotelC) : null), [hotelC]);
 
   const inlineMatchesA = useMemo(() => {
     if (!inlineSearchA.trim()) return [];
@@ -87,6 +117,11 @@ export default function CompareScreen() {
     if (!inlineSearchB.trim()) return [];
     return hotels.filter((h) => matchesHotelQuery(h, inlineSearchB)).slice(0, 6);
   }, [hotels, inlineSearchB]);
+
+  const inlineMatchesC = useMemo(() => {
+    if (!inlineSearchC.trim()) return [];
+    return hotels.filter((h) => matchesHotelQuery(h, inlineSearchC)).slice(0, 6);
+  }, [hotels, inlineSearchC]);
 
   const pickerList = useMemo(() => {
     const savedSet = new Set(shortlist);
@@ -107,6 +142,18 @@ export default function CompareScreen() {
       });
   }, [hotels, pickerQuery, pickerScope, shortlist]);
 
+  const handleToggleThreeWay = () => {
+    if (compareC) {
+      setCompareC(null);
+      setInlineSearchC('');
+      return;
+    }
+    const candidate =
+      hotels.find((h) => h.id !== hotelA?.id && h.id !== hotelB?.id && isVisitedProperty(h)) ||
+      hotels.find((h) => h.id !== hotelA?.id && h.id !== hotelB?.id);
+    if (candidate) setCompareC(candidate.id);
+  };
+
   const handleSwap = () => {
     if (!hotelA || !hotelB) return;
     const prevA = hotelA.id;
@@ -116,17 +163,21 @@ export default function CompareScreen() {
 
   const handleShareVsLink = async () => {
     if (!hotelA || !hotelB) return;
-    const shareUrl = `https://uncharteditinerary.com/compare/?a=${encodeURIComponent(
+    const base = `https://uncharteditinerary.com/compare/?a=${encodeURIComponent(
       hotelA.id
     )}&b=${encodeURIComponent(hotelB.id)}`;
+    const shareUrl = hotelC ? `${base}&c=${encodeURIComponent(hotelC.id)}` : base;
+    const vsTitle = hotelC
+      ? `${hotelA.name} vs ${hotelB.name} vs ${hotelC.name}`
+      : `${hotelA.name} vs ${hotelB.name}`;
     await Clipboard.setStringAsync(shareUrl).catch(() => {});
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2200);
     if (Platform.OS !== 'web') {
       try {
         await Share.share({
-          title: `${hotelA.name} vs ${hotelB.name} — StayOdds`,
-          message: `Compare ${hotelA.name} vs ${hotelB.name} on StayOdds: ${shareUrl}`,
+          title: `${vsTitle} — StayOdds`,
+          message: `Compare ${vsTitle} on StayOdds: ${shareUrl}`,
           url: shareUrl,
         });
       } catch (_) {}
@@ -136,6 +187,7 @@ export default function CompareScreen() {
   const handleSelectHotel = (id: string) => {
     if (pickerTarget === 'A') setCompareA(id);
     else if (pickerTarget === 'B') setCompareB(id);
+    else if (pickerTarget === 'C') setCompareC(id);
     setPickerTarget(null);
     setPickerQuery('');
   };
@@ -146,13 +198,23 @@ export default function CompareScreen() {
     valB: number | null | undefined,
     displayA: string,
     displayB: string,
-    side: 'A' | 'B'
+    side: 'A' | 'B' | 'C',
+    valC?: number | null | undefined,
+    displayC?: string
   ) => {
-    const numA = valA != null && !Number.isNaN(valA) ? valA : -1;
-    const numB = valB != null && !Number.isNaN(valB) ? valB : -1;
-    const wins =
-      side === 'A' ? numA >= 0 && numB >= 0 && numA > numB : numA >= 0 && numB >= 0 && numB > numA;
-    const display = side === 'A' ? displayA : displayB;
+    const entries: { s: 'A' | 'B' | 'C'; v: number }[] = [
+      { s: 'A', v: valA != null && !Number.isNaN(valA) ? valA : -1 },
+      { s: 'B', v: valB != null && !Number.isNaN(valB) ? valB : -1 },
+    ];
+    if (isThreeWay) {
+      entries.push({ s: 'C', v: valC != null && !Number.isNaN(valC) ? valC : -1 });
+    }
+    const valid = entries.filter((e) => e.v >= 0);
+    const maxV = valid.length >= 2 ? Math.max(...valid.map((e) => e.v)) : -1;
+    const topCount = valid.filter((e) => e.v === maxV).length;
+    const curVal = entries.find((e) => e.s === side)?.v ?? -1;
+    const wins = valid.length >= 2 && topCount === 1 && curVal === maxV;
+    const display = side === 'A' ? displayA : side === 'B' ? displayB : displayC || '—';
 
     return (
       <View style={[styles.metricRow, wins && styles.metricRowWin]}>
@@ -166,7 +228,7 @@ export default function CompareScreen() {
   };
 
   const renderSelectorBlock = (
-    side: 'A' | 'B',
+    side: 'A' | 'B' | 'C',
     selected: Hotel | null,
     selectedOdds: ReturnType<typeof computeStayOdds> | null,
     query: string,
@@ -178,9 +240,22 @@ export default function CompareScreen() {
       <View style={styles.selectorCard}>
         <Pressable style={styles.selectorTop} onPress={() => setPickerTarget(side)}>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.selectorTag, side === 'B' && { color: '#38BDF8' }]}>
-              HOTEL {side}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Text
+                style={[
+                  styles.selectorTag,
+                  side === 'B' && { color: '#38BDF8' },
+                  side === 'C' && { color: '#C084FC' },
+                ]}
+              >
+                HOTEL {side}
+              </Text>
+              {side === 'C' ? (
+                <Pressable onPress={() => setCompareC(null)} hitSlop={8}>
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: '#FDA4AF' }}>✕ Remove</Text>
+                </Pressable>
+              ) : null}
+            </View>
             <Text style={styles.selectorName} numberOfLines={1}>
               {selected ? selected.name : `Select Hotel ${side}...`}
             </Text>
@@ -226,7 +301,8 @@ export default function CompareScreen() {
                     style={[styles.inlineResultRow, isActive && styles.inlineResultRowActive]}
                     onPress={() => {
                       if (side === 'A') setCompareA(item.id);
-                      else setCompareB(item.id);
+                      else if (side === 'B') setCompareB(item.id);
+                      else setCompareC(item.id);
                       setQuery('');
                     }}
                   >
@@ -260,11 +336,16 @@ export default function CompareScreen() {
     );
   };
 
-  const renderHotelCard = (hotel: Hotel, side: 'A' | 'B') => {
-    const o = side === 'A' ? oddsA! : oddsB!;
+  const renderHotelCard = (hotel: Hotel, side: 'A' | 'B' | 'C') => {
+    const o = side === 'A' ? oddsA! : side === 'B' ? oddsB! : oddsC!;
     const palette = getTonePalette(o.statusTone);
     const videoUrl = getHotelVideoUrl(hotel);
     const st = getPropertyStatusMeta(hotel);
+    const brandInfo = getBrandCategories(hotel);
+    const partnerInfo = getPartnerPrograms(hotel);
+    const bestMonths = getBestMonths(hotel);
+    const guestProfile = getGuestProfile(hotel);
+    const roomTip = getVerifiedRoomTip(hotel);
 
     const statusBg =
       st.tone === 'danger'
@@ -292,11 +373,20 @@ export default function CompareScreen() {
         : Colors.inkSecondary;
 
     return (
-      <View style={[styles.vsCard, isSplitScreen && styles.vsCardHalf]}>
+      <View style={[styles.vsCard, isSplitScreen && !isThreeWay && styles.vsCardHalf]}>
         <View style={styles.cardHeroWrap}>
           <Image source={{ uri: hotel.thumbnail }} style={styles.cardHeroImg} resizeMode="cover" />
           <View style={styles.cardHeroTopBadges}>
-            <View style={[styles.sidePill, side === 'A' ? styles.sidePillA : styles.sidePillB]}>
+            <View
+              style={[
+                styles.sidePill,
+                side === 'A'
+                  ? styles.sidePillA
+                  : side === 'B'
+                  ? styles.sidePillB
+                  : { backgroundColor: '#7C3AED' },
+              ]}
+            >
               <Text style={styles.sidePillText}>HOTEL {side}</Text>
             </View>
             <View style={[styles.scopeBadge, o.firstHand ? styles.scopeVisited : styles.scopeGlobal]}>
@@ -319,6 +409,11 @@ export default function CompareScreen() {
             <View style={styles.deltaChip}>
               <Text style={styles.deltaChipTxt}>Gap: {o.opinionGap.deltaLabel}</Text>
             </View>
+            {guestProfile.badgeLabel ? (
+              <View style={[styles.deltaChip, { backgroundColor: '#F0F9FF', borderColor: '#BAE6FD' }]}>
+                <Text style={[styles.deltaChipTxt, { color: '#0369A1' }]}>{guestProfile.badgeLabel}</Text>
+              </View>
+            ) : null}
           </View>
 
           <Text style={styles.hotelName} numberOfLines={2}>
@@ -326,8 +421,21 @@ export default function CompareScreen() {
           </Text>
           <Text style={styles.hotelLoc}>
             {hotel.location}, {hotel.country}
-            {hotel.brand ? ` · ${hotel.brand}` : ''}
+            {brandInfo.primaryBrand !== 'Independent & Boutique'
+              ? ` · ${brandInfo.primaryBrand}${brandInfo.parentGroup ? ` (${brandInfo.parentGroup})` : ''}`
+              : ''}
           </Text>
+
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+            <View style={[styles.deltaChip, { backgroundColor: '#F0FDFA', borderColor: '#99F6E4' }]}>
+              <Text style={[styles.deltaChipTxt, { color: '#0F766E' }]}>☀ {bestMonths.shortLabel}</Text>
+            </View>
+            {partnerInfo.preferredProgram ? (
+              <View style={[styles.deltaChip, { backgroundColor: '#FFF7ED', borderColor: '#FED7AA' }]}>
+                <Text style={[styles.deltaChipTxt, { color: '#C2410C' }]}>✨ {partnerInfo.preferredProgram}</Text>
+              </View>
+            ) : null}
+          </View>
 
           {/* Property Status & Works Strip */}
           <View style={[styles.statusBox, { backgroundColor: statusBg, borderColor: statusBorder }]}>
@@ -356,7 +464,9 @@ export default function CompareScreen() {
               oddsB?.greatStayOdds,
               oddsA?.greatStayOdds != null ? `${oddsA.greatStayOdds}%` : 'Live',
               oddsB?.greatStayOdds != null ? `${oddsB.greatStayOdds}%` : 'Live',
-              side
+              side,
+              oddsC?.greatStayOdds,
+              oddsC?.greatStayOdds != null ? `${oddsC.greatStayOdds}%` : 'Live'
             )}
             {renderMetricRow(
               'My Stay',
@@ -364,7 +474,9 @@ export default function CompareScreen() {
               oddsB?.firstHand ? oddsB.ours100 : null,
               oddsA?.personalScoreLabel || (oddsA?.visited ? 'Filmed (Unscored)' : 'Not Visited'),
               oddsB?.personalScoreLabel || (oddsB?.visited ? 'Filmed (Unscored)' : 'Not Visited'),
-              side
+              side,
+              oddsC?.firstHand ? oddsC.ours100 : null,
+              oddsC?.personalScoreLabel || (oddsC?.visited ? 'Filmed (Unscored)' : 'Not Visited')
             )}
             {renderMetricRow(
               'Critics / Other Reviews',
@@ -372,7 +484,9 @@ export default function CompareScreen() {
               oddsB?.critic100,
               oddsA ? formatCriticSlot(oddsA).full : 'None listed',
               oddsB ? formatCriticSlot(oddsB).full : 'None listed',
-              side
+              side,
+              oddsC?.critic100,
+              oddsC ? formatCriticSlot(oddsC).full : 'None listed'
             )}
             {renderMetricRow(
               'Verified Guests',
@@ -384,7 +498,11 @@ export default function CompareScreen() {
               oddsB?.verifiedGuest
                 ? `${oddsB.verifiedGuest.rating.toFixed(1)} / ${oddsB.verifiedGuest.scale}`
                 : 'Live Google',
-              side
+              side,
+              oddsC?.guest100,
+              oddsC?.verifiedGuest
+                ? `${oddsC.verifiedGuest.rating.toFixed(1)} / ${oddsC.verifiedGuest.scale}`
+                : 'Live Google'
             )}
             {renderMetricRow(
               'Rooms & Villas',
@@ -392,7 +510,9 @@ export default function CompareScreen() {
               oddsB?.firstHand ? hotelB?.scores?.rooms : null,
               oddsA?.firstHand && hotelA?.scores?.rooms != null ? `${formatPersonalScore(hotelA.scores.rooms)} / 5` : '—',
               oddsB?.firstHand && hotelB?.scores?.rooms != null ? `${formatPersonalScore(hotelB.scores.rooms)} / 5` : '—',
-              side
+              side,
+              oddsC?.firstHand ? hotelC?.scores?.rooms : null,
+              oddsC?.firstHand && hotelC?.scores?.rooms != null ? `${formatPersonalScore(hotelC.scores.rooms)} / 5` : '—'
             )}
             {renderMetricRow(
               'Service',
@@ -400,7 +520,9 @@ export default function CompareScreen() {
               oddsB?.firstHand ? hotelB?.scores?.service : null,
               oddsA?.firstHand && hotelA?.scores?.service != null ? `${formatPersonalScore(hotelA.scores.service)} / 5` : '—',
               oddsB?.firstHand && hotelB?.scores?.service != null ? `${formatPersonalScore(hotelB.scores.service)} / 5` : '—',
-              side
+              side,
+              oddsC?.firstHand ? hotelC?.scores?.service : null,
+              oddsC?.firstHand && hotelC?.scores?.service != null ? `${formatPersonalScore(hotelC.scores.service)} / 5` : '—'
             )}
             {renderMetricRow(
               'Value for Money',
@@ -408,13 +530,21 @@ export default function CompareScreen() {
               oddsB?.firstHand ? hotelB?.scores?.value : null,
               oddsA?.firstHand && hotelA?.scores?.value != null ? `${formatPersonalScore(hotelA.scores.value)} / 5` : '—',
               oddsB?.firstHand && hotelB?.scores?.value != null ? `${formatPersonalScore(hotelB.scores.value)} / 5` : '—',
-              side
+              side,
+              oddsC?.firstHand ? hotelC?.scores?.value : null,
+              oddsC?.firstHand && hotelC?.scores?.value != null ? `${formatPersonalScore(hotelC.scores.value)} / 5` : '—'
             )}
           </View>
 
           <View style={styles.noteBox}>
             <Text style={styles.noteTitle}>How StayOdds % Is Calculated</Text>
             <Text style={styles.noteBody}>{o.equationSummary}</Text>
+            {roomTip ? (
+              <>
+                <Text style={[styles.noteTitle, { marginTop: 8, color: '#C2410C' }]}>🛏️ First-Hand Room Tip</Text>
+                <Text style={styles.noteBody}>{roomTip}</Text>
+              </>
+            ) : null}
             {o.keyFacts.length > 0 ? (
               <View style={{ marginTop: 8, gap: 4 }}>
                 <Text style={[styles.noteTitle, { color: Colors.inkSecondary }]}>Verified Key Facts</Text>
@@ -495,7 +625,9 @@ export default function CompareScreen() {
           <View style={styles.arenaTitleRow}>
             <View style={{ flex: 1 }}>
               <Text style={styles.arenaEyebrow}>HEAD-TO-HEAD {BRAND.name.toUpperCase()} ARENA</Text>
-              <Text style={styles.arenaTitle}>Compare Any 2 Luxury Stays</Text>
+              <Text style={styles.arenaTitle}>
+                {isThreeWay ? 'Compare 3 Luxury Stays' : 'Compare Any 2 Luxury Stays'}
+              </Text>
               <Text style={styles.arenaSub}>
                 Zero guessed numbers — green ★ highlights verified winners across {hotels.length} luxury stays.
               </Text>
@@ -524,10 +656,34 @@ export default function CompareScreen() {
             </View>
           </View>
 
+          <View style={{ flexDirection: 'row', gap: 8, marginBottom: 10 }}>
+            <Pressable
+              style={[
+                styles.shareBannerBtn,
+                { flex: 1, marginBottom: 0, justifyContent: 'center' },
+                isThreeWay && { backgroundColor: 'rgba(124, 58, 237, 0.25)', borderColor: '#C084FC' },
+              ]}
+              onPress={handleToggleThreeWay}
+            >
+              <Ionicons
+                name={isThreeWay ? 'remove-circle-outline' : 'add-circle-outline'}
+                size={15}
+                color={isThreeWay ? '#E9D5FF' : '#38BDF8'}
+              />
+              <Text style={[styles.shareBannerTxt, { color: isThreeWay ? '#E9D5FF' : '#BAE6FD' }]}>
+                {isThreeWay ? 'Remove 3rd Hotel' : '+ Add 3rd Hotel'}
+              </Text>
+            </Pressable>
+          </View>
+
           {hotelA && hotelB ? (
             <Pressable style={styles.shareBannerBtn} onPress={() => setShowShareModal(true)}>
               <Ionicons name="sparkles-outline" size={15} color="#FF8B5E" />
-              <Text style={styles.shareBannerTxt}>Share Branded VS Card (1:1 Feed &amp; 9:16 Story + QR)</Text>
+              <Text style={styles.shareBannerTxt}>
+                {isThreeWay
+                  ? 'Share 3-Way Branded Card (Clean Photos + QR)'
+                  : 'Share Branded VS Card (1:1 Feed & 9:16 Story + QR)'}
+              </Text>
               <Ionicons name="arrow-forward" size={14} color="#FF8B5E" />
             </Pressable>
           ) : null}
@@ -549,9 +705,12 @@ export default function CompareScreen() {
             </View>
           ) : null}
 
-          <View style={[styles.selectorRow, !isSplitScreen && styles.selectorCol]}>
+          <View style={[styles.selectorRow, (!isSplitScreen || isThreeWay) && styles.selectorCol]}>
             {renderSelectorBlock('A', hotelA, oddsA, inlineSearchA, setInlineSearchA, inlineMatchesA)}
             {renderSelectorBlock('B', hotelB, oddsB, inlineSearchB, setInlineSearchB, inlineMatchesB)}
+            {isThreeWay
+              ? renderSelectorBlock('C', hotelC, oddsC, inlineSearchC, setInlineSearchC, inlineMatchesC)
+              : null}
           </View>
         </View>
 
@@ -559,12 +718,13 @@ export default function CompareScreen() {
           <View
             style={[
               styles.vsGrid,
-              isSplitScreen ? styles.vsGridRow : styles.vsGridCol,
+              isSplitScreen && !isThreeWay ? styles.vsGridRow : styles.vsGridCol,
               { paddingHorizontal: horizontalPadding },
             ]}
           >
             {renderHotelCard(hotelA, 'A')}
             {renderHotelCard(hotelB, 'B')}
+            {isThreeWay && hotelC && oddsC ? renderHotelCard(hotelC, 'C') : null}
           </View>
         ) : (
           <View style={styles.emptyBox}>
@@ -582,6 +742,8 @@ export default function CompareScreen() {
           hotelB={hotelB}
           oddsA={oddsA}
           oddsB={oddsB}
+          hotelC={hotelC}
+          oddsC={oddsC}
         />
       ) : null}
 

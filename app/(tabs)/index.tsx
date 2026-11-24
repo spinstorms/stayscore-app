@@ -17,6 +17,13 @@ import { HotelDetailContent } from '../../components/HotelDetailContent';
 import { RequestResortModal } from '../../components/SupportModals';
 import { openExternalUrl } from '../../lib/api';
 import { BRAND } from '../../lib/brand';
+import {
+  getBrandCategories,
+  getGuestProfile,
+  getMonthShortName,
+  getPartnerPrograms,
+  isBestInMonth,
+} from '../../lib/insights';
 import { formatPersonalScore, useAdaptiveLayout } from '../../lib/layout';
 import { computeStayOdds, getTonePalette, getTripAdvisorUrl, isVisitedProperty } from '../../lib/scoring';
 import { useStayOdds } from '../../lib/store';
@@ -24,10 +31,16 @@ import { Colors } from '../../lib/theme';
 import type { Hotel } from '../../lib/types';
 
 type Scope = 'all' | 'visited' | 'world' | 'saved';
-type VerifiedFeature = 'all' | 'michelin' | 'forbes' | 'video' | 'points' | 'beach';
-
-const POINTS_BRAND_RE =
-  /\b(marriott|st\.?\s*regis|ritz-carlton|luxury collection|w hotels|edition|jw marriott|hyatt|park hyatt|alila|andaz|hilton|waldorf|conrad|lxr|ihg|six senses|regent|intercontinental|kimpton)\b/i;
+type VerifiedFeature =
+  | 'all'
+  | 'michelin'
+  | 'forbes'
+  | 'video'
+  | 'adults'
+  | 'family'
+  | 'preferred'
+  | 'points'
+  | 'beach';
 
 const FEATURE_FILTERS: { id: VerifiedFeature; label: string; match: (h: Hotel) => boolean }[] = [
   { id: 'all', label: 'All Data', match: () => true },
@@ -49,9 +62,24 @@ const FEATURE_FILTERS: { id: VerifiedFeature; label: string; match: (h: Hotel) =
     match: (h) => Boolean(h.videoId || (h.youtubeReviews && h.youtubeReviews.length > 0)),
   },
   {
+    id: 'adults',
+    label: '🥂 Adults-Only',
+    match: (h) => getGuestProfile(h).adultsOnly,
+  },
+  {
+    id: 'family',
+    label: '👨‍👩‍👧 Family & Kids',
+    match: (h) => getGuestProfile(h).familyFriendly,
+  },
+  {
+    id: 'preferred',
+    label: '✨ Preferred Perks',
+    match: (h) => getPartnerPrograms(h).hasPreferredPerks,
+  },
+  {
     id: 'points',
-    label: 'Points Brands',
-    match: (h) => POINTS_BRAND_RE.test(`${h.brand || ''} ${h.name || ''}`),
+    label: '★ Points Brands',
+    match: (h) => getPartnerPrograms(h).isPointsEligible,
   },
   {
     id: 'beach',
@@ -78,6 +106,7 @@ export default function StayOddsHomeScreen() {
   const [scope, setScope] = useState<Scope>('all');
   const [region, setRegion] = useState('All');
   const [feature, setFeature] = useState<VerifiedFeature>('all');
+  const [selectedMonth, setSelectedMonth] = useState<number>(0);
   const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState<string>('taaktana-labuan-bajo');
   const [requestOpen, setRequestOpen] = useState(false);
@@ -109,8 +138,22 @@ export default function StayOddsHomeScreen() {
       .filter((h) => {
         if (region !== 'All' && h.region !== region) return false;
         if (activeFeat.id !== 'all' && !activeFeat.match(h)) return false;
+        if (selectedMonth > 0 && !isBestInMonth(h, selectedMonth)) return false;
         if (!q) return true;
-        return [h.name, h.location, h.country, h.region, h.brand, h.verdict, h.standout]
+        const brands = getBrandCategories(h).allBrands;
+        const partner = getPartnerPrograms(h);
+        return [
+          h.name,
+          h.location,
+          h.country,
+          h.region,
+          h.brand,
+          ...brands,
+          partner.preferredProgram,
+          partner.pointsProgram,
+          h.verdict,
+          h.standout,
+        ]
           .filter(Boolean)
           .join(' ')
           .toLowerCase()
@@ -124,7 +167,7 @@ export default function StayOddsHomeScreen() {
         if (tierRank(ob) !== tierRank(oa)) return tierRank(ob) - tierRank(oa);
         return (ob.greatStayOdds ?? -1) - (oa.greatStayOdds ?? -1) || a.name.localeCompare(b.name);
       });
-  }, [scopedHotels, region, feature, search]);
+  }, [scopedHotels, region, feature, selectedMonth, search]);
 
   const selectedHotel = useMemo(
     () => hotels.find((h) => h.id === selectedId) || filtered[0] || hotels[0] || null,
@@ -373,6 +416,39 @@ export default function StayOddsHomeScreen() {
                 ]}
               >
                 {f.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={[styles.regionRow, { paddingTop: 2 }]}
+      >
+        {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((m) => {
+          const isActive = selectedMonth === m;
+          const label = m === 0 ? '☀ Any Month' : getMonthShortName(m);
+          return (
+            <Pressable
+              key={m}
+              onPress={() => setSelectedMonth(m)}
+              style={[
+                styles.regionPill,
+                {
+                  borderColor: isActive ? '#FBBF24' : 'rgba(255,255,255,0.12)',
+                  backgroundColor: isActive ? 'rgba(251, 191, 36, 0.22)' : 'rgba(255,255,255,0.05)',
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.regionText,
+                  { color: isActive ? '#FEF3C7' : 'rgba(255,255,255,0.72)', fontSize: 11 },
+                ]}
+              >
+                {label}
               </Text>
             </Pressable>
           );

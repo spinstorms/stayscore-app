@@ -23,6 +23,7 @@ interface RegionViewport {
   id: string;
   label: string;
   regionFilter: string | null;
+  countryFilter?: string[];
   minLat: number;
   maxLat: number;
   minLng: number;
@@ -31,14 +32,19 @@ interface RegionViewport {
 
 const REGION_VIEWPORTS: RegionViewport[] = [
   { id: 'world', label: 'World', regionFilter: null, minLat: -55, maxLat: 66, minLng: -162, maxLng: 179.5 },
+  { id: 'japan', label: 'Japan', regionFilter: null, countryFilter: ['Japan'], minLat: 24.0, maxLat: 45.8, minLng: 123.5, maxLng: 146.0 },
+  { id: 'anz', label: 'Australia & NZ', regionFilter: null, countryFilter: ['Australia', 'New Zealand'], minLat: -47.5, maxLat: -10.5, minLng: 112.0, maxLng: 179.0 },
+  { id: 'greece', label: 'Greece', regionFilter: null, countryFilter: ['Greece'], minLat: 34.8, maxLat: 41.2, minLng: 19.5, maxLng: 28.5 },
+  { id: 'turkey', label: 'Turkey', regionFilter: null, countryFilter: ['Turkey'], minLat: 36.2, maxLat: 42.0, minLng: 26.2, maxLng: 36.5 },
+  { id: 'egypt', label: 'Egypt', regionFilter: null, countryFilter: ['Egypt'], minLat: 23.5, maxLat: 31.5, minLng: 29.0, maxLng: 35.5 },
   { id: 'mexico', label: 'Mexico', regionFilter: 'Mexico', minLat: 16.5, maxLat: 26.0, minLng: -112.0, maxLng: -85.5 },
   { id: 'caribbean', label: 'Caribbean', regionFilter: 'Caribbean', minLat: 10.5, maxLat: 33.0, minLng: -85.5, maxLng: -58.5 },
   { id: 'maldives', label: 'Maldives', regionFilter: 'Maldives', minLat: -1.2, maxLat: 7.4, minLng: 71.8, maxLng: 74.6 },
   { id: 'bali', label: 'Bali & Indonesia', regionFilter: 'Bali & Indonesia', minLat: -10.8, maxLat: -6.5, minLng: 109.5, maxLng: 121.0 },
-  { id: 'europe', label: 'Europe', regionFilter: 'Europe', minLat: 35.0, maxLat: 65.5, minLng: -25.0, maxLng: 30.0 },
+  { id: 'europe', label: 'Europe', regionFilter: 'Europe', minLat: 35.0, maxLat: 65.5, minLng: -25.0, maxLng: 36.0 },
   { id: 'americas', label: 'Americas', regionFilter: 'Los Angeles & Americas', minLat: -54.0, maxLat: 54.0, minLng: -162.0, maxLng: -34.0 },
-  { id: 'asia', label: 'Asia & Pacific', regionFilter: 'Asia', minLat: -42.0, maxLat: 42.0, minLng: 70.0, maxLng: 179.0 },
-  { id: 'middle-east', label: 'Middle East', regionFilter: 'Middle East', minLat: 19.0, maxLat: 31.0, minLng: 35.0, maxLng: 60.0 },
+  { id: 'asia', label: 'Asia & Pacific', regionFilter: 'Asia', minLat: -42.0, maxLat: 45.0, minLng: 70.0, maxLng: 179.0 },
+  { id: 'middle-east', label: 'Middle East', regionFilter: 'Middle East', minLat: 19.0, maxLat: 31.5, minLng: 29.0, maxLng: 60.0 },
   { id: 'thailand', label: 'Thailand', regionFilter: 'Thailand', minLat: 6.5, maxLat: 20.5, minLng: 97.5, maxLng: 103.5 },
   { id: 'indian-ocean', label: 'Indian Ocean & Africa', regionFilter: 'Indian Ocean & Africa', minLat: -36.0, maxLat: 10.0, minLng: 15.0, maxLng: 61.0 },
 ];
@@ -63,6 +69,7 @@ export default function WorldMapScreen() {
       if (typeof h.lat !== 'number' || typeof h.lng !== 'number') return false;
       if (scope === 'visited' && !isVisitedProperty(h)) return false;
       if (scope === 'saved' && !savedSet.has(h.id)) return false;
+      if (viewport.countryFilter && !viewport.countryFilter.includes(h.country)) return false;
       if (viewport.regionFilter && h.region !== viewport.regionFilter) return false;
       return true;
     });
@@ -111,7 +118,7 @@ export default function WorldMapScreen() {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color={Colors.accent} />
-        <Text style={styles.loadingText}>Plotting 300 luxury stays…</Text>
+        <Text style={styles.loadingText}>Plotting luxury stays worldwide…</Text>
       </View>
     );
   }

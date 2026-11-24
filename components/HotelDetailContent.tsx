@@ -4,6 +4,13 @@ import React, { useEffect, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { fetchLiveGoogleRating, getHotelVideoUrl, LiveGoogleRating, openExternalUrl } from '../lib/api';
 import { BRAND } from '../lib/brand';
+import {
+  getBestMonths,
+  getBrandCategories,
+  getGuestProfile,
+  getPartnerPrograms,
+  getVerifiedRoomTip,
+} from '../lib/insights';
 import { formatPersonalScore } from '../lib/layout';
 import { getPropertyStatusMeta } from '../lib/propertyStatus';
 import { computeStayOdds, getTonePalette, getTripAdvisorUrl, isScoreUnverified } from '../lib/scoring';
@@ -87,6 +94,11 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
   const videoUrl = getHotelVideoUrl(hotel);
   const s = hotel.scores;
   const propStatus = getPropertyStatusMeta(hotel);
+  const brandInfo = getBrandCategories(hotel);
+  const partnerInfo = getPartnerPrograms(hotel);
+  const bestMonths = getBestMonths(hotel);
+  const guestProfile = getGuestProfile(hotel);
+  const roomTip = getVerifiedRoomTip(hotel);
 
   return (
     <>
@@ -116,6 +128,11 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
             <View style={[styles.pill, { backgroundColor: palette.soft, borderColor: palette.border }]}>
               <Text style={[styles.pillText, { color: palette.color }]}>{o.statusBadge}</Text>
             </View>
+            {guestProfile.badgeLabel ? (
+              <View style={[styles.pill, { backgroundColor: '#F0F9FF', borderColor: '#BAE6FD' }]}>
+                <Text style={[styles.pillText, { color: '#0369A1' }]}>{guestProfile.badgeLabel}</Text>
+              </View>
+            ) : null}
             {propStatus.tone === 'danger' || propStatus.tone === 'warn' ? (
               <View
                 style={[
@@ -140,10 +157,52 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
           <Text style={styles.title}>{hotel.name}</Text>
           <Text style={styles.subtitle}>
             {hotel.location}, {hotel.country}
-            {hotel.brand ? ` • ${hotel.brand}` : ''}
+            {brandInfo.primaryBrand !== 'Independent & Boutique'
+              ? ` • ${brandInfo.primaryBrand}${brandInfo.parentGroup ? ` (${brandInfo.parentGroup})` : ''}`
+              : ''}
             {hotel.priceRange ? ` • ${hotel.priceRange}` : ''}
           </Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+            <View style={[styles.pill, { backgroundColor: '#F0FDFA', borderColor: '#99F6E4' }]}>
+              <Text style={[styles.pillText, { color: '#0F766E' }]}>
+                ☀ Best Months: {bestMonths.shortLabel}
+              </Text>
+            </View>
+            {partnerInfo.preferredProgram ? (
+              <View style={[styles.pill, { backgroundColor: '#FFF7ED', borderColor: '#FED7AA' }]}>
+                <Text style={[styles.pillText, { color: '#C2410C' }]}>
+                  ✨ {partnerInfo.preferredProgram}
+                </Text>
+              </View>
+            ) : null}
+            {partnerInfo.pointsProgram ? (
+              <View style={[styles.pill, { backgroundColor: '#EEF2FF', borderColor: '#C7D2FE' }]}>
+                <Text style={[styles.pillText, { color: '#3730A3' }]}>
+                  ★ {partnerInfo.pointsProgram}
+                </Text>
+              </View>
+            ) : null}
+          </View>
           {hotel.verdict ? <Text style={styles.verdict}>{hotel.verdict}</Text> : null}
+          {roomTip ? (
+            <View
+              style={{
+                marginTop: 10,
+                padding: 11,
+                borderRadius: 12,
+                backgroundColor: '#FFF7ED',
+                borderWidth: 1,
+                borderColor: '#FED7AA',
+              }}
+            >
+              <Text style={{ fontSize: 11, fontWeight: '800', color: '#C2410C', letterSpacing: 0.4 }}>
+                🛏️ FIRST-HAND ROOM / STAY TIP
+              </Text>
+              <Text style={{ fontSize: 12.5, color: '#431407', marginTop: 3, lineHeight: 18 }}>
+                {roomTip}
+              </Text>
+            </View>
+          ) : null}
 
           {/* 4 Distinct, Non-Overlapping KPI Tiles */}
           <View style={styles.kpiGrid}>
