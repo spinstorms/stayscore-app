@@ -116,18 +116,24 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
               style={[
                 styles.pill,
                 {
-                  backgroundColor: o.firstHand ? Colors.accentSoft : Colors.slateSoft,
-                  borderColor: o.firstHand ? Colors.accentBorder : Colors.slateBorder,
+                  backgroundColor: o.scoreTrack === 'verified' ? Colors.accentSoft : Colors.slateSoft,
+                  borderColor: o.scoreTrack === 'verified' ? Colors.accentBorder : Colors.slateBorder,
                 },
               ]}
             >
-              <Text style={[styles.pillText, { color: o.firstHand ? Colors.accent : Colors.slate }]}>
-                {o.tierLabel}
+              <Text style={[styles.pillText, { color: o.scoreTrack === 'verified' ? Colors.accent : Colors.slate }]}>
+                {o.scoreTrackLabel}
               </Text>
             </View>
-            <View style={[styles.pill, { backgroundColor: palette.soft, borderColor: palette.border }]}>
-              <Text style={[styles.pillText, { color: palette.color }]}>{o.statusBadge}</Text>
-            </View>
+            {o.founderVsMarketLabel ? (
+              <View style={[styles.pill, { backgroundColor: '#FFF7ED', borderColor: '#FDBA74' }]}>
+                <Text style={[styles.pillText, { color: '#9A3412' }]}>{o.founderVsMarketLabel}</Text>
+              </View>
+            ) : (
+              <View style={[styles.pill, { backgroundColor: palette.soft, borderColor: palette.border }]}>
+                <Text style={[styles.pillText, { color: palette.color }]}>{o.statusBadge}</Text>
+              </View>
+            )}
             {guestProfile.badgeLabel ? (
               <View style={[styles.pill, { backgroundColor: '#F0F9FF', borderColor: '#BAE6FD' }]}>
                 <Text style={[styles.pillText, { color: '#0369A1' }]}>{guestProfile.badgeLabel}</Text>
@@ -206,11 +212,20 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
 
           {/* 4 Distinct, Non-Overlapping KPI Tiles */}
           <View style={styles.kpiGrid}>
-            <View style={[styles.kpiTile, { backgroundColor: palette.soft, borderColor: palette.border }]}>
-              <Text style={[styles.kpiBig, { color: palette.color }]}>
+            <View
+              style={[
+                styles.kpiTile,
+                o.scoreTrack === 'verified'
+                  ? { backgroundColor: '#0F172A', borderColor: Colors.accent, borderWidth: 1.5 }
+                  : { backgroundColor: '#F8FAFC', borderColor: '#0F766E', borderWidth: 1.5 },
+              ]}
+            >
+              <Text style={[styles.kpiBig, { color: o.scoreTrack === 'verified' ? '#FFFFFF' : '#0F172A' }]}>
                 {o.greatStayOdds != null ? `${o.greatStayOdds}%` : 'Live'}
               </Text>
-              <Text style={styles.kpiLabel}>StayOdds</Text>
+              <Text style={[styles.kpiLabel, { color: o.scoreTrack === 'verified' ? '#FDBA74' : '#0F766E' }]}>
+                {o.scoreTrack === 'verified' ? 'Verified StayOdds' : 'Market Odds'}
+              </Text>
             </View>
             <View style={styles.kpiTile}>
               <Text style={styles.kpiBig}>

@@ -430,6 +430,11 @@ export default function CompareScreen() {
             <View style={[styles.deltaChip, { backgroundColor: '#F0FDFA', borderColor: '#99F6E4' }]}>
               <Text style={[styles.deltaChipTxt, { color: '#0F766E' }]}>☀ {bestMonths.shortLabel}</Text>
             </View>
+            {o.founderVsMarketLabel ? (
+              <View style={[styles.deltaChip, { backgroundColor: '#FFF7ED', borderColor: '#FDBA74' }]}>
+                <Text style={[styles.deltaChipTxt, { color: '#9A3412' }]}>{o.founderVsMarketLabel}</Text>
+              </View>
+            ) : null}
             {partnerInfo.preferredProgram ? (
               <View style={[styles.deltaChip, { backgroundColor: '#FFF7ED', borderColor: '#FED7AA' }]}>
                 <Text style={[styles.deltaChipTxt, { color: '#C2410C' }]}>✨ {partnerInfo.preferredProgram}</Text>
@@ -459,7 +464,7 @@ export default function CompareScreen() {
 
           <View style={styles.metricsBox}>
             {renderMetricRow(
-              `${BRAND.name} Odds`,
+              o.scoreTrack === 'verified' ? 'Verified StayOdds' : 'Market Odds',
               oddsA?.greatStayOdds,
               oddsB?.greatStayOdds,
               oddsA?.greatStayOdds != null ? `${oddsA.greatStayOdds}%` : 'Live',
@@ -477,6 +482,16 @@ export default function CompareScreen() {
               side,
               oddsC?.firstHand ? oddsC.ours100 : null,
               oddsC?.personalScoreLabel || (oddsC?.visited ? 'Filmed (Unscored)' : 'Not Visited')
+            )}
+            {renderMetricRow(
+              'Market Odds Baseline',
+              oddsA?.marketOdds,
+              oddsB?.marketOdds,
+              oddsA?.marketOdds != null ? `${oddsA.marketOdds}%` : '—',
+              oddsB?.marketOdds != null ? `${oddsB.marketOdds}%` : '—',
+              side,
+              oddsC?.marketOdds,
+              oddsC?.marketOdds != null ? `${oddsC.marketOdds}%` : '—'
             )}
             {renderMetricRow(
               'Critics / Other Reviews',
@@ -504,36 +519,40 @@ export default function CompareScreen() {
                 ? `${oddsC.verifiedGuest.rating.toFixed(1)} / ${oddsC.verifiedGuest.scale}`
                 : 'Live Google'
             )}
-            {renderMetricRow(
-              'Rooms & Villas',
-              oddsA?.firstHand ? hotelA?.scores?.rooms : null,
-              oddsB?.firstHand ? hotelB?.scores?.rooms : null,
-              oddsA?.firstHand && hotelA?.scores?.rooms != null ? `${formatPersonalScore(hotelA.scores.rooms)} / 5` : '—',
-              oddsB?.firstHand && hotelB?.scores?.rooms != null ? `${formatPersonalScore(hotelB.scores.rooms)} / 5` : '—',
-              side,
-              oddsC?.firstHand ? hotelC?.scores?.rooms : null,
-              oddsC?.firstHand && hotelC?.scores?.rooms != null ? `${formatPersonalScore(hotelC.scores.rooms)} / 5` : '—'
-            )}
-            {renderMetricRow(
-              'Service',
-              oddsA?.firstHand ? hotelA?.scores?.service : null,
-              oddsB?.firstHand ? hotelB?.scores?.service : null,
-              oddsA?.firstHand && hotelA?.scores?.service != null ? `${formatPersonalScore(hotelA.scores.service)} / 5` : '—',
-              oddsB?.firstHand && hotelB?.scores?.service != null ? `${formatPersonalScore(hotelB.scores.service)} / 5` : '—',
-              side,
-              oddsC?.firstHand ? hotelC?.scores?.service : null,
-              oddsC?.firstHand && hotelC?.scores?.service != null ? `${formatPersonalScore(hotelC.scores.service)} / 5` : '—'
-            )}
-            {renderMetricRow(
-              'Value for Money',
-              oddsA?.firstHand ? hotelA?.scores?.value : null,
-              oddsB?.firstHand ? hotelB?.scores?.value : null,
-              oddsA?.firstHand && hotelA?.scores?.value != null ? `${formatPersonalScore(hotelA.scores.value)} / 5` : '—',
-              oddsB?.firstHand && hotelB?.scores?.value != null ? `${formatPersonalScore(hotelB.scores.value)} / 5` : '—',
-              side,
-              oddsC?.firstHand ? hotelC?.scores?.value : null,
-              oddsC?.firstHand && hotelC?.scores?.value != null ? `${formatPersonalScore(hotelC.scores.value)} / 5` : '—'
-            )}
+            {(oddsA?.firstHand || oddsB?.firstHand || (isThreeWay && oddsC?.firstHand)) ? (
+              <>
+                {renderMetricRow(
+                  'Rooms & Villas',
+                  oddsA?.firstHand ? hotelA?.scores?.rooms : null,
+                  oddsB?.firstHand ? hotelB?.scores?.rooms : null,
+                  oddsA?.firstHand && hotelA?.scores?.rooms != null ? `${formatPersonalScore(hotelA.scores.rooms)} / 5` : '—',
+                  oddsB?.firstHand && hotelB?.scores?.rooms != null ? `${formatPersonalScore(hotelB.scores.rooms)} / 5` : '—',
+                  side,
+                  oddsC?.firstHand ? hotelC?.scores?.rooms : null,
+                  oddsC?.firstHand && hotelC?.scores?.rooms != null ? `${formatPersonalScore(hotelC.scores.rooms)} / 5` : '—'
+                )}
+                {renderMetricRow(
+                  'Service',
+                  oddsA?.firstHand ? hotelA?.scores?.service : null,
+                  oddsB?.firstHand ? hotelB?.scores?.service : null,
+                  oddsA?.firstHand && hotelA?.scores?.service != null ? `${formatPersonalScore(hotelA.scores.service)} / 5` : '—',
+                  oddsB?.firstHand && hotelB?.scores?.service != null ? `${formatPersonalScore(hotelB.scores.service)} / 5` : '—',
+                  side,
+                  oddsC?.firstHand ? hotelC?.scores?.service : null,
+                  oddsC?.firstHand && hotelC?.scores?.service != null ? `${formatPersonalScore(hotelC.scores.service)} / 5` : '—'
+                )}
+                {renderMetricRow(
+                  'Value for Money',
+                  oddsA?.firstHand ? hotelA?.scores?.value : null,
+                  oddsB?.firstHand ? hotelB?.scores?.value : null,
+                  oddsA?.firstHand && hotelA?.scores?.value != null ? `${formatPersonalScore(hotelA.scores.value)} / 5` : '—',
+                  oddsB?.firstHand && hotelB?.scores?.value != null ? `${formatPersonalScore(hotelB.scores.value)} / 5` : '—',
+                  side,
+                  oddsC?.firstHand ? hotelC?.scores?.value : null,
+                  oddsC?.firstHand && hotelC?.scores?.value != null ? `${formatPersonalScore(hotelC.scores.value)} / 5` : '—'
+                )}
+              </>
+            ) : null}
           </View>
 
           <View style={styles.noteBox}>

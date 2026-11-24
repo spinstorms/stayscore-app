@@ -127,8 +127,22 @@ export default function StayOddsHomeScreen() {
   }, [hotels, scope, shortlist]);
 
   const regions = useMemo(() => {
-    const set = new Set(scopedHotels.map((h) => h.region));
-    return ['All', ...Array.from(set)];
+    const MACRO_ORDER = [
+      'Europe',
+      'Asia',
+      'Maldives & Indian Ocean',
+      'Australia & Pacific',
+      'Americas',
+      'Caribbean & Mexico',
+      'Middle East',
+      'Africa',
+    ];
+    const set = new Set(scopedHotels.map((h) => h.region).filter(Boolean));
+    const ordered = MACRO_ORDER.filter((r) => set.has(r));
+    for (const r of set) {
+      if (!ordered.includes(r)) ordered.push(r);
+    }
+    return ['All', ...ordered];
   }, [scopedHotels]);
 
   const filtered = useMemo(() => {
@@ -188,6 +202,7 @@ export default function StayOddsHomeScreen() {
     const active = isSplitScreen && selectedHotel?.id === h.id;
     const topAward = o.officialAwards?.[0]?.label;
     const saved = isShortlisted(h.id);
+    const isVerifiedTrack = o.scoreTrack === 'verified';
 
     return (
       <Pressable
@@ -197,7 +212,7 @@ export default function StayOddsHomeScreen() {
         <View style={styles.cardHeroWrap}>
           <Image source={{ uri: h.thumbnail }} style={styles.cardHeroImg} resizeMode="cover" />
 
-          {/* Top overlay: tier pill + heart shortlist toggle + floating StayOdds ring */}
+          {/* Top overlay: tier pill + heart shortlist toggle + floating Two-Track ring */}
           <View style={styles.cardHeroTop}>
             <View style={styles.topLeftPills}>
               <View style={styles.rankBadge}>
@@ -207,11 +222,11 @@ export default function StayOddsHomeScreen() {
                 style={[
                   styles.heroTag,
                   {
-                    backgroundColor: o.firstHand ? Colors.accent : 'rgba(15, 23, 42, 0.78)',
+                    backgroundColor: isVerifiedTrack ? Colors.accent : 'rgba(15, 23, 42, 0.78)',
                   },
                 ]}
               >
-                <Text style={styles.heroTagText}>{o.tierLabel}</Text>
+                <Text style={styles.heroTagText}>{o.scoreTrackLabel}</Text>
               </View>
             </View>
 
@@ -243,14 +258,16 @@ export default function StayOddsHomeScreen() {
               <View
                 style={[
                   styles.ring,
-                  { borderColor: o.greatStayOdds != null ? Colors.accent : palette.ring },
+                  isVerifiedTrack
+                    ? { backgroundColor: '#0F172A', borderColor: Colors.accent, borderWidth: 2.5 }
+                    : { backgroundColor: 'rgba(248, 250, 252, 0.94)', borderColor: '#0F766E', borderWidth: 2 },
                 ]}
               >
-                <Text style={styles.ringPct}>
+                <Text style={[styles.ringPct, !isVerifiedTrack && { color: '#0F172A' }]}>
                   {o.greatStayOdds != null ? `${o.greatStayOdds}%` : topAward ? '★' : '—'}
                 </Text>
-                <Text style={styles.ringLabel}>
-                  {o.greatStayOdds != null ? 'ODDS' : topAward ? 'AWARD' : 'OPEN'}
+                <Text style={[styles.ringLabel, !isVerifiedTrack && { color: '#0F766E' }]}>
+                  {o.greatStayOdds != null ? (isVerifiedTrack ? 'VERIFIED' : 'MARKET') : topAward ? 'AWARD' : 'OPEN'}
                 </Text>
               </View>
             </View>
