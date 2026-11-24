@@ -41,54 +41,81 @@ const SUBBRAND_PARENT_MAP: Record<string, string> = {
   'JW Marriott': 'Marriott Bonvoy',
   'Le Méridien': 'Marriott Bonvoy',
   'Autograph Collection': 'Marriott Bonvoy',
-  'Westin': 'Marriott Bonvoy',
+  'Tribute Portfolio': 'Marriott Bonvoy',
+  'Courtyard by Marriott': 'Marriott Bonvoy',
+  'Element by Westin': 'Marriott Bonvoy',
+  Westin: 'Marriott Bonvoy',
   'Park Hyatt': 'World of Hyatt',
   Alila: 'World of Hyatt',
   Andaz: 'World of Hyatt',
   'Grand Hyatt': 'World of Hyatt',
+  'Hyatt Regency': 'World of Hyatt',
+  'Hyatt Centric': 'World of Hyatt',
   'Thompson Hotels': 'World of Hyatt',
-  'Miraval': 'World of Hyatt',
+  'Secrets Resorts': 'World of Hyatt',
+  'Zoëtry': 'World of Hyatt',
+  'Hyatt All-Inclusive': 'World of Hyatt',
+  Miraval: 'World of Hyatt',
   'Waldorf Astoria': 'Hilton Honors',
-  'Conrad': 'Hilton Honors',
+  Conrad: 'Hilton Honors',
   'LXR Hotels & Resorts': 'Hilton Honors',
+  'Tapestry Collection by Hilton': 'Hilton Honors',
+  'Canopy by Hilton': 'Hilton Honors',
   'Six Senses': 'IHG One Rewards',
   Regent: 'IHG One Rewards',
   InterContinental: 'IHG One Rewards',
   Kimpton: 'IHG One Rewards',
+  'Vignette Collection': 'IHG One Rewards',
+  'Hotel Indigo': 'IHG One Rewards',
+  'Crowne Plaza': 'IHG One Rewards',
   Raffles: 'Accor',
   Fairmont: 'Accor',
   'Sofitel Legend': 'Accor',
-  BanyanTree: 'Accor',
   'Banyan Tree': 'Accor',
-  'Faena': 'Accor',
   Belmond: 'LVMH Hospitality',
   'Cheval Blanc': 'LVMH Hospitality',
 };
 
 const CANONICAL_BRAND_PATTERNS: [RegExp, string][] = [
+  [/\bfour\s+seasons\b/i, 'Four Seasons'],
   [/\britz[-\s]?carlton\s+reserve\b/i, 'Ritz-Carlton Reserve'],
   [/\b(?:the\s+)?ritz[-\s]?carlton\b/i, 'The Ritz-Carlton'],
   [/\bst\.?\s*regis\b/i, 'St. Regis'],
-  [/\bluxury\s+collection\b/i, 'The Luxury Collection'],
+  [/^(?:the\s+luxury\s+collection|marriott\s+luxury\s+collection)\b|,\s*a\s+luxury\s+collection\b/i, 'The Luxury Collection'],
   [/\bw\s+hotels?\b|^w\s+(?:maldives|bali|koh\s+samui|algarve|sardinia|osaka|sydney|punta\s+cana|new\s+york|verbier|barcelona|london|rome|dubai|doha|singapore|tokyo|kyoto|miami|south\s+beach|aspen|costa\s+rica|scottsdale|hong\s+kong|amsterdam|ibiza|budapest|prague|florence|edinburgh|macau|taipei|melbourne|brisbane)\b/i, 'W Hotels'],
+  [/\bvirgin\s+limited\s+edition\b/i, 'Virgin Limited Edition'],
   [/\bedition\b/i, 'EDITION'],
   [/\bjw\s+marriott\b/i, 'JW Marriott'],
+  [/\belement\s+by\s+westin\b/i, 'Element by Westin'],
+  [/\bwestin\b/i, 'Westin'],
   [/\ble\s+m[eé]ridien\b/i, 'Le Méridien'],
   [/\bautograph\s+collection\b/i, 'Autograph Collection'],
-  [/\bfour\s+seasons\b/i, 'Four Seasons'],
+  [/\btribute\s+portfolio\b/i, 'Tribute Portfolio'],
+  [/\bcourtyard\s+by\s+marriott\b/i, 'Courtyard by Marriott'],
   [/\baman(?:puri|pulo|giri|zoe|kora|wella|galla|bagh|i[-\s]?khas|dara|jiwo|kila|dusa|sara|taka|emu|oi|fayun|dayan|yangyun|ruya|jena|le\s+m[eé]l[eé]zin|sveti|venice|tokyo|kyoto|new\s+york|bangkok|nai\s+lert)?\b/i, 'Aman'],
   [/\brosewood\b/i, 'Rosewood'],
   [/\bpark\s+hyatt\b/i, 'Park Hyatt'],
   [/\balila\b/i, 'Alila'],
   [/\bandaz\b/i, 'Andaz'],
   [/\bgrand\s+hyatt\b/i, 'Grand Hyatt'],
+  [/\bhyatt\s+regency\b/i, 'Hyatt Regency'],
+  [/\bhyatt\s+centric\b/i, 'Hyatt Centric'],
+  [/\bthompson\b/i, 'Thompson Hotels'],
+  [/\bsecrets\b/i, 'Secrets Resorts'],
+  [/\bzo[eë]try\b/i, 'Zoëtry'],
+  [/\bhyatt\s+(?:zilara|ziva)\b/i, 'Hyatt All-Inclusive'],
   [/\bwaldorf\s+astoria\b/i, 'Waldorf Astoria'],
   [/\bconrad\b/i, 'Conrad'],
   [/\blxr\b/i, 'LXR Hotels & Resorts'],
+  [/\btapestry\s+collection\b/i, 'Tapestry Collection by Hilton'],
+  [/\bcanopy\s+by\s+hilton\b/i, 'Canopy by Hilton'],
   [/\bsix\s+senses\b/i, 'Six Senses'],
   [/\bregent\b/i, 'Regent'],
   [/\bintercontinental\b/i, 'InterContinental'],
   [/\bkimpton\b/i, 'Kimpton'],
+  [/\bvignette\s+collection\b/i, 'Vignette Collection'],
+  [/\bhotel\s+indigo\b/i, 'Hotel Indigo'],
+  [/\bcrowne\s+plaza\b/i, 'Crowne Plaza'],
   [/\braffles\b/i, 'Raffles'],
   [/\bfairmont\b/i, 'Fairmont'],
   [/\bsofitel\b/i, 'Sofitel Legend'],
@@ -97,22 +124,24 @@ const CANONICAL_BRAND_PATTERNS: [RegExp, string][] = [
   [/\bcheval\s+blanc\b/i, 'Cheval Blanc'],
   [/\bone\s*&\s*only\b|\bone&only\b/i, 'One&Only'],
   [/\bmandarin\s+oriental\b/i, 'Mandarin Oriental'],
+  [/\bbaillie\s+lodges\b|\bsouthern\s+ocean\s+lodge\b|\blongitude\s+131\b|\bcapella\s+lodge\b|\bsilky\s+oaks\b|\bhuka\s+lodge\b/i, 'Baillie Lodges'],
   [/\bcapella\b/i, 'Capella'],
-  [/\bpeninsula\b/i, 'The Peninsula'],
+  [/\bthe\s+peninsula\b/i, 'The Peninsula'],
   [/\boetker\b|\bhotel\s+du\s+cap[-\s]eden[-\s]roc\b|\ble\s+bristol\b|\beden\s+rock\b|\bjumby\s+bay\b|\blanesborough\b|\bpalacio\s+tangara\b/i, 'Oetker Collection'],
   [/\bdorchester\b|\bhotel\s+plaza\s+ath[eé]n[eé]e\b|\ble\s+meurice\b|\bhotel\s+eden\b|\bprincipe\s+di\s+savoia\b|\bbeverly\s+hills\s+hotel\b|\bhotel\s+bel[-\s]air\b|\bthe\s+lana\b/i, 'Dorchester Collection'],
   [/\bshangri[-\s]?la\b/i, 'Shangri-La'],
   [/\bjumeirah\b/i, 'Jumeirah'],
   [/\bauberge\b/i, 'Auberge Resorts'],
-  [/\bcomo\b/i, 'COMO Hotels'],
   [/\bhoshinoya\b/i, 'HOSHINOYA'],
-  [/\bbaillie\s+lodges\b|\bsouthern\s+ocean\s+lodge\b|\blongitude\s+131\b|\bcapella\s+lodge\b|\bsilky\s+oaks\b|\bhuka\s+lodge\b/i, 'Baillie Lodges'],
   [/\bsingita\b/i, 'Singita'],
   [/\b&beyond\b|\bandbeyond\b/i, '&Beyond'],
   [/\bsoneva\b/i, 'Soneva'],
   [/\boberoi\b/i, 'Oberoi'],
-  [/\btaj\b/i, 'Taj Hotels'],
+  [/\btaj\b|umaid\s+bhawan|rambagh\s+palace/i, 'Taj Hotels'],
   [/\bbulgari\b|\bbvlgari\b/i, 'Bulgari Hotels'],
+  [/\bkempinski\b/i, 'Kempinski'],
+  [/\bsmall\s+luxury\s+hotels\b|\bslh\b/i, 'Small Luxury Hotels'],
+  [/\bdesign\s+hotels\b/i, 'Design Hotels'],
   [/\bmarriott\b/i, 'Marriott Bonvoy'],
   [/\bhyatt\b/i, 'World of Hyatt'],
   [/\bhilton\b/i, 'Hilton Honors'],
@@ -121,17 +150,25 @@ const CANONICAL_BRAND_PATTERNS: [RegExp, string][] = [
 
 export function normalizeBrandName(hotel: Hotel): string {
   const raw = String(hotel.brand || '').trim();
-  const hay = `${raw} ${hotel.name || ''}`.trim();
+  const isGenericRaw = /^(independent|boutique|boutique\s+ultra[- ]luxury|luxury\s+collection\s*&\s*boutique|other|none|unknown)$/i.test(raw);
+  const safeRaw = isGenericRaw ? '' : raw;
+  const name = String(hotel.name || '').trim();
+  if (/\bcomo\b/i.test(safeRaw) || /^como\b/i.test(name)) return 'COMO Hotels';
+  const hay = `${safeRaw} ${name}`.trim();
   for (const [re, canonical] of CANONICAL_BRAND_PATTERNS) {
     if (re.test(hay)) return canonical;
   }
-  if (raw && !/^(independent|boutique|other|none|unknown)$/i.test(raw)) return raw;
+  if (safeRaw) return safeRaw;
   return 'Independent & Boutique';
 }
 
 export function getBrandCategories(hotel: Hotel): BrandCategories {
   const primaryBrand = normalizeBrandName(hotel);
-  const parentGroup = SUBBRAND_PARENT_MAP[primaryBrand] || null;
+  const raw = String(hotel.brand || '').trim();
+  let parentGroup = SUBBRAND_PARENT_MAP[primaryBrand] || null;
+  if (primaryBrand === 'Design Hotels' && /marriott/i.test(raw)) {
+    parentGroup = 'Marriott Bonvoy';
+  }
   const allBrands = parentGroup && parentGroup !== primaryBrand ? [primaryBrand, parentGroup] : [primaryBrand];
   return { primaryBrand, parentGroup, allBrands };
 }
@@ -143,6 +180,7 @@ export function matchesBrandCategory(hotel: Hotel, targetBrand: string): boolean
   return allBrands.some((b) => b.toLowerCase() === t);
 }
 
+// Strictly brand-wide official Preferred Partner programs (zero unverified blanket Virtuoso guesses)
 const PREFERRED_PARTNER_MAP: Record<string, string> = {
   'Four Seasons': 'Four Seasons Preferred',
   Rosewood: 'Rosewood Elite',
@@ -154,12 +192,15 @@ const PREFERRED_PARTNER_MAP: Record<string, string> = {
   'Bulgari Hotels': 'Marriott STARS',
   'W Hotels': 'Marriott Luminous',
   'JW Marriott': 'Marriott Luminous',
+  Westin: 'Marriott Luminous',
   'Le Méridien': 'Marriott Luminous',
   'Autograph Collection': 'Marriott Luminous',
+  'Tribute Portfolio': 'Marriott Luminous',
   'Park Hyatt': 'Hyatt Privé',
   Alila: 'Hyatt Privé',
   Andaz: 'Hyatt Privé',
   'Grand Hyatt': 'Hyatt Privé',
+  'Thompson Hotels': 'Hyatt Privé',
   'Waldorf Astoria': 'Hilton for Luxury',
   Conrad: 'Hilton for Luxury',
   'LXR Hotels & Resorts': 'Hilton for Luxury',
@@ -167,6 +208,7 @@ const PREFERRED_PARTNER_MAP: Record<string, string> = {
   Regent: 'IHG Destined',
   InterContinental: 'IHG Destined',
   Kimpton: 'IHG Destined',
+  'Vignette Collection': 'IHG Destined',
   Raffles: 'Accor STEP',
   Fairmont: 'Accor STEP',
   'Sofitel Legend': 'Accor STEP',
@@ -177,16 +219,8 @@ const PREFERRED_PARTNER_MAP: Record<string, string> = {
   'The Peninsula': 'Peninsula PenClub',
   'Dorchester Collection': 'Dorchester Diamond Club',
   'Shangri-La': 'Shangri-La Luxury Circle',
-  Jumeirah: 'Jumeirah Passport',
-  'One&Only': 'Virtuoso / Kerzner VIP',
-  Aman: 'Virtuoso',
-  Capella: 'Virtuoso',
-  'Auberge Resorts': 'Virtuoso',
-  'Cheval Blanc': 'Virtuoso',
-  'COMO Hotels': 'Virtuoso',
-  Soneva: 'Virtuoso',
-  Singita: 'Virtuoso',
-  Oberoi: 'Virtuoso',
+  'Leading Hotels of the World': 'LHW Leaders Club',
+  'Small Luxury Hotels': 'SLH Invited',
 };
 
 export function getPartnerPrograms(hotel: Hotel): PartnerPrograms {
@@ -194,7 +228,7 @@ export function getPartnerPrograms(hotel: Hotel): PartnerPrograms {
   const preferredProgram = PREFERRED_PARTNER_MAP[primaryBrand] || null;
   let pointsProgram: string | null = null;
   if (parentGroup && parentGroup !== 'LVMH Hospitality') {
-    pointsProgram = parentGroup === 'Accor' ? 'ALL Accor' : parentGroup;
+    pointsProgram = parentGroup === 'Accor' ? 'Accor ALL' : parentGroup;
   } else if (
     ['Marriott Bonvoy', 'World of Hyatt', 'Hilton Honors', 'IHG One Rewards'].includes(primaryBrand)
   ) {

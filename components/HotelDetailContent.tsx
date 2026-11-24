@@ -58,7 +58,7 @@ function ScoreBar({
 
 export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
   const router = useRouter();
-  const { pushToCompare, toggleShortlist, isShortlisted } = useStayOdds();
+  const { hotels, setCompareA, setCompareB, setCompareC, pushToCompare, toggleShortlist, isShortlisted } = useStayOdds();
   const [liveGoogle, setLiveGoogle] = useState<LiveGoogleRating | null>(null);
   const [showExplainer, setShowExplainer] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -830,6 +830,74 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
           ) : null}
         </View>
       </View>
+
+      {/* Pre-Loaded Head-to-Head Rival Matchups */}
+      {(() => {
+        const sameCountry = hotels.filter((r) => r.id !== hotel.id && r.country === hotel.country);
+        const sameRegion = hotels.filter(
+          (r) => r.id !== hotel.id && r.region === hotel.region && r.country !== hotel.country
+        );
+        const rivals = [...sameCountry, ...sameRegion].slice(0, 3);
+        if (!rivals.length) return null;
+        return (
+          <View style={styles.sectionCard}>
+            <Text style={styles.sectionEyebrow}>HEAD-TO-HEAD MATCHUPS</Text>
+            <Text style={styles.sectionTitle}>Compare {hotel.name} vs. Top Rivals</Text>
+            <View style={{ marginTop: 10, gap: 8 }}>
+              {rivals.map((rv) => {
+                const rvo = computeStayOdds(rv);
+                return (
+                  <Pressable
+                    key={rv.id}
+                    style={styles.sourceRow}
+                    onPress={() => {
+                      setCompareA(hotel.id);
+                      setCompareB(rv.id);
+                      setCompareC(null);
+                      router.push('/compare');
+                    }}
+                  >
+                    <Ionicons name="git-compare-outline" size={18} color={Colors.accent} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.sourceTitle} numberOfLines={1}>
+                        vs {rv.name}
+                      </Text>
+                      <Text style={styles.sourceBody} numberOfLines={1}>
+                        {rv.location}, {rv.country}
+                        {rv.priceRange ? ` • ${rv.priceRange}` : ''}
+                      </Text>
+                    </View>
+                    <View style={styles.sourceScorePill}>
+                      <Text style={styles.sourceScoreText}>
+                        {rvo.greatStayOdds != null ? `${rvo.greatStayOdds}%` : rvo.tierLabel} →
+                      </Text>
+                    </View>
+                  </Pressable>
+                );
+              })}
+              {rivals.length >= 2 ? (
+                <Pressable
+                  style={[
+                    styles.sourceRow,
+                    { backgroundColor: '#FFF7ED', borderColor: '#FED7AA', justifyContent: 'center' },
+                  ]}
+                  onPress={() => {
+                    setCompareA(hotel.id);
+                    setCompareB(rivals[0].id);
+                    setCompareC(rivals[1].id);
+                    router.push('/compare');
+                  }}
+                >
+                  <Ionicons name="layers-outline" size={16} color={Colors.accent} />
+                  <Text style={[styles.sourceTitle, { color: Colors.accent }]}>
+                    Compare All 3 Side-by-Side →
+                  </Text>
+                </Pressable>
+              ) : null}
+            </View>
+          </View>
+        );
+      })()}
     </ScrollView>
     <ShareCardModal
       visible={showShareModal}

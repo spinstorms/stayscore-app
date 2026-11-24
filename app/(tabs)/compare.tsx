@@ -553,6 +553,16 @@ export default function CompareScreen() {
                 )}
               </>
             ) : null}
+            <View style={styles.metricRow}>
+              <Text style={styles.metricLabel}>Best Dry Months</Text>
+              <Text style={styles.metricVal}>☀ {bestMonths.shortLabel}</Text>
+            </View>
+            {hotel.priceRange ? (
+              <View style={styles.metricRow}>
+                <Text style={styles.metricLabel}>Indicative Price Tier</Text>
+                <Text style={styles.metricVal}>{hotel.priceRange}</Text>
+              </View>
+            ) : null}
           </View>
 
           <View style={styles.noteBox}>
@@ -690,7 +700,7 @@ export default function CompareScreen() {
                 color={isThreeWay ? '#E9D5FF' : '#38BDF8'}
               />
               <Text style={[styles.shareBannerTxt, { color: isThreeWay ? '#E9D5FF' : '#BAE6FD' }]}>
-                {isThreeWay ? 'Remove 3rd Hotel' : '+ Add 3rd Hotel'}
+                {isThreeWay ? 'Back to 2 Hotels' : '+ Compare 3rd Hotel'}
               </Text>
             </Pressable>
           </View>
@@ -700,12 +710,47 @@ export default function CompareScreen() {
               <Ionicons name="sparkles-outline" size={15} color="#FF8B5E" />
               <Text style={styles.shareBannerTxt}>
                 {isThreeWay
-                  ? 'Share 3-Way Branded Card (Clean Photos + QR)'
+                  ? 'Share 3-Hotel Branded Card (Clean Photos + QR)'
                   : 'Share Branded VS Card (1:1 Feed & 9:16 Story + QR)'}
               </Text>
               <Ionicons name="arrow-forward" size={14} color="#FF8B5E" />
             </Pressable>
           ) : null}
+
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: 7, paddingBottom: 10 }}
+          >
+            {[
+              { label: 'FS Jimbaran vs St. Regis Bali', a: 'four-seasons-jimbaran', b: 'st-regis-bali' },
+              { label: 'W Maldives vs Soneva Jani', a: 'w-maldives', b: 'soneva-jani' },
+              { label: "The Sira vs TA'AKTANA", a: 'the-sira-lombok', b: 'taaktana-labuan-bajo' },
+              { label: 'Capella Bangkok vs Aman Tokyo', a: 'capella-bangkok', b: 'aman-tokyo' },
+              { label: 'Amanzoe vs FS Astir Palace', a: 'amanzoe', b: 'four-seasons-astir-palace-athens' },
+            ].map((m) => (
+              <Pressable
+                key={m.label}
+                onPress={() => {
+                  if (hotels.some((x) => x.id === m.a) && hotels.some((x) => x.id === m.b)) {
+                    setCompareA(m.a);
+                    setCompareB(m.b);
+                    setCompareC(null);
+                  }
+                }}
+                style={{
+                  paddingHorizontal: 11,
+                  paddingVertical: 6,
+                  borderRadius: 999,
+                  backgroundColor: 'rgba(255,255,255,0.1)',
+                  borderWidth: 1,
+                  borderColor: 'rgba(255,255,255,0.2)',
+                }}
+              >
+                <Text style={{ color: '#F8FAFC', fontSize: 11.5, fontWeight: '600' }}>{m.label}</Text>
+              </Pressable>
+            ))}
+          </ScrollView>
 
           {copiedLink ? (
             <View
