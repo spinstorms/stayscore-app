@@ -833,11 +833,86 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
 
       {/* Pre-Loaded Head-to-Head Rival Matchups */}
       {(() => {
-        const sameCountry = hotels.filter((r) => r.id !== hotel.id && r.country === hotel.country);
-        const sameRegion = hotels.filter(
-          (r) => r.id !== hotel.id && r.region === hotel.region && r.country !== hotel.country
-        );
-        const rivals = [...sameCountry, ...sameRegion].slice(0, 3);
+        const stop = new Set(['the', 'of', 'and', 'at', 'in', 'by', 'bay', 'beach', 'island', 'resort', 'city', 'north', 'south', 'east', 'west', 'new']);
+        const locTokens = (x: Hotel) =>
+          new Set(
+            String(x.location || '')
+              .split(/[,/&–—\-]+/)
+              .flatMap((p) => {
+                const trimmed = p.trim().toLowerCase();
+                return [trimmed, ...trimmed.split(/\s+/)];
+              })
+              .filter((t) => t.length >= 4 && !stop.has(t))
+          );
+        const classifySetting = (x: Hotel) => {
+          const hay = `${x.name} ${x.location} ${x.standout || ''} ${x.keyFacts?.beachOrReef || ''}`;
+          if (/\b(safari|serengeti|masai mara|okavango|kruger|sabi|singita|tented camp|game reserve|bush|wilderness|gorilla|uluru|kangaroo island)\b/i.test(hay)) return 'safari';
+          if (/\b(ski|courchevel|st\.?\s*moritz|gstaad|zermatt|verbier|alps|dolomites|aspen|vail|jackson hole|niseko|chamonix)\b/i.test(hay)) return 'alpine';
+          const ln = `${x.name} ${x.location}`;
+          if (/\b(tokyo|kyoto|osaka|london|paris|rome|milan|venice|florence|new york|manhattan|bangkok|singapore|hong kong|seoul|sydney|melbourne|dubai|doha|cairo|istanbul|barcelona|madrid|lisbon|zurich|vienna|amsterdam|cape town|auckland)\b/i.test(ln) && !/\b(beach resort|overwater|island resort|atoll)\b/i.test(ln)) return 'city';
+          if (/\b(maldives|atoll|island|beach|overwater|lagoon|reef|bali|lombok|samui|phuket|krabi|bora bora|fiji|seychelles|mauritius|santorini|mykonos|amalfi|capri|sardinia|mallorca|bodrum|riviera maya|cabo|punta mita|anguilla|barth|turks|antigua|barbados|jamaica|bahamas|hawaii|maui)\b/i.test(hay)) return 'beach';
+          if (/\b(cotswolds|somerset|wiltshire|countryside|estate|manor|tuscany|provence|winelands|napa|ryokan|hakone|yakushima|naoshima|scotland)\b/i.test(hay)) return 'countryside';
+          return 'resort';
+        };
+        const parseGbp = (x: Hotel) => {
+          const m = String(x.priceRange || '').match(/([\d,]{3,6})/);
+          return m ? Number(m[1].replace(/,/g, '')) || null : null;
+        };
+
+        const baseLoc = locTokens(hotel);
+        const baseSet = classifySetting(hotel);
+        const baseGbp = parseGbp(hotel);
+        const baseAi = /\ball[- ]inclusive\b/i.test(`${hotel.priceRange || ''} ${hotel.name}`);
+
+        const pool = hotels.filter((r) => r.id !== hotel.id && r.country === hotel.country);
+        const candidates =
+          pool.length >= 3
+            ? pool
+            : [...pool, ...hotels.filter((r) => r.id !== hotel.id && r.region === hotel.region && r.country !== hotel.country)];
+
+        const rivals = candidates
+          .map((cand) => {
+            let score = 0;
+            const cLoc = locTokens(cand);
+            const sameCountry = cand.country === hotel.country;
+            let sharedLoc = false;
+            cLoc.forEach((t) => { if (baseLoc.has(t)) sharedLoc = true; });
+            if (sameCountry && sharedLoc) score += 48;
+            else if (sameCountry) score += 18;
+            else score += 5;
+
+            const cSet = classifySetting(cand);
+            if (cSet === baseSet) score += 24;
+            else if ((baseSet === 'city' && cSet !== 'resort') || (cSet === 'city' && baseSet !== 'resort')) score -= 22;
+            else if ((baseSet === 'safari' && cSet === 'beach') || (cSet === 'safari' && baseSet === 'beach')) score -= 16;
+
+            const cAi = /\ball[- ]inclusive\b/i.test(`${cand.priceRange || ''} ${cand.name}`);
+            if (cAi !== baseAi) score -= 12;
+
+            const cGbp = parseGbp(cand);
+            if (baseGbp && cGbp) {
+              const ratio = Math.max(baseGbp, cGbp) / Math.min(baseGbp, cGbp);
+              if (ratio <= 1.45) score += 22;
+              else if (ratio <= 1.95) score += 12;
+              else if (ratio <= 2.6) score += 2;
+              else score -= 20;
+            }
+
+            const co = computeStayOdds(cand);
+            if (o.greatStayOdds != null && co.greatStayOdds != null) {
+              const diff = Math.abs(o.greatStayOdds - co.greatStayOdds);
+              if (diff <= 6) score += 8;
+              else if (diff <= 12) score += 4;
+              score += 4;
+            }
+            if (co.firstHand) score += 7;
+            else if (co.visited) score += 3;
+            score += (co.greatStayOdds ?? 80) / 1000;
+            return { cand, score };
+          })
+          .sort((a, b) => b.score - a.score)
+          .slice(0, 3)
+          .map((x) => x.cand);
         if (!rivals.length) return null;
         return (
           <View style={styles.sectionCard}>

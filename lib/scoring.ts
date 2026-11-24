@@ -77,7 +77,7 @@ export interface StayOddsResult {
 export function dampenThinGuestScore(raw100: number, reviewCount?: number | null): number {
   const n = Number(reviewCount);
   if (!Number.isFinite(n) || n <= 0 || n >= 40) return Math.round(raw100);
-  return Math.round((raw100 * n + 90 * 15) / (n + 15));
+  return Math.round((raw100 * n + 90 * 8) / (n + 8));
 }
 
 export function isScoreUnverified(entry?: { rawScore?: string | null; takeaway?: string | null; sentiment?: string | null } | null): boolean {
