@@ -400,15 +400,96 @@ export function getGuestProfile(hotel: Hotel): GuestProfileInfo {
   };
 }
 
-export function getVerifiedRoomTip(hotel: Hotel): string | null {
-  if (!hotel.visitedByUs) return null;
-  const sources = [hotel.standout, hotel.whereWeDiffer, hotel.verdict].filter(Boolean) as string[];
-  for (const s of sources) {
-    if (/\b(villa|suite|room|overwater|lagoon|beach|sunset|sunrise|pool|floor|wing|upgrade|bungalow|pavilion)\b/i.test(s)) {
-      return s.trim();
+export interface RoomTipInfo {
+  text: string;
+  isUnchartedTip: boolean;
+  label: string;
+}
+
+const VERIFIED_FIRST_HAND_ROOM_TIPS: Record<string, string> = {
+  'st-regis-bali': 'Skip the older 2008 main-building suites — book a private villa instead for fresher finishes and more space.',
+  'ritz-carlton-bali': 'Book a Pavilion Pool Villa for newer interiors, direct lagoon-style privacy, and strong value vs. nearby Nusa Dua rivals.',
+  'the-sira-lombok': 'Book a Beachfront Pool Villa for a brand-new layout, private pool, butler care, and direct sand access.',
+  'w-bali-seminyak': 'Book a One-Bedroom Oasis Pool Villa (~£400/night) — one of the best-value private-pool villa categories in Seminyak.',
+  'radisson-blu-maldives': 'Every villa category includes a private infinity pool and overwater hammock — even entry villas deliver the full Maldives setup.',
+  'four-seasons-jimbaran': 'Ask for a renovated villa — older 30-year-old villa interiors felt noticeably bare on our stay (3/5 Rooms score).',
+  'w-maldives': 'Book a refurbished overwater villa with direct reef access so you can snorkel straight off your deck.',
+  'bask-gili-meno': 'Book a Beachfront Pool Villa for large private pools with turtle snorkeling steps from your sun lounger.',
+  'phulay-bay-krabi': 'Book a Pool Villa — the cavernous 20ft-ceiling layouts are the centerpiece (and a standout 80k Bonvoy points sweet spot).',
+  'w-koh-samui': 'All 75 villas come with a private pool — just note 2010 villa finishes feel slightly older than newer Samui rivals.',
+  'como-uma-canggu': 'Modern rooms feature outdoor showers and real soundproofing from busy Canggu — a sharp ~£200/night luxury base.',
+  'regent-bali-canggu': 'Book a 1-Bedroom Suite — flawlessly designed, spacious room hardware is a standout highlight right on Canggu beach.',
+  'taaktana-labuan-bajo': 'Pick between the brand-new Private Pool Villas or Overwater Villas — both include dedicated 24/7 butler service.',
+  'finolhu-baa-atoll': 'Book an Ocean Water Villa for spacious overwater living with easy access to the 1.8km sandbank.',
+  'st-regis-bora-bora': 'Overwater Villas start at a massive 1,550+ sq ft — classic styling with one of Bora Bora’s largest room footprints.',
+  'westin-bora-bora': 'Fresh modern Polynesian bungalows & villas — newer and more comfortable inside than St. Regis next door.',
+  'four-seasons-koh-samui': 'Hillside Pool Villas deliver iconic palm-framed ocean views, though classic interiors feel slightly dated for the price.',
+  'le-meridien-maldives': 'Stylish modern beach and overwater villas — one of the smartest Marriott Bonvoy points redemptions in the Maldives.',
+  'w-algarve': 'Watch for elite suite upgrades (the Supreme Two-Bedroom Suite is standout) — note a few suite layouts have quirky details.',
+  'rayavadee-krabi': 'Two-story jungle Pavilions tucked beneath limestone cliffs offer real privacy across the boat-only peninsula.',
+  'cocana-gili-t': 'Book a Private Pool Villa for true modern 5-star resort comfort on Gili Trawangan.',
+  'manor-house-castle-combe': 'Choose between historic 14th-century manor rooms or picturesque garden cottages beside Castle Combe village.',
+  'heights-melasti-bali': 'The modern 2-Bedroom Private Pool Villa is strong Uluwatu value (pack mosquito repellent for open-air bathrooms).',
+  'the-pod-singapore': "Book a single 'bookshelf' capsule with privacy blind for 1–2 night solo stopovers (expect shared-room noise).",
+  'the-edge-bali': 'Book an ultra-private Cliffside Villa — includes privileged quiet access outside busy dayclub hours.',
+  'sebali-nusa-penida': 'Book a Pool-Access Room for rare beachfront resort polish on Nusa Penida.',
+  'hiliwatu-ubud': "Modern rainforest-valley balcony suites deliver dramatic jungle views at a fraction of Mandapa's nightly rate.",
+  'four-seasons-bangkok': 'Standard riverside rooms already outclass many resort suites — spacious Jean-Michel Gathy design throughout.',
+  'the-ungasan-bali': 'Private multi-bedroom clifftop villas are grouped into intimate neighborhoods sharing huge infinity pools.',
+  'kin-house-wiltshire': 'Primarily booked as an exclusive-use Georgian house for private groups and weddings rather than individual rooms.',
+};
+
+const SPECIFIC_ROOM_CATEGORY_RE =
+  /\b(\d+[- ]?(?:bedroom|room|suite|villa|casita|bungalow|pavilion|tented\s+(?:suite|villa))s?|all[- ](?:suite|villa|casita|pool[- ]villa)|overwater\s+(?:pool\s+)?villas?|beachfront\s+(?:pool\s+)?villas?|beach\s+(?:pool\s+)?villas?|private[- ]pool\s+(?:villas?|suites?)|swim[- ]up\s+(?:rooms?|suites?)|ocean[- ]view\s+(?:rooms?|suites?|villas?)|cliffside\s+(?:pool\s+)?villas?|hillside\s+(?:pool\s+)?(?:villas?|casitas?)|lagoon\s+(?:pool\s+)?villas?|tented\s+(?:suites?|villas?|camps?)|treehouses?|penthouse\s+suites?|junior\s+suites?|garden\s+(?:pool\s+)?villas?|bungalows?|casitas?)\b/i;
+
+function extractStrictRoomClause(rawText?: string | null): string | null {
+  const txt = String(rawText || '').trim();
+  if (!txt) return null;
+  const parts = txt
+    .split(/(?:(?<=[.!?])\s+|\s+[—–]\s+|;\s+)/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  for (const part of parts) {
+    if (!SPECIFIC_ROOM_CATEGORY_RE.test(part)) continue;
+    const subParts = part.split(/,\s+(?=(?:and\s+|plus\s+|with\s+|featuring\s+)?)/i);
+    const roomSegments = subParts.filter((seg) => SPECIFIC_ROOM_CATEGORY_RE.test(seg));
+    if (roomSegments.length) {
+      let clean = roomSegments.slice(0, 2).join(', ').replace(/^(?:featuring|with|and|plus)\s+/i, '').trim();
+      clean = clean.replace(/[.;,\s]+$/, '');
+      if (clean.length >= 16 && clean.length <= 180) {
+        return clean.charAt(0).toUpperCase() + clean.slice(1) + '.';
+      }
     }
   }
-  return hotel.standout ? hotel.standout.trim() : null;
+  return null;
+}
+
+export function getRoomTipInfo(hotel: Hotel): RoomTipInfo | null {
+  if (!hotel) return null;
+  const id = String(hotel.id || '').trim();
+  if (VERIFIED_FIRST_HAND_ROOM_TIPS[id]) {
+    return {
+      text: VERIFIED_FIRST_HAND_ROOM_TIPS[id],
+      isUnchartedTip: true,
+      label: 'Rooms to Book (Uncharted Note)',
+    };
+  }
+  const candidates = [hotel.standout, hotel.verdict].filter(Boolean) as string[];
+  for (const c of candidates) {
+    const clause = extractStrictRoomClause(c);
+    if (clause) {
+      return {
+        text: clause,
+        isUnchartedTip: false,
+        label: 'Room & Villa Setup',
+      };
+    }
+  }
+  return null;
+}
+
+export function getVerifiedRoomTip(hotel: Hotel): string | null {
+  return getRoomTipInfo(hotel)?.text || null;
 }
 
 /**

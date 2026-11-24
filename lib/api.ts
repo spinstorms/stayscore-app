@@ -5,7 +5,7 @@ import { BRAND } from './brand';
 import type { AffiliateDeal, Hotel, VideoItem } from './types';
 
 export const LIVE_BASE_URL = BRAND.liveApiBaseUrl;
-const CACHE_KEY = 'stayodds_supabase_cache_v17';
+const CACHE_KEY = 'stayodds_supabase_cache_v18';
 
 function resolveHotelThumbnail(id: string, rawHero?: string | null): string {
   const hero = String(rawHero || '').trim();

@@ -464,7 +464,7 @@ export default function CompareScreen() {
 
           <View style={styles.metricsBox}>
             {renderMetricRow(
-              o.scoreTrack === 'verified' ? 'StayOdds (Founder Verified)' : o.scoreTrackLabel,
+              o.scoreTrack === 'verified' ? 'StayOdds (Uncharted Verified)' : o.scoreTrackLabel,
               oddsA?.greatStayOdds,
               oddsB?.greatStayOdds,
               oddsA?.greatStayOdds != null ? `${oddsA.greatStayOdds}%` : 'Live',

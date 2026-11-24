@@ -9,7 +9,7 @@ import {
   getBrandCategories,
   getGuestProfile,
   getPartnerPrograms,
-  getVerifiedRoomTip,
+  getRoomTipInfo,
 } from '../lib/insights';
 import { formatPersonalScore } from '../lib/layout';
 import { getPropertyStatusMeta } from '../lib/propertyStatus';
@@ -98,7 +98,7 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
   const partnerInfo = getPartnerPrograms(hotel);
   const bestMonths = getBestMonths(hotel);
   const guestProfile = getGuestProfile(hotel);
-  const roomTip = getVerifiedRoomTip(hotel);
+  const roomTip = getRoomTipInfo(hotel);
 
   return (
     <>
@@ -111,7 +111,83 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
       <View style={styles.heroCard}>
         <Image source={{ uri: hotel.thumbnail }} style={styles.heroImage} />
         <View style={styles.heroBody}>
-          <View style={styles.badgeRow}>
+          <Text style={styles.title}>{hotel.name}</Text>
+          <Text style={styles.subtitle}>
+            {hotel.location}, {hotel.country}
+            {brandInfo.primaryBrand !== 'Independent & Boutique'
+              ? ` • ${brandInfo.primaryBrand}${brandInfo.parentGroup ? ` (${brandInfo.parentGroup})` : ''}`
+              : ''}
+            {hotel.priceRange ? ` • ${hotel.priceRange}` : ''}
+          </Text>
+
+          {/* Plain-English Quick Summary RIGHT AT THE TOP (before scores & detailed boxes) */}
+          <View
+            style={{
+              marginTop: 12,
+              padding: 14,
+              borderRadius: 14,
+              backgroundColor: '#F8FAFC',
+              borderWidth: 1.5,
+              borderColor: o.scoreTrack === 'verified' ? '#FDBA74' : '#CBD5E1',
+              gap: 7,
+            }}
+          >
+            <Text style={{ fontSize: 11, fontWeight: '800', color: Colors.accent, letterSpacing: 0.6 }}>
+              ✨ QUICK SUMMARY — THE BOTTOM LINE
+            </Text>
+            <Text style={{ fontSize: 13.5, color: '#0F172A', lineHeight: 20 }}>
+              {o.greatStayOdds != null ? (
+                <Text style={{ fontWeight: '800' }}>{o.greatStayOdds}% StayOdds</Text>
+              ) : (
+                <Text style={{ fontWeight: '800' }}>Live Google Consensus</Text>
+              )}
+              {o.scoreTrack === 'verified'
+                ? ` — Uncharted Verified from our filmed stay${o.personalScoreLabel ? ` (${o.personalScoreLabel})` : ''}`
+                : ` (${o.formulaSummary})`}
+              {o.officialAwards.length ? ` • ${o.officialAwards[0].label}` : ''}.
+            </Text>
+            {hotel.standout ? (
+              <Text style={{ fontSize: 13, color: '#0F766E', lineHeight: 19 }}>
+                <Text style={{ fontWeight: '700' }}>Why Guests Love It: </Text>
+                {hotel.standout}
+              </Text>
+            ) : hotel.verdict ? (
+              <Text style={{ fontSize: 13, color: '#334155', lineHeight: 19 }}>{hotel.verdict}</Text>
+            ) : null}
+            <Text style={{ fontSize: 13, color: '#334155', lineHeight: 19 }}>
+              <Text style={{ fontWeight: '700', color: '#0F172A' }}>Best Weather: </Text>
+              {bestMonths.shortLabel} — {bestMonths.note}.
+            </Text>
+            {hotel.watchOut ? (
+              <Text style={{ fontSize: 13, color: '#B45309', lineHeight: 19 }}>
+                <Text style={{ fontWeight: '700' }}>Watch-Out: </Text>
+                {hotel.watchOut}
+              </Text>
+            ) : null}
+          </View>
+
+          {/* Strictly Separated Rooms to Book Callout (never conflated with general property facts) */}
+          {roomTip ? (
+            <View
+              style={{
+                marginTop: 10,
+                padding: 12,
+                borderRadius: 12,
+                backgroundColor: '#FFF7ED',
+                borderWidth: 1,
+                borderColor: '#FED7AA',
+              }}
+            >
+              <Text style={{ fontSize: 11, fontWeight: '800', color: '#C2410C', letterSpacing: 0.4 }}>
+                🛏️ {roomTip.label.toUpperCase()}
+              </Text>
+              <Text style={{ fontSize: 12.5, color: '#431407', marginTop: 3, lineHeight: 18 }}>
+                {roomTip.text}
+              </Text>
+            </View>
+          ) : null}
+
+          <View style={[styles.badgeRow, { marginTop: 12 }]}>
             <View
               style={[
                 styles.pill,
@@ -139,6 +215,20 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
                 <Text style={[styles.pillText, { color: '#0369A1' }]}>{guestProfile.badgeLabel}</Text>
               </View>
             ) : null}
+            {partnerInfo.preferredProgram ? (
+              <View style={[styles.pill, { backgroundColor: '#FFF7ED', borderColor: '#FED7AA' }]}>
+                <Text style={[styles.pillText, { color: '#C2410C' }]}>
+                  ✨ {partnerInfo.preferredProgram}
+                </Text>
+              </View>
+            ) : null}
+            {partnerInfo.pointsProgram ? (
+              <View style={[styles.pill, { backgroundColor: '#EEF2FF', borderColor: '#C7D2FE' }]}>
+                <Text style={[styles.pillText, { color: '#3730A3' }]}>
+                  ★ {partnerInfo.pointsProgram}
+                </Text>
+              </View>
+            ) : null}
             {propStatus.tone === 'danger' || propStatus.tone === 'warn' ? (
               <View
                 style={[
@@ -160,95 +250,6 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
             ) : null}
           </View>
 
-          <Text style={styles.title}>{hotel.name}</Text>
-          <Text style={styles.subtitle}>
-            {hotel.location}, {hotel.country}
-            {brandInfo.primaryBrand !== 'Independent & Boutique'
-              ? ` • ${brandInfo.primaryBrand}${brandInfo.parentGroup ? ` (${brandInfo.parentGroup})` : ''}`
-              : ''}
-            {hotel.priceRange ? ` • ${hotel.priceRange}` : ''}
-          </Text>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
-            <View style={[styles.pill, { backgroundColor: '#F0FDFA', borderColor: '#99F6E4' }]}>
-              <Text style={[styles.pillText, { color: '#0F766E' }]}>
-                ☀ Best Months: {bestMonths.shortLabel}
-              </Text>
-            </View>
-            {partnerInfo.preferredProgram ? (
-              <View style={[styles.pill, { backgroundColor: '#FFF7ED', borderColor: '#FED7AA' }]}>
-                <Text style={[styles.pillText, { color: '#C2410C' }]}>
-                  ✨ {partnerInfo.preferredProgram}
-                </Text>
-              </View>
-            ) : null}
-            {partnerInfo.pointsProgram ? (
-              <View style={[styles.pill, { backgroundColor: '#EEF2FF', borderColor: '#C7D2FE' }]}>
-                <Text style={[styles.pillText, { color: '#3730A3' }]}>
-                  ★ {partnerInfo.pointsProgram}
-                </Text>
-              </View>
-            ) : null}
-          </View>
-          {hotel.verdict ? <Text style={styles.verdict}>{hotel.verdict}</Text> : null}
-          {roomTip ? (
-            <View
-              style={{
-                marginTop: 10,
-                padding: 11,
-                borderRadius: 12,
-                backgroundColor: '#FFF7ED',
-                borderWidth: 1,
-                borderColor: '#FED7AA',
-              }}
-            >
-              <Text style={{ fontSize: 11, fontWeight: '800', color: '#C2410C', letterSpacing: 0.4 }}>
-                🛏️ FIRST-HAND ROOM / STAY TIP
-              </Text>
-              <Text style={{ fontSize: 12.5, color: '#431407', marginTop: 3, lineHeight: 18 }}>
-                {roomTip}
-              </Text>
-            </View>
-          ) : null}
-
-          {/* At-a-Glance Executive Summary */}
-          <View
-            style={{
-              marginTop: 12,
-              padding: 13,
-              borderRadius: 14,
-              backgroundColor: '#F8FAFC',
-              borderWidth: 1,
-              borderColor: '#E2E8F0',
-              gap: 6,
-            }}
-          >
-            <Text style={{ fontSize: 11, fontWeight: '800', color: Colors.accent, letterSpacing: 0.6 }}>
-              AT A GLANCE — KEY TAKEAWAYS
-            </Text>
-            <Text style={{ fontSize: 13, color: '#0F172A', lineHeight: 19 }}>
-              <Text style={{ fontWeight: '700' }}>Score: </Text>
-              {o.greatStayOdds != null ? `${o.greatStayOdds}% StayOdds` : 'Live Google check'} ({o.formulaSummary})
-            </Text>
-            <Text style={{ fontSize: 13, color: '#334155', lineHeight: 19 }}>
-              <Text style={{ fontWeight: '700', color: '#0F172A' }}>Best For: </Text>
-              {bestMonths.shortLabel}
-              {hotel.priceRange ? ` • ${hotel.priceRange}` : ''}
-              {o.officialAwards.length ? ` • ${o.officialAwards[0].label}` : ''}
-            </Text>
-            {hotel.standout ? (
-              <Text style={{ fontSize: 13, color: '#0F766E', lineHeight: 19 }} numberOfLines={2}>
-                <Text style={{ fontWeight: '700' }}>Top Highlight: </Text>
-                {hotel.standout}
-              </Text>
-            ) : null}
-            {hotel.watchOut ? (
-              <Text style={{ fontSize: 13, color: '#B45309', lineHeight: 19 }} numberOfLines={2}>
-                <Text style={{ fontWeight: '700' }}>Watch-Out: </Text>
-                {hotel.watchOut}
-              </Text>
-            ) : null}
-          </View>
-
           {/* 4 Distinct, Non-Overlapping KPI Tiles */}
           <View style={styles.kpiGrid}>
             <View
@@ -263,7 +264,7 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
                 {o.greatStayOdds != null ? `${o.greatStayOdds}%` : 'Live'}
               </Text>
               <Text style={[styles.kpiLabel, { color: o.scoreTrack === 'verified' ? '#FDBA74' : '#0F766E' }]}>
-                {o.scoreTrack === 'verified' ? '★ Founder Verified' : o.scoreTrackLabel}
+                {o.scoreTrack === 'verified' ? '★ Uncharted Verified' : o.scoreTrackLabel}
               </Text>
             </View>
             <View style={styles.kpiTile}>
@@ -280,12 +281,12 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
               </Text>
               <Text style={styles.kpiLabel}>
                 {o.firstHand
-                  ? 'My Stay'
+                  ? 'Uncharted Stay'
                   : o.visited
                   ? hotel.coverageType === 'Short Tour'
                     ? 'Short Tour'
                     : 'Full Video'
-                  : 'My Stay'}
+                  : 'Uncharted Stay'}
               </Text>
             </View>
             <View style={styles.kpiTile}>
