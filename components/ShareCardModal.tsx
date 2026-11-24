@@ -23,6 +23,7 @@ import {
   buildSingleDeepLink,
   buildVsDeepLink,
   extractTopKeyFacts,
+  formatCriticSlot,
   getPropertyStatusMeta,
 } from '../lib/propertyStatus';
 import type { StayOddsResult } from '../lib/scoring';
@@ -265,13 +266,19 @@ export function ShareCardModal(props: ShareCardModalProps) {
             </Text>
           </View>
           <View style={styles.pillarTile}>
+            <Text style={styles.pillarLbl}>CRITICS</Text>
+            <Text style={styles.pillarVal} numberOfLines={1}>
+              {formatCriticSlot(odds).compact}
+            </Text>
+          </View>
+          <View style={styles.pillarTile}>
             <Text style={styles.pillarLbl}>GUESTS</Text>
             <Text style={styles.pillarVal} numberOfLines={1}>
               {odds.verifiedGuest ? `${odds.verifiedGuest.rating.toFixed(1)}/${odds.verifiedGuest.scale}` : 'Live'}
             </Text>
           </View>
           <View style={styles.pillarTile}>
-            <Text style={styles.pillarLbl}>OPINION GAP</Text>
+            <Text style={styles.pillarLbl}>GAP</Text>
             <Text style={styles.pillarVal} numberOfLines={1}>
               {odds.opinionGap.deltaLabel}
             </Text>
@@ -346,15 +353,21 @@ export function ShareCardModal(props: ShareCardModalProps) {
               </Text>
             </View>
             <View style={styles.pillarTile}>
+              <Text style={styles.pillarLbl}>CRITICS</Text>
+              <Text style={styles.pillarVal} numberOfLines={1}>
+                {formatCriticSlot(odds).compact}
+              </Text>
+            </View>
+            <View style={styles.pillarTile}>
               <Text style={styles.pillarLbl}>GUESTS</Text>
               <Text style={styles.pillarVal} numberOfLines={1}>
                 {odds.verifiedGuest ? `${odds.verifiedGuest.rating.toFixed(1)}/${odds.verifiedGuest.scale}` : 'Live'}
               </Text>
             </View>
             <View style={styles.pillarTile}>
-              <Text style={styles.pillarLbl}>CRITICS</Text>
+              <Text style={styles.pillarLbl}>GAP</Text>
               <Text style={styles.pillarVal} numberOfLines={1}>
-                {odds.critic100 != null ? `${odds.critic100}/100` : odds.officialAwards.length ? `${odds.officialAwards.length} Award${odds.officialAwards.length > 1 ? 's' : ''}` : '—'}
+                {odds.opinionGap.deltaLabel}
               </Text>
             </View>
           </View>

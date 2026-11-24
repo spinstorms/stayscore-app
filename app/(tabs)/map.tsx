@@ -104,7 +104,7 @@ export default function WorldMapScreen() {
 
   const openWebMap = () => {
     const q = viewport.regionFilter ? `?region=${encodeURIComponent(viewport.regionFilter)}` : '';
-    openExternalUrl(`https://live.uncharteditinerary.com/hotels/${q}`);
+    openExternalUrl(`https://uncharteditinerary.com/hotels/${q}`);
   };
 
   if (loading && !hotels.length) {

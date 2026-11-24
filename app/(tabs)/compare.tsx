@@ -20,7 +20,7 @@ import { ShareCardModal } from '../../components/ShareCardModal';
 import { getHotelVideoUrl, openExternalUrl } from '../../lib/api';
 import { BRAND } from '../../lib/brand';
 import { formatPersonalScore, useAdaptiveLayout } from '../../lib/layout';
-import { getPropertyStatusMeta } from '../../lib/propertyStatus';
+import { formatCriticSlot, getPropertyStatusMeta } from '../../lib/propertyStatus';
 import { computeStayOdds, getTonePalette, getTripAdvisorUrl, isVisitedProperty } from '../../lib/scoring';
 import { useStayOdds } from '../../lib/store';
 import { Colors } from '../../lib/theme';
@@ -116,7 +116,7 @@ export default function CompareScreen() {
 
   const handleShareVsLink = async () => {
     if (!hotelA || !hotelB) return;
-    const shareUrl = `https://live.uncharteditinerary.com/compare/?a=${encodeURIComponent(
+    const shareUrl = `https://uncharteditinerary.com/compare/?a=${encodeURIComponent(
       hotelA.id
     )}&b=${encodeURIComponent(hotelB.id)}`;
     await Clipboard.setStringAsync(shareUrl).catch(() => {});
@@ -359,7 +359,7 @@ export default function CompareScreen() {
               side
             )}
             {renderMetricRow(
-              'First-Hand Score',
+              'My Stay',
               oddsA?.firstHand ? oddsA.ours100 : null,
               oddsB?.firstHand ? oddsB.ours100 : null,
               oddsA?.personalScoreLabel || (oddsA?.visited ? 'Filmed (Unscored)' : 'Not Visited'),
@@ -367,7 +367,15 @@ export default function CompareScreen() {
               side
             )}
             {renderMetricRow(
-              'Live Verified Guests',
+              'Critics / Other Reviews',
+              oddsA?.critic100,
+              oddsB?.critic100,
+              oddsA ? formatCriticSlot(oddsA).full : 'None listed',
+              oddsB ? formatCriticSlot(oddsB).full : 'None listed',
+              side
+            )}
+            {renderMetricRow(
+              'Verified Guests',
               oddsA?.guest100,
               oddsB?.guest100,
               oddsA?.verifiedGuest
@@ -376,14 +384,6 @@ export default function CompareScreen() {
               oddsB?.verifiedGuest
                 ? `${oddsB.verifiedGuest.rating.toFixed(1)} / ${oddsB.verifiedGuest.scale}`
                 : 'Live Google',
-              side
-            )}
-            {renderMetricRow(
-              'Sourced Critics',
-              oddsA?.critic100,
-              oddsB?.critic100,
-              oddsA?.critic100 != null ? `${oddsA.critic100} / 100` : '0 linked',
-              oddsB?.critic100 != null ? `${oddsB.critic100} / 100` : '0 linked',
               side
             )}
             {renderMetricRow(

@@ -158,12 +158,66 @@ export function buildFactualVsVerdict(
   };
 }
 
+function shortCriticSource(name = ''): string {
+  const s = name.trim();
+  if (!s) return '';
+  if (/flip-flop/i.test(s)) return 'Flip-Flop';
+  if (/walker/i.test(s)) return 'Walker Index';
+  if (/nonstop\s*dan/i.test(s)) return 'Nonstop Dan';
+  if (/telegraph/i.test(s)) return 'Telegraph';
+  if (/fat\s*voyage/i.test(s)) return 'Fat Voyage';
+  if (/forbes/i.test(s)) return 'Forbes';
+  return s.length > 14 ? `${s.slice(0, 13)}…` : s;
+}
+
+export function formatCriticSlot(odds: StayOddsResult): { compact: string; sub: string; full: string } {
+  const scored = (odds.editorialRatings || []).filter(
+    (e) => typeof e.normalized100 === 'number' && e.normalized100 > 0
+  );
+  const unverified = odds.unverifiedEditorial || [];
+  if (odds.critic100 != null) {
+    if (scored.length === 1) {
+      const src = scored[0].sourceName || '';
+      return {
+        compact: `${odds.critic100}/100`,
+        sub: shortCriticSource(src) || 'Verified',
+        full: `${scored[0].rawScore || `${odds.critic100}/100`}${src ? ` (${src})` : ''}`,
+      };
+    }
+    if (scored.length > 1) {
+      return {
+        compact: `${odds.critic100}/100`,
+        sub: `${scored.length} critics`,
+        full: `${odds.critic100}/100 (${scored.length} verified critics)`,
+      };
+    }
+    return { compact: `${odds.critic100}/100`, sub: 'Verified', full: `${odds.critic100}/100` };
+  }
+  if (unverified.length > 0) {
+    const src = unverified[0].sourceName || '';
+    return {
+      compact: 'Unverified',
+      sub: shortCriticSource(src) || 'Score unverified',
+      full: `Score awarded — unverified${src ? ` (${src})` : ''}`,
+    };
+  }
+  const qualCount = (odds.editorialRatings?.length || 0) + (odds.youtubeReviews?.length || 0);
+  if (qualCount > 0) {
+    return {
+      compact: 'Review Only',
+      sub: `${qualCount} linked`,
+      full: `${qualCount} verified review${qualCount > 1 ? 's' : ''} (no numeric score)`,
+    };
+  }
+  return { compact: '—', sub: 'None listed', full: 'None listed' };
+}
+
 export function buildVsDeepLink(hotelA: Hotel, hotelB: Hotel): string {
-  return `https://live.uncharteditinerary.com/compare/?a=${encodeURIComponent(hotelA.id)}&b=${encodeURIComponent(hotelB.id)}`;
+  return `https://uncharteditinerary.com/compare/?a=${encodeURIComponent(hotelA.id)}&b=${encodeURIComponent(hotelB.id)}`;
 }
 
 export function buildSingleDeepLink(hotel: Hotel): string {
-  return `https://live.uncharteditinerary.com/stayodds/${encodeURIComponent(hotel.id)}/`;
+  return `https://uncharteditinerary.com/stayodds/${encodeURIComponent(hotel.id)}/`;
 }
 
 export function buildRedditMarkdownVs(
@@ -188,6 +242,7 @@ export function buildRedditMarkdownVs(
     o.verifiedGuest ? `${o.verifiedGuest.rating.toFixed(1)}/${o.verifiedGuest.scale}` : 'Live on page';
   const myStr = (o: StayOddsResult) =>
     o.personalScoreLabel || (o.visited ? 'Filmed (Unscored)' : 'Not Visited');
+  const criticStr = (o: StayOddsResult) => formatCriticSlot(o).full;
   const oddsStr = (o: StayOddsResult) => (o.greatStayOdds != null ? `**${o.greatStayOdds}%**` : 'Open Breakdown');
   const url = buildVsDeepLink(hotelA, hotelB);
 
@@ -201,7 +256,8 @@ export function buildRedditMarkdownVs(
     `| **Location** | ${hotelA.location}, ${hotelA.country} | ${hotelB.location}, ${hotelB.country} |`,
     `| **StayOdds %** | ${oddsStr(oddsA)} | ${oddsStr(oddsB)} |`,
     `| **Consensus Badge** | ${oddsA.statusBadge} | ${oddsB.statusBadge} |`,
-    `| **My First-Hand Score** | ${myStr(oddsA)} | ${myStr(oddsB)} |`,
+    `| **My Stay** | ${myStr(oddsA)} | ${myStr(oddsB)} |`,
+    `| **Critics / Other Reviews** | ${criticStr(oddsA)} | ${criticStr(oddsB)} |`,
     `| **Verified Guests** | ${guestStr(oddsA)} | ${guestStr(oddsB)} |`,
     `| **Opinion Gap** | ${oddsA.opinionGap.deltaLabel} | ${oddsB.opinionGap.deltaLabel} |`,
     `| **Status & Works** | ${stA.hasDetails ? `${stA.operatingStatus}: ${stA.shortSummary}` : 'No confirmed works listed'} | ${stB.hasDetails ? `${stB.operatingStatus}: ${stB.shortSummary}` : 'No confirmed works listed'} |`,
@@ -223,7 +279,8 @@ export function buildRedditMarkdownSingle(hotel: Hotel, odds: StayOddsResult): s
     `| :--- | :--- |`,
     `| **StayOdds %** | ${odds.greatStayOdds != null ? `**${odds.greatStayOdds}%**` : 'Open Breakdown'} |`,
     `| **Status Badge** | ${odds.statusBadge} (${odds.tierLabel}) |`,
-    `| **My First-Hand Stay** | ${odds.personalScoreLabel || (odds.visited ? 'Filmed (Unscored)' : 'Not Visited')} |`,
+    `| **My Stay** | ${odds.personalScoreLabel || (odds.visited ? 'Filmed (Unscored)' : 'Not Visited')} |`,
+    `| **Critics / Other Reviews** | ${formatCriticSlot(odds).full} |`,
     `| **Verified Guests** | ${odds.verifiedGuest ? `${odds.verifiedGuest.rating.toFixed(1)}/${odds.verifiedGuest.scale}` : 'Live Google on page'} |`,
     `| **Opinion Gap** | ${odds.opinionGap.deltaLabel} — ${odds.opinionGap.headline} |`,
     `| **Property Status & Works** | ${st.hasDetails ? `${st.operatingStatus}: ${st.shortSummary}` : 'No confirmed renovations, closures, or nearby works listed'} |`,

@@ -50,8 +50,8 @@
       "appStoreTitle": "StayOdds: Hotel Score Compare",
       "appStoreSubtitle": "Critics vs Real Guest Reviews",
       "foundingContributor": "The Uncharted Itinerary",
-      "apiBaseUrl": "https://live.uncharteditinerary.com",
-      "websiteUrl": "https://www.uncharteditinerary.com"
+      "apiBaseUrl": "https://uncharteditinerary.com",
+      "websiteUrl": "https://uncharteditinerary.com"
     }
   }
 }
