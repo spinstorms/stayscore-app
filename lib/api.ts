@@ -119,7 +119,7 @@ async function fetchLiveJson<T>(path: string): Promise<T> {
   return (await res.json()) as T;
 }
 
-const CACHE_TTL_MS = 60 * 60 * 1000; // 60 minutes
+const CACHE_TTL_MS = 12 * 60 * 60 * 1000; // 12 hours: data changes at most a few times a day; cached copy shows instantly
 
 interface CachedEnvelope {
   cachedAt: number;

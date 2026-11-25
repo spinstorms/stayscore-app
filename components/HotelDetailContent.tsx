@@ -104,7 +104,8 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
   useEffect(() => {
     let active = true;
     setLiveGoogle(null);
-    if (hotel.googlePlaceId) {
+    // Saved guest scores already include Google; only ask Google live when we have nothing saved
+    if (hotel.googlePlaceId && !hotel.verifiedGuest?.licensed) {
       fetchLiveGoogleRating(hotel.googlePlaceId).then((res) => {
         if (active && res) setLiveGoogle(res);
       });
@@ -112,7 +113,7 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
     return () => {
       active = false;
     };
-  }, [hotel.id, hotel.googlePlaceId]);
+  }, [hotel.id, hotel.googlePlaceId, hotel.verifiedGuest]);
 
   // Only feed live Google into scoring when status === 'ok' and rating is a real number
   const validLiveGoogle =
@@ -128,6 +129,18 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
   // If Nuitée licensed guest score exists, keep it in main calculation or merge live Google cleanly
   const o = computeStayOdds(hotel, !hotel.verifiedGuest?.licensed ? validLiveGoogle : null);
   const palette = getTonePalette(o.statusTone);
+  const gap = o.opinionGap;
+  const odds = o.greatStayOdds;
+  const band = odds == null ? 'Guest scores still coming in' : odds >= 90 ? 'A great stay' : odds >= 82 ? 'A very good stay' : odds >= 74 ? 'A good stay, with caveats' : 'Mixed reviews';
+  const who = o.firstHand ? 'we did' : 'critics do';
+  const verdict =
+    gap.delta100 == null
+      ? `${band}.`
+      : Math.abs(gap.delta100) <= 3
+      ? `${band}, and guests agree with ${o.firstHand ? 'us' : 'the critics'}.`
+      : gap.delta100 < 0
+      ? `${band}, and guests like it even more than ${who}.`
+      : `${band}, though guests rate it lower than ${who}.`;
   const videoUrl = getHotelVideoUrl(hotel);
   const s = hotel.scores;
   const propStatus = getPropertyStatusMeta(hotel);
@@ -164,214 +177,104 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
             {hotel.priceRange ? ` • ${hotel.priceRange}` : ''}
           </Text>
 
-          {/* Plain-English Quick Summary RIGHT AT THE TOP (before scores & detailed boxes) */}
-          <View
-            style={{
-              marginTop: 12,
-              padding: 14,
-              borderRadius: 14,
-              backgroundColor: '#F8FAFC',
-              borderWidth: 1.5,
-              borderColor: o.scoreTrack === 'verified' ? '#FDBA74' : '#CBD5E1',
-              gap: 7,
-            }}
-          >
-            <Text style={{ fontSize: 11, fontWeight: '800', color: Colors.accent, letterSpacing: 0.6 }}>
-              ✨ QUICK SUMMARY — THE BOTTOM LINE
-            </Text>
-            <Text style={{ fontSize: 13.5, color: '#0F172A', lineHeight: 20 }}>
-              {o.greatStayOdds != null ? (
-                <Text style={{ fontWeight: '800' }}>{o.greatStayOdds}% StayOdds</Text>
-              ) : (
-                <Text style={{ fontWeight: '800' }}>Live Google Consensus</Text>
-              )}
-              {o.scoreTrack === 'verified'
-                ? ` — Uncharted Verified from our filmed stay${o.personalScoreLabel ? ` (${o.personalScoreLabel})` : ''}`
-                : ` (${o.formulaSummary})`}
-              {o.officialAwards.length ? ` • ${o.officialAwards[0].label}` : ''}.
-            </Text>
-            {hotel.standout ? (
-              <Text style={{ fontSize: 13, color: '#0F766E', lineHeight: 19 }}>
-                <Text style={{ fontWeight: '700' }}>Why Guests Love It: </Text>
-                {hotel.standout}
-              </Text>
-            ) : hotel.verdict ? (
-              <Text style={{ fontSize: 13, color: '#334155', lineHeight: 19 }}>{hotel.verdict}</Text>
+          {/* Score story first (Nov 2026 redesign): StayOdds %, verdict, us-vs-guests gap, Check prices */}
+          <View style={styles.scoreCard}>
+            <View style={{ flexDirection: 'row', gap: 14, alignItems: 'center' }}>
+              <View style={[styles.ring, { borderColor: (o.greatStayOdds ?? 0) >= 82 ? Colors.accent : '#F59E0B' }]}>
+                <Text style={styles.ringBig}>{o.greatStayOdds != null ? `${o.greatStayOdds}%` : '—'}</Text>
+                <Text style={styles.ringSmall}>StayOdds</Text>
+              </View>
+              <Text style={styles.verdict}>{verdict}</Text>
+            </View>
+            {gap.left100 != null && gap.right100 != null ? (
+              <View style={styles.gapRow}>
+                <View style={[styles.gapTile, { backgroundColor: '#FFF7F2' }]}>
+                  <Text style={styles.gapBig}>{gap.left100}</Text>
+                  <Text style={styles.gapLbl}>{o.firstHand ? 'Our stay' : 'Critics'}</Text>
+                </View>
+                <View style={[styles.gapTile, { backgroundColor: '#F1F5F9' }]}>
+                  <Text style={styles.gapBig}>{gap.right100}</Text>
+                  <Text style={styles.gapLbl}>Guests</Text>
+                </View>
+                <View style={[styles.gapTile, { backgroundColor: '#FFF1E8' }]}>
+                  <Text style={[styles.gapBig, { color: '#C2410C' }]}>
+                    {gap.delta100 != null ? (gap.delta100 > 0 ? `+${gap.delta100}` : `${gap.delta100}`.replace('-', '−')) : '—'}
+                  </Text>
+                  <Text style={styles.gapLbl}>Gap</Text>
+                </View>
+              </View>
             ) : null}
-            <Text style={{ fontSize: 13, color: '#334155', lineHeight: 19 }}>
-              <Text style={{ fontWeight: '700', color: '#0F172A' }}>Best Weather: </Text>
-              {bestMonths.shortLabel} — {bestMonths.note}.
-            </Text>
-            {hotel.watchOut ? (
-              <Text style={{ fontSize: 13, color: '#B45309', lineHeight: 19 }}>
-                <Text style={{ fontWeight: '700' }}>Watch-Out: </Text>
-                {hotel.watchOut}
+            {o.verifiedGuest?.reviewCount ? (
+              <Text style={styles.gapNote}>
+                {o.verifiedGuest.reviewCount.toLocaleString()} guest reviews rate it {o.verifiedGuest.rating.toFixed(1)}/{o.verifiedGuest.scale}
+                {o.personalScoreLabel ? ` · our filmed stay ${o.personalScoreLabel}` : ''}.
               </Text>
+            ) : null}
+            {hotel.bookingUrl ? (
+              <Pressable style={styles.btnPrice} onPress={() => openExternalUrl(hotel.bookingUrl)}>
+                <Text style={styles.btnPriceText}>
+                  Check prices{hotel.priceRange ? ` · from ${hotel.priceRange.replace(/\s*\/\s*night/i, '')}` : ''} ↗
+                </Text>
+              </Pressable>
             ) : null}
           </View>
 
-          {/* Strictly Separated Rooms to Book Callout (never conflated with general property facts) */}
-          {roomTip ? (
-            <View
-              style={{
-                marginTop: 10,
-                padding: 12,
-                borderRadius: 12,
-                backgroundColor: '#FFF7ED',
-                borderWidth: 1,
-                borderColor: '#FED7AA',
-              }}
-            >
-              <Text style={{ fontSize: 11, fontWeight: '800', color: '#C2410C', letterSpacing: 0.4 }}>
-                🛏️ {roomTip.label.toUpperCase()}
-              </Text>
-              <Text style={{ fontSize: 12.5, color: '#431407', marginTop: 3, lineHeight: 18 }}>
-                {roomTip.text}
-              </Text>
+          {/* Even 2x2 facts: no empty gaps */}
+          <View style={styles.factGrid}>
+            {hotel.priceRange ? (
+              <View style={styles.factTile}>
+                <Text style={styles.factKicker}>PRICE</Text>
+                <Text style={styles.factValue}>From {hotel.priceRange}</Text>
+              </View>
+            ) : null}
+            <View style={styles.factTile}>
+              <Text style={styles.factKicker}>BEST MONTHS</Text>
+              <Text style={styles.factValue}>{bestMonths.shortLabel}</Text>
+              <Text style={styles.factNote} numberOfLines={2}>{bestMonths.note}</Text>
+            </View>
+            {roomTip ? (
+              <View style={styles.factTile}>
+                <Text style={styles.factKicker}>{roomTip.label.toUpperCase()}</Text>
+                <Text style={[styles.factValue, { fontSize: 13 }]} numberOfLines={3}>{roomTip.text}</Text>
+              </View>
+            ) : null}
+            <View style={styles.factTile}>
+              <Text style={styles.factKicker}>STATUS</Text>
+              <Text style={[styles.factValue, { fontSize: 13 }]}>{propStatus.badge}</Text>
+            </View>
+          </View>
+
+          {hotel.standout ? (
+            <View style={[styles.loveCard, { borderTopColor: '#16A34A' }]}>
+              <Text style={styles.loveTitle}>Why guests love it</Text>
+              <Text style={styles.loveText}>{hotel.standout}</Text>
+            </View>
+          ) : null}
+          {hotel.watchOut ? (
+            <View style={[styles.loveCard, { borderTopColor: '#F59E0B' }]}>
+              <Text style={styles.loveTitle}>Know before you book</Text>
+              <Text style={styles.loveText}>{hotel.watchOut}</Text>
             </View>
           ) : null}
 
           <View style={[styles.badgeRow, { marginTop: 12 }]}>
-            <View
-              style={[
-                styles.pill,
-                {
-                  backgroundColor: o.scoreTrack === 'verified' ? Colors.accentSoft : Colors.slateSoft,
-                  borderColor: o.scoreTrack === 'verified' ? Colors.accentBorder : Colors.slateBorder,
-                },
-              ]}
-            >
-              <Text style={[styles.pillText, { color: o.scoreTrack === 'verified' ? Colors.accent : Colors.slate }]}>
-                {o.scoreTrackLabel}
-              </Text>
-            </View>
-            {o.founderVsMarketLabel ? (
-              <View style={[styles.pill, { backgroundColor: '#FFF7ED', borderColor: '#FDBA74' }]}>
-                <Text style={[styles.pillText, { color: '#9A3412' }]}>{o.founderVsMarketLabel}</Text>
+            {partnerInfo.preferredProgram ? (
+              <View style={[styles.pill, { backgroundColor: '#FFF7ED', borderColor: '#FED7AA' }]}>
+                <Text style={[styles.pillText, { color: '#C2410C' }]}>✨ {partnerInfo.preferredProgram}</Text>
               </View>
-            ) : (
-              <View style={[styles.pill, { backgroundColor: palette.soft, borderColor: palette.border }]}>
-                <Text style={[styles.pillText, { color: palette.color }]}>{o.statusBadge}</Text>
+            ) : null}
+            {partnerInfo.pointsProgram ? (
+              <View style={[styles.pill, { backgroundColor: '#EEF2FF', borderColor: '#C7D2FE' }]}>
+                <Text style={[styles.pillText, { color: '#3730A3' }]}>★ {partnerInfo.pointsProgram}</Text>
               </View>
-            )}
+            ) : null}
             {guestProfile.badgeLabel ? (
               <View style={[styles.pill, { backgroundColor: '#F0F9FF', borderColor: '#BAE6FD' }]}>
                 <Text style={[styles.pillText, { color: '#0369A1' }]}>{guestProfile.badgeLabel}</Text>
               </View>
             ) : null}
-            {partnerInfo.preferredProgram ? (
-              <View style={[styles.pill, { backgroundColor: '#FFF7ED', borderColor: '#FED7AA' }]}>
-                <Text style={[styles.pillText, { color: '#C2410C' }]}>
-                  ✨ {partnerInfo.preferredProgram}
-                </Text>
-              </View>
-            ) : null}
-            {partnerInfo.pointsProgram ? (
-              <View style={[styles.pill, { backgroundColor: '#EEF2FF', borderColor: '#C7D2FE' }]}>
-                <Text style={[styles.pillText, { color: '#3730A3' }]}>
-                  ★ {partnerInfo.pointsProgram}
-                </Text>
-              </View>
-            ) : null}
-            {propStatus.tone === 'danger' || propStatus.tone === 'warn' ? (
-              <View
-                style={[
-                  styles.pill,
-                  propStatus.tone === 'danger'
-                    ? { backgroundColor: '#FEE2E2', borderColor: '#FCA5A5' }
-                    : { backgroundColor: '#FEF3C7', borderColor: '#FCD34D' },
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.pillText,
-                    { color: propStatus.tone === 'danger' ? '#991B1B' : '#92400E' },
-                  ]}
-                >
-                  {propStatus.badge}
-                </Text>
-              </View>
-            ) : null}
           </View>
 
-          {/* 4 Distinct, Non-Overlapping KPI Tiles */}
-          <View style={styles.kpiGrid}>
-            <View
-              style={[
-                styles.kpiTile,
-                o.scoreTrack === 'verified'
-                  ? { backgroundColor: '#0F172A', borderColor: Colors.accent, borderWidth: 1.5 }
-                  : { backgroundColor: '#F8FAFC', borderColor: '#0F766E', borderWidth: 1.5 },
-              ]}
-            >
-              <Text style={[styles.kpiBig, { color: o.scoreTrack === 'verified' ? '#FFFFFF' : '#0F172A' }]}>
-                {o.greatStayOdds != null ? `${o.greatStayOdds}%` : 'Live'}
-              </Text>
-              <Text style={[styles.kpiLabel, { color: o.scoreTrack === 'verified' ? '#FDBA74' : '#0F766E' }]}>
-                {o.scoreTrack === 'verified' ? '★ Uncharted Verified' : o.scoreTrackLabel}
-              </Text>
-            </View>
-            <View style={styles.kpiTile}>
-              <Text style={styles.kpiBig}>
-                {o.personalScoreLabel
-                  ? o.personalScoreLabel.replace(/ /g, '')
-                  : o.firstHand
-                  ? `${formatPersonalScore(hotel.overall)}/5`
-                  : o.visited
-                  ? hotel.coverageType === 'Short Tour'
-                    ? 'Short'
-                    : 'Filmed'
-                  : '—'}
-              </Text>
-              <Text style={styles.kpiLabel}>
-                {o.firstHand
-                  ? 'Uncharted Stay'
-                  : o.visited
-                  ? hotel.coverageType === 'Short Tour'
-                    ? 'Short Tour'
-                    : 'Full Video'
-                  : 'Uncharted Stay'}
-              </Text>
-            </View>
-            <View style={styles.kpiTile}>
-              <Text style={styles.kpiBig}>
-                {o.critic100 != null
-                  ? `${o.critic100}/100`
-                  : o.editorialRatings.length > 0
-                  ? `${o.editorialRatings.length} Rev`
-                  : '—'}
-              </Text>
-              <Text style={styles.kpiLabel}>
-                {o.critic100 != null
-                  ? 'Critics'
-                  : o.editorialRatings.length > 0
-                  ? 'Editorial'
-                  : 'Critics'}
-              </Text>
-            </View>
-            <View style={styles.kpiTile}>
-              <Text style={styles.kpiBig}>
-                {o.verifiedGuest
-                  ? o.verifiedGuest.scale === 5
-                    ? `${o.verifiedGuest.rating.toFixed(1)}★`
-                    : `${o.verifiedGuest.rating.toFixed(1)}/${o.verifiedGuest.scale}`
-                  : validLiveGoogle
-                  ? `${validLiveGoogle.rating.toFixed(1)}★`
-                  : '—'}
-              </Text>
-              <Text style={styles.kpiLabel}>
-                {o.verifiedGuest
-                  ? o.verifiedGuest.reviewCount
-                    ? `${o.verifiedGuest.sourceName} (${o.verifiedGuest.reviewCount.toLocaleString()})`
-                    : o.verifiedGuest.sourceName
-                  : validLiveGoogle
-                  ? validLiveGoogle.reviewCount
-                    ? `Google (${validLiveGoogle.reviewCount.toLocaleString()})`
-                    : 'Google Guests'
-                  : 'Guests'}
-              </Text>
-            </View>
-          </View>
           {(hotel.verifiedGuest?.licensed?.sources?.length || 0) > 1 ? (
             <Text style={styles.guestBreakdown}>
               Guest score from{' '}
@@ -465,17 +368,8 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
 
           {/* Primary Actions (Mobile-Compliant Booking Routing) */}
           <View style={styles.actionRow}>
-            {hotel.bookingUrl ? (
-              <Pressable
-                style={[styles.btnPrimary, { flex: 1 }]}
-                onPress={() => openExternalUrl(hotel.bookingUrl)}
-              >
-                <Ionicons name="bed-outline" size={16} color="#FFFFFF" />
-                <Text style={styles.btnPrimaryText}>Check Live Rates</Text>
-              </Pressable>
-            ) : null}
             {videoUrl ? (
-              <Pressable style={styles.btnDark} onPress={() => openExternalUrl(videoUrl)}>
+              <Pressable style={[styles.btnDark, { flex: 1 }]} onPress={() => openExternalUrl(videoUrl)}>
                 <Ionicons name="logo-youtube" size={16} color="#FFFFFF" />
                 <Text style={styles.btnDarkText}>
                   {hotel.coverageType === 'Short Tour' ? 'Watch Short' : 'Watch Review'}
@@ -1120,6 +1014,26 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
 }
 
 const styles = StyleSheet.create({
+  scoreCard: { marginTop: 14, padding: 16, borderRadius: 18, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E7E2DA', gap: 12 },
+  ring: { width: 84, height: 84, borderRadius: 42, borderWidth: 7, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF' },
+  ringBig: { fontSize: 21, fontWeight: '800', color: '#0F172A' },
+  ringSmall: { fontSize: 9.5, color: '#64748B', marginTop: 1 },
+  verdict: { flex: 1, fontSize: 15.5, fontWeight: '700', lineHeight: 21, color: '#0F172A' },
+  gapRow: { flexDirection: 'row', gap: 8 },
+  gapTile: { flex: 1, borderRadius: 12, paddingVertical: 10, alignItems: 'center' },
+  gapBig: { fontSize: 18, fontWeight: '800', color: '#0F172A' },
+  gapLbl: { fontSize: 11, color: '#64748B', marginTop: 2 },
+  gapNote: { fontSize: 12.5, color: '#475569', lineHeight: 18 },
+  btnPrice: { backgroundColor: '#16A34A', borderRadius: 12, minHeight: 46, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 },
+  btnPriceText: { color: '#FFFFFF', fontWeight: '700', fontSize: 15 },
+  factGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 12 },
+  factTile: { flexBasis: '47%', flexGrow: 1, backgroundColor: '#FFFFFF', borderRadius: 16, borderWidth: 1, borderColor: '#E7E2DA', padding: 12 },
+  factKicker: { fontSize: 10.5, fontWeight: '700', letterSpacing: 0.8, color: '#64748B' },
+  factValue: { fontSize: 15, fontWeight: '700', color: '#0F172A', marginTop: 4 },
+  factNote: { fontSize: 11.5, color: '#64748B', marginTop: 2 },
+  loveCard: { marginTop: 10, backgroundColor: '#FFFFFF', borderRadius: 16, borderWidth: 1, borderColor: '#E7E2DA', borderTopWidth: 4, padding: 14 },
+  loveTitle: { fontSize: 14, fontWeight: '700', color: '#0F172A' },
+  loveText: { fontSize: 13, lineHeight: 19, color: '#334155', marginTop: 4 },
   rankBox: { marginTop: 14, padding: 14, borderRadius: 14, borderWidth: 1, borderColor: '#E3E8EF', backgroundColor: '#FFFBF8' },
   rankHeading: { fontSize: 16, fontWeight: '800', color: Colors.accent },
   rankSub: { fontSize: 12, color: '#64748B', marginTop: 4, lineHeight: 17 },

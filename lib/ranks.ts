@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LIVE_BASE_URL } from './api';
 
 /** Guest ranks and better-rated alternatives, computed by the website build (data/guest-ranks.json). */
@@ -32,22 +33,43 @@ interface RanksPayload {
 
 let cache: RanksPayload | null = null;
 let inFlight: Promise<RanksPayload | null> | null = null;
+const STORE_KEY = 'stayodds_guest_ranks_v1';
+const MAX_AGE_MS = 12 * 60 * 60 * 1000; // refresh from the website at most twice a day
 
-export async function loadGuestRanks(): Promise<RanksPayload | null> {
-  if (cache) return cache;
+function fetchFresh(): Promise<RanksPayload | null> {
   if (!inFlight) {
     inFlight = fetch(`${LIVE_BASE_URL}/data/guest-ranks.json`, { headers: { Accept: 'application/json' } })
       .then((r) => (r.ok ? (r.json() as Promise<RanksPayload>) : null))
       .then((d) => {
-        cache = d;
-        return d;
+        if (d) {
+          cache = d;
+          AsyncStorage.setItem(STORE_KEY, JSON.stringify({ savedAt: Date.now(), data: d })).catch(() => {});
+        }
+        return d || cache;
       })
-      .catch(() => null)
+      .catch(() => cache)
       .finally(() => {
         inFlight = null;
       });
   }
   return inFlight;
+}
+
+/** Saved copy on the phone first (instant, works offline); download again only when it is over 12 hours old. */
+export async function loadGuestRanks(): Promise<RanksPayload | null> {
+  if (cache) return cache;
+  try {
+    const raw = await AsyncStorage.getItem(STORE_KEY);
+    if (raw) {
+      const saved = JSON.parse(raw) as { savedAt: number; data: RanksPayload };
+      cache = saved.data;
+      if (Date.now() - saved.savedAt > MAX_AGE_MS) fetchFresh();
+      return cache;
+    }
+  } catch {
+    // no saved copy; fall through
+  }
+  return fetchFresh();
 }
 
 export function ordinal(n: number): string {
