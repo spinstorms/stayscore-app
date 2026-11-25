@@ -7,6 +7,9 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: write
+
 jobs:
   mockups:
     runs-on: ubuntu-24.04
@@ -35,3 +38,10 @@ jobs:
         with:
           name: stayodds-app-mockups
           path: mockups/
+      - name: Publish mock-ups to the "mockups" branch (viewable on GitHub)
+        run: |
+          cd mockups
+          git init -q -b mockups
+          git config user.name "stayodds-bot"; git config user.email "bot@stayodds.com"
+          git add -A && git commit -qm "Mock-ups for ${GITHUB_SHA::7}"
+          git push -qf "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git" mockups
