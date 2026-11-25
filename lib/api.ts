@@ -6,7 +6,7 @@ import { PLACEHOLDER_IDS } from './placeholders';
 import type { AffiliateDeal, Hotel, VideoItem } from './types';
 
 export const LIVE_BASE_URL = BRAND.liveApiBaseUrl;
-const CACHE_KEY = 'stayodds_supabase_cache_v22';
+const CACHE_KEY = 'stayodds_supabase_cache_v23';
 
 function resolveHotelThumbnail(id: string, rawHero?: string | null): string {
   const hero = String(rawHero || '').trim();
@@ -39,10 +39,11 @@ function combineGuestScores(rows?: Record<string, any>[] | null): Hotel['verifie
   if (!rows || !rows.length) return null;
   const parts = rows.map((r) => {
     const isTa = r.partner_source === 'tripadvisor';
+    const isGoogle = r.partner_source === 'google';
     return {
-      name: isTa ? 'Tripadvisor' : 'Verified booking guests',
+      name: isTa ? 'Tripadvisor' : isGoogle ? 'Google' : 'Verified booking guests',
       rating: Number(r.rating),
-      scale: Number(r.scale || (isTa ? 5 : 10)),
+      scale: Number(r.scale || (isTa || isGoogle ? 5 : 10)),
       normalized100: Number(r.normalized_100),
       reviewCount: r.review_count != null ? Number(r.review_count) : null,
       verifiedAt: r.verified_at as string | undefined,
