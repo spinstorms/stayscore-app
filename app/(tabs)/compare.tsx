@@ -29,6 +29,7 @@ import {
 import { formatPersonalScore, useAdaptiveLayout } from '../../lib/layout';
 import { formatCriticSlot, getPropertyStatusMeta } from '../../lib/propertyStatus';
 import { computeStayOdds, getTonePalette, getTripAdvisorUrl, isVisitedProperty } from '../../lib/scoring';
+import { buildStayOddsPick } from '../../lib/pick';
 import { useStayOdds } from '../../lib/store';
 import { Colors } from '../../lib/theme';
 import type { Hotel } from '../../lib/types';
@@ -107,6 +108,15 @@ export default function CompareScreen() {
   const oddsA = useMemo(() => (hotelA ? computeStayOdds(hotelA) : null), [hotelA]);
   const oddsB = useMemo(() => (hotelB ? computeStayOdds(hotelB) : null), [hotelB]);
   const oddsC = useMemo(() => (hotelC ? computeStayOdds(hotelC) : null), [hotelC]);
+  const pick = useMemo(() => {
+    if (!hotelA || !hotelB || !oddsA || !oddsB) return null;
+    const entries = [
+      { hotel: hotelA, odds: oddsA },
+      { hotel: hotelB, odds: oddsB },
+    ];
+    if (hotelC && oddsC) entries.push({ hotel: hotelC, odds: oddsC });
+    return buildStayOddsPick(entries);
+  }, [hotelA, hotelB, hotelC, oddsA, oddsB, oddsC]);
 
   const inlineMatchesA = useMemo(() => {
     if (!inlineSearchA.trim()) return [];
@@ -778,6 +788,24 @@ export default function CompareScreen() {
           </View>
         </View>
 
+        {pick ? (
+          <View style={[styles.pickBox, { marginHorizontal: horizontalPadding }]}>
+            <Text style={styles.pickEyebrow}>WHICH SHOULD YOU CHOOSE?</Text>
+            <Text style={styles.pickTitle}>{pick.title}</Text>
+            {pick.why.map((t) => (
+              <Text key={t} style={styles.pickLine}>
+                • {t}
+              </Text>
+            ))}
+            {pick.consider.map((t) => (
+              <Text key={t} style={[styles.pickLine, styles.pickConsider]}>
+                • {t}
+              </Text>
+            ))}
+            <Text style={styles.pickFoot}>Worked out from the scores, review counts and awards below. Nothing is estimated.</Text>
+          </View>
+        ) : null}
+
         {hotelA && hotelB && oddsA && oddsB ? (
           <View
             style={[
@@ -911,6 +939,12 @@ export default function CompareScreen() {
 }
 
 const styles = StyleSheet.create({
+  pickBox: { marginTop: 4, marginBottom: 14, padding: 16, borderRadius: 16, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E2E8F0', borderTopWidth: 4, borderTopColor: '#FF5D22' },
+  pickEyebrow: { fontSize: 11.5, fontWeight: '800', letterSpacing: 0.6, color: '#FF5D22', marginBottom: 4 },
+  pickTitle: { fontSize: 18, fontWeight: '900', color: '#0F172A', marginBottom: 8 },
+  pickLine: { fontSize: 13.5, lineHeight: 20, color: '#334155', marginBottom: 4 },
+  pickConsider: { color: '#64748B' },
+  pickFoot: { fontSize: 11.5, color: '#94A3B8', marginTop: 6 },
   screen: { flex: 1, backgroundColor: Colors.bgCanvas },
   arenaHeader: {
     backgroundColor: Colors.charcoal,
