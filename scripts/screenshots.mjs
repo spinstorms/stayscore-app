@@ -27,9 +27,13 @@ for (const [label, device] of targets) {
   for (const [name, path] of screens) {
     const page = await ctx.newPage();
     page.on('pageerror', (e) => errors.push(`${label} ${path}: ${e.message}`));
+    page.on('console', (m) => { if (['error', 'warning'].includes(m.type())) errors.push(`${label} ${path} console.${m.type()}: ${m.text().slice(0, 300)}`); });
+    page.on('requestfailed', (r) => errors.push(`${label} ${path} request failed: ${r.url().slice(0, 160)} ${r.failure()?.errorText}`));
+    page.on('response', (r) => { if (r.status() >= 400) errors.push(`${label} ${path} HTTP ${r.status()}: ${r.url().slice(0, 160)}`); });
     await page.goto(BASE + path, { waitUntil: 'networkidle', timeout: 60000 }).catch(() => {});
     await page.waitForTimeout(6000); // live data loads from the StayOdds database
     await page.screenshot({ path: `mockups/${label}__${name}.png` });
+    if (label === 'iphone-15-pro' && name === '01-explore') fs.writeFileSync('mockups/explore.html', await page.content());
     await page.close();
   }
   await ctx.close();
