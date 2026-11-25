@@ -243,10 +243,10 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
             ) : null}
             {extras?.water ? (
               <View style={styles.soFactTile}>
-                <Text style={styles.factKicker}>WATER IN THE ROOM</Text>
+                <Text style={styles.factKicker}>DRINKING WATER</Text>
                 <Text style={[styles.soFactValue, { fontSize: 13 }]}>
                   {extras.water.paid && !extras.water.free
-                    ? 'Guests report paying'
+                    ? "Guests say it isn't free"
                     : extras.water.free && !extras.water.paid
                     ? 'Guests report it free'
                     : 'Mixed reports'}
