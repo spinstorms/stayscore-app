@@ -26,7 +26,12 @@ jobs:
       - name: Expo config and dependency check
         run: npx expo-doctor || true
       - name: Build web version
-        run: npx expo export --platform web --output-dir dist
+        env:
+          EXPO_WEB_OUTPUT: single
+        run: |
+          npx expo export --platform web --output-dir dist
+          ls dist | head -20
+          grep -o '<script[^>]*>' dist/index.html | head -5
       - name: Screenshots
         run: |
           npm i --no-save playwright@1.57.0 serve@14.2.4
