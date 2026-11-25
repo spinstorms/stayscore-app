@@ -187,7 +187,7 @@ export function getVerifiedGuestScore(
   if (vg.licensed && typeof vg.licensed.normalized100 === 'number' && vg.licensed.normalized100 > 0) {
     const rc = typeof vg.licensed.reviewCount === 'number' ? vg.licensed.reviewCount : null;
     return {
-      sourceName: vg.licensed.sourceName || 'Verified Guests',
+      sourceName: vg.licensed.sourceName || 'Guest Reviews',
       rating: vg.licensed.rating ?? Number((vg.licensed.normalized100 / 10).toFixed(1)),
       scale: vg.licensed.scale || 10,
       reviewCount: rc,
@@ -316,12 +316,12 @@ export function computeStayOdds(
     overallIndex = marketOdds;
     if (critic100 != null && guest100 != null) {
       weights = { firstHand: 0, market: 100, critics: 35, guests: 65 };
-      formulaSummary = 'Based on 2 sources: Critics (35%) + Verified Guests (65%)';
+      formulaSummary = 'Based on 2 sources: Critics (35%) + Guest Reviews (65%)';
     } else if (guest100 != null) {
       weights = { firstHand: 0, market: 100, critics: 0, guests: 100 };
       statusBadge = '1 Data Source';
       statusTone = 'teal';
-      const gName = verifiedGuest?.sourceName || 'Verified Guests';
+      const gName = verifiedGuest?.sourceName || 'Guest Reviews';
       formulaSummary = `Based on 1 source (${gName})`;
     } else if (critic100 != null) {
       weights = { firstHand: 0, market: 100, critics: 100, guests: 0 };

@@ -61,7 +61,16 @@ export interface VerifiedGuestSource {
     reviewCount?: number | null;
     normalized100: number;
     attribution?: string;
-    verifiedAt?: string;
+    verifiedAt?: string | null;
+    /** each real guest rating behind the combined score (booking guests /10, Tripadvisor /5) */
+    sources?: {
+      name: string;
+      rating: number;
+      scale: number;
+      normalized100: number;
+      reviewCount?: number | null;
+      verifiedAt?: string;
+    }[];
   } | null;
 }
 

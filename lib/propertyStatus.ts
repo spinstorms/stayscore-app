@@ -129,7 +129,7 @@ export function buildFactualVsVerdict(
     const reasons: string[] = [];
     if (winO.firstHand && winO.personalScoreLabel) reasons.push(`My Stay ${winO.personalScoreLabel}`);
     if (winO.verifiedGuest) {
-      reasons.push(`Verified Guests ${winO.verifiedGuest.rating.toFixed(1)}/${winO.verifiedGuest.scale}`);
+      reasons.push(`Guest Reviews ${winO.verifiedGuest.rating.toFixed(1)}/${winO.verifiedGuest.scale}`);
     }
     if (winO.statusBadge) reasons.push(winO.statusBadge);
     return {
@@ -258,7 +258,7 @@ export function buildRedditMarkdownVs(
     `| **Consensus Badge** | ${oddsA.statusBadge} | ${oddsB.statusBadge} |`,
     `| **My Stay** | ${myStr(oddsA)} | ${myStr(oddsB)} |`,
     `| **Critics / Other Reviews** | ${criticStr(oddsA)} | ${criticStr(oddsB)} |`,
-    `| **Verified Guests** | ${guestStr(oddsA)} | ${guestStr(oddsB)} |`,
+    `| **Guest Reviews** | ${guestStr(oddsA)} | ${guestStr(oddsB)} |`,
     `| **Opinion Gap** | ${oddsA.opinionGap.deltaLabel} | ${oddsB.opinionGap.deltaLabel} |`,
     `| **Status & Works** | ${stA.hasDetails ? `${stA.operatingStatus}: ${stA.shortSummary}` : 'No confirmed works listed'} | ${stB.hasDetails ? `${stB.operatingStatus}: ${stB.shortSummary}` : 'No confirmed works listed'} |`,
     `| **Verified Key Facts** | ${factsA.replace(/\|/g, '/')} | ${factsB.replace(/\|/g, '/')} |`,
@@ -281,7 +281,7 @@ export function buildRedditMarkdownSingle(hotel: Hotel, odds: StayOddsResult): s
     `| **Status Badge** | ${odds.statusBadge} (${odds.tierLabel}) |`,
     `| **My Stay** | ${odds.personalScoreLabel || (odds.visited ? 'Filmed (Unscored)' : 'Not Visited')} |`,
     `| **Critics / Other Reviews** | ${formatCriticSlot(odds).full} |`,
-    `| **Verified Guests** | ${odds.verifiedGuest ? `${odds.verifiedGuest.rating.toFixed(1)}/${odds.verifiedGuest.scale}` : 'Live Google on page'} |`,
+    `| **Guest Reviews** | ${odds.verifiedGuest ? `${odds.verifiedGuest.rating.toFixed(1)}/${odds.verifiedGuest.scale}` : 'Live Google on page'} |`,
     `| **Opinion Gap** | ${odds.opinionGap.deltaLabel} — ${odds.opinionGap.headline} |`,
     `| **Property Status & Works** | ${st.hasDetails ? `${st.operatingStatus}: ${st.shortSummary}` : 'No confirmed renovations, closures, or nearby works listed'} |`,
   ];

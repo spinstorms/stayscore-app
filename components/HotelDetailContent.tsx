@@ -335,6 +335,18 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
               </Text>
             </View>
           </View>
+          {(hotel.verifiedGuest?.licensed?.sources?.length || 0) > 1 ? (
+            <Text style={styles.guestBreakdown}>
+              Guest score from{' '}
+              {hotel.verifiedGuest!.licensed!.sources!
+                .map(
+                  (p) =>
+                    `${p.name} ${p.rating}/${p.scale}${p.reviewCount ? ` (${p.reviewCount.toLocaleString()})` : ''}`,
+                )
+                .join(' · ')}
+              , combined by number of reviews
+            </Text>
+          ) : null}
 
           {/* Collapsible How StayOdds % Is Calculated Explainer */}
           <View style={styles.explainerBox}>
@@ -1033,6 +1045,7 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
 }
 
 const styles = StyleSheet.create({
+  guestBreakdown: { fontSize: 11.5, color: '#64748B', marginTop: 6, marginBottom: 4, lineHeight: 16 },
   scroll: { flex: 1, backgroundColor: Colors.bgCanvas },
   content: { padding: 14, gap: 14, paddingBottom: 40 },
   contentSidePane: { paddingTop: 14 },

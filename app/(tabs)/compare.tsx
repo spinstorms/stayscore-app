@@ -504,7 +504,7 @@ export default function CompareScreen() {
               oddsC ? formatCriticSlot(oddsC).full : 'None listed'
             )}
             {renderMetricRow(
-              'Verified Guests',
+              'Guest Reviews',
               oddsA?.guest100,
               oddsB?.guest100,
               oddsA?.verifiedGuest

@@ -6,7 +6,7 @@ import { PLACEHOLDER_IDS } from './placeholders';
 import type { AffiliateDeal, Hotel, VideoItem } from './types';
 
 export const LIVE_BASE_URL = BRAND.liveApiBaseUrl;
-const CACHE_KEY = 'stayodds_supabase_cache_v21';
+const CACHE_KEY = 'stayodds_supabase_cache_v22';
 
 function resolveHotelThumbnail(id: string, rawHero?: string | null): string {
   const hero = String(rawHero || '').trim();
@@ -32,6 +32,39 @@ function photoCreditFrom(src: unknown, thumb: string): { text: string; url: stri
   const [, lic = '', artist = '', page = ''] = src.split('|');
   const text = `Photo: ${artist.trim() || 'Wikimedia Commons'}${lic.trim() ? `, ${lic.trim()}` : ''} via Wikimedia Commons`;
   return { text, url: page.trim() };
+}
+
+/** One guest score from every real guest rating, weighted by review count (same rule as stayodds.com). */
+function combineGuestScores(rows?: Record<string, any>[] | null): Hotel['verifiedGuest'] {
+  if (!rows || !rows.length) return null;
+  const parts = rows.map((r) => {
+    const isTa = r.partner_source === 'tripadvisor';
+    return {
+      name: isTa ? 'Tripadvisor' : 'Verified booking guests',
+      rating: Number(r.rating),
+      scale: Number(r.scale || (isTa ? 5 : 10)),
+      normalized100: Number(r.normalized_100),
+      reviewCount: r.review_count != null ? Number(r.review_count) : null,
+      verifiedAt: r.verified_at as string | undefined,
+    };
+  });
+  const counts = parts.map((p) => p.reviewCount || 0);
+  const total = counts.reduce((a, b) => a + b, 0);
+  const n100 = total
+    ? Math.round(parts.reduce((a, p, i) => a + p.normalized100 * counts[i], 0) / total)
+    : Math.round(parts.reduce((a, p) => a + p.normalized100, 0) / parts.length);
+  return {
+    licensed: {
+      sourceName: parts.length > 1 ? 'Guest Reviews' : parts[0].name,
+      rating: Math.round(n100) / 10,
+      scale: 10,
+      normalized100: n100,
+      reviewCount: total || null,
+      attribution: parts.map((p) => p.name).join(' + '),
+      verifiedAt: parts.map((p) => p.verifiedAt || '').sort().pop() || null,
+      sources: parts,
+    },
+  } as Hotel['verifiedGuest'];
 }
 
 export interface StayOddsPayload {
@@ -185,14 +218,15 @@ async function fetchStayOddsDataFromNetwork(): Promise<StayOddsPayload> {
 
   const factMap = new Map(facts.map((r) => [String(r.property_id), r]));
   const fhMap = new Map(fhReviews.map((r) => [String(r.property_id), r]));
-  // A guest score needs at least 20 verified reviews; thinner ones are left off.
-  const guestMap = new Map(
-    licensedScores
-      .filter((r) =>
-        r.review_count != null ? Number(r.review_count) >= 20 : r.partner_source !== 'nuitee_connect',
-      )
-      .map((r) => [String(r.property_id), r]),
-  );
+  // A guest rating needs at least 20 reviews; thinner ones are left off. A hotel can have several
+  // (booking-platform guests out of 10, Tripadvisor out of 5): they are combined below, weighted by review count.
+  const guestMap = new Map<string, Record<string, any>[]>();
+  licensedScores
+    .filter((r) => (r.review_count != null ? Number(r.review_count) >= 20 : r.partner_source !== 'nuitee_connect'))
+    .forEach((r) => {
+      const k = String(r.property_id);
+      guestMap.set(k, [...(guestMap.get(k) || []), r]);
+    });
 
   const awardsMap = new Map<string, any[]>();
   awards.forEach((r) => {
@@ -319,19 +353,7 @@ async function fetchStayOddsDataFromNetwork(): Promise<StayOddsPayload> {
       bookingUrl: mobileBooking,
       bookingLinks: links,
       shorts: Array.isArray(fh?.shorts) ? fh.shorts : [],
-      verifiedGuest: gs
-        ? {
-            licensed: {
-              sourceName: 'Verified Guests',
-              rating: Number(gs.rating),
-              scale: Number(gs.scale || 10),
-              normalized100: Number(gs.normalized_100),
-              reviewCount: gs.review_count != null ? Number(gs.review_count) : null,
-              attribution: gs.attribution || 'Verified Guest Score',
-              verifiedAt: gs.verified_at,
-            },
-          }
-        : null,
+      verifiedGuest: combineGuestScores(gs),
       editorialRatings: edMap.get(id) || [],
       youtubeReviews: ytMap.get(id) || [],
       officialAwards: awardsMap.get(id) || [],
