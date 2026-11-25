@@ -1,0 +1,50 @@
+name: Build app (EAS) and optionally submit to the stores
+
+# One-time setup:
+#   1. Create a free Expo account at https://expo.dev and run `npx eas-cli init` once (adds the project id to app.json).
+#   2. Create an access token at https://expo.dev/settings/access-tokens and save it in this repo as the
+#      Actions secret EXPO_TOKEN (Settings > Secrets and variables > Actions).
+#   3. For store submission: Apple Developer Program and Google Play Console accounts, and their credentials
+#      uploaded to Expo (`npx eas-cli credentials`).
+#
+# "preview" makes installable test builds: an Android .apk link, and an iOS build for registered test iPhones.
+# "production" makes store builds; tick "submit" to send them to TestFlight / Google Play internal testing.
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: "Build profile"
+        type: choice
+        options: [preview, production]
+        default: preview
+      platform:
+        description: "Platform"
+        type: choice
+        options: [android, ios, all]
+        default: android
+      submit:
+        description: "Submit to TestFlight / Google Play (production only)"
+        type: boolean
+        default: false
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - name: Build
+        run: |
+          EXTRA=""
+          if [ "${{ inputs.profile }}" = "production" ] && [ "${{ inputs.submit }}" = "true" ]; then EXTRA="--auto-submit"; fi
+          eas build --profile ${{ inputs.profile }} --platform ${{ inputs.platform }} --non-interactive --no-wait $EXTRA
