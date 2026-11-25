@@ -184,7 +184,7 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
                 <Text style={styles.ringBig}>{o.greatStayOdds != null ? `${o.greatStayOdds}%` : '—'}</Text>
                 <Text style={styles.ringSmall}>StayOdds</Text>
               </View>
-              <Text style={styles.verdict}>{verdict}</Text>
+              <Text style={styles.soVerdict}>{verdict}</Text>
             </View>
             {gap.left100 != null && gap.right100 != null ? (
               <View style={styles.gapRow}>
@@ -222,25 +222,25 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
           {/* Even 2x2 facts: no empty gaps */}
           <View style={styles.factGrid}>
             {hotel.priceRange ? (
-              <View style={styles.factTile}>
+              <View style={styles.soFactTile}>
                 <Text style={styles.factKicker}>PRICE</Text>
-                <Text style={styles.factValue}>From {hotel.priceRange}</Text>
+                <Text style={styles.soFactValue}>From {hotel.priceRange}</Text>
               </View>
             ) : null}
-            <View style={styles.factTile}>
+            <View style={styles.soFactTile}>
               <Text style={styles.factKicker}>BEST MONTHS</Text>
-              <Text style={styles.factValue}>{bestMonths.shortLabel}</Text>
+              <Text style={styles.soFactValue}>{bestMonths.shortLabel}</Text>
               <Text style={styles.factNote} numberOfLines={2}>{bestMonths.note}</Text>
             </View>
             {roomTip ? (
-              <View style={styles.factTile}>
+              <View style={styles.soFactTile}>
                 <Text style={styles.factKicker}>{roomTip.label.toUpperCase()}</Text>
-                <Text style={[styles.factValue, { fontSize: 13 }]} numberOfLines={3}>{roomTip.text}</Text>
+                <Text style={[styles.soFactValue, { fontSize: 13 }]} numberOfLines={3}>{roomTip.text}</Text>
               </View>
             ) : null}
-            <View style={styles.factTile}>
+            <View style={styles.soFactTile}>
               <Text style={styles.factKicker}>STATUS</Text>
-              <Text style={[styles.factValue, { fontSize: 13 }]}>{propStatus.badge}</Text>
+              <Text style={[styles.soFactValue, { fontSize: 13 }]}>{propStatus.badge}</Text>
             </View>
           </View>
 
@@ -1018,7 +1018,7 @@ const styles = StyleSheet.create({
   ring: { width: 84, height: 84, borderRadius: 42, borderWidth: 7, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF' },
   ringBig: { fontSize: 21, fontWeight: '800', color: '#0F172A' },
   ringSmall: { fontSize: 9.5, color: '#64748B', marginTop: 1 },
-  verdict: { flex: 1, fontSize: 15.5, fontWeight: '700', lineHeight: 21, color: '#0F172A' },
+  soVerdict: { flex: 1, fontSize: 15.5, fontWeight: '700', lineHeight: 21, color: '#0F172A' },
   gapRow: { flexDirection: 'row', gap: 8 },
   gapTile: { flex: 1, borderRadius: 12, paddingVertical: 10, alignItems: 'center' },
   gapBig: { fontSize: 18, fontWeight: '800', color: '#0F172A' },
@@ -1027,9 +1027,9 @@ const styles = StyleSheet.create({
   btnPrice: { backgroundColor: '#16A34A', borderRadius: 12, minHeight: 46, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 },
   btnPriceText: { color: '#FFFFFF', fontWeight: '700', fontSize: 15 },
   factGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 12 },
-  factTile: { flexBasis: '47%', flexGrow: 1, backgroundColor: '#FFFFFF', borderRadius: 16, borderWidth: 1, borderColor: '#E7E2DA', padding: 12 },
+  soFactTile: { flexBasis: '47%', flexGrow: 1, backgroundColor: '#FFFFFF', borderRadius: 16, borderWidth: 1, borderColor: '#E7E2DA', padding: 12 },
   factKicker: { fontSize: 10.5, fontWeight: '700', letterSpacing: 0.8, color: '#64748B' },
-  factValue: { fontSize: 15, fontWeight: '700', color: '#0F172A', marginTop: 4 },
+  soFactValue: { fontSize: 15, fontWeight: '700', color: '#0F172A', marginTop: 4 },
   factNote: { fontSize: 11.5, color: '#64748B', marginTop: 2 },
   loveCard: { marginTop: 10, backgroundColor: '#FFFFFF', borderRadius: 16, borderWidth: 1, borderColor: '#E7E2DA', borderTopWidth: 4, padding: 14 },
   loveTitle: { fontSize: 14, fontWeight: '700', color: '#0F172A' },
