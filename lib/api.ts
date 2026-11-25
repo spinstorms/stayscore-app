@@ -5,7 +5,7 @@ import { BRAND } from './brand';
 import type { AffiliateDeal, Hotel, VideoItem } from './types';
 
 export const LIVE_BASE_URL = BRAND.liveApiBaseUrl;
-const CACHE_KEY = 'stayodds_supabase_cache_v18';
+const CACHE_KEY = 'stayodds_supabase_cache_v19';
 
 function resolveHotelThumbnail(id: string, rawHero?: string | null): string {
   const hero = String(rawHero || '').trim();
@@ -19,6 +19,13 @@ function resolveHotelThumbnail(id: string, rawHero?: string | null): string {
   }
   if (!isBlocked && hero.startsWith('assets/')) return `${LIVE_BASE_URL}/${hero}?v=169`;
   return `${LIVE_BASE_URL}/assets/placeholders/${id}.webp?v=169`;
+}
+
+function photoCreditFrom(src: unknown, thumb: string): { text: string; url: string } | null {
+  if (typeof src !== 'string' || !src.startsWith('wikimedia|') || !/^https?:/i.test(thumb)) return null;
+  const [, lic = '', artist = '', page = ''] = src.split('|');
+  const text = `Photo: ${artist.trim() || 'Wikimedia Commons'}${lic.trim() ? `, ${lic.trim()}` : ''} via Wikimedia Commons`;
+  return { text, url: page.trim() };
 }
 
 export interface StayOddsPayload {
@@ -263,6 +270,7 @@ async function fetchStayOddsDataFromNetwork(): Promise<StayOddsPayload> {
       tier: p.tier || 'global_directory',
       googlePlaceId: p.google_place_id || null,
       thumbnail: resolveHotelThumbnail(id, p.hero_image_url),
+      photoCredit: photoCreditFrom(p.image_license_source, resolveHotelThumbnail(id, p.hero_image_url)),
       scores: rated && fh
         ? {
             rooms: fh.rooms_score != null ? Number(fh.rooms_score) : null,

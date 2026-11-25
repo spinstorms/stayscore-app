@@ -476,6 +476,17 @@ export default function StayOddsHomeScreen() {
         ))}
       </View>
 
+      <Pressable
+        onPress={() => router.push('/awards')}
+        style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 14, marginBottom: 10, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 12, backgroundColor: 'rgba(255, 93, 34, 0.18)', borderWidth: 1, borderColor: Colors.accent }}
+      >
+        <Ionicons name="trophy-outline" size={16} color="#FFFFFF" />
+        <Text style={{ color: '#FFFFFF', fontWeight: '800', fontSize: 13.5, flex: 1 }}>
+          Award lists: World's 50 Best Top 100 • MICHELIN Keys
+        </Text>
+        <Ionicons name="chevron-forward" size={16} color="#FFFFFF" />
+      </Pressable>
+
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.regionRow}>
         {regions.map((r) => {
           const isActive = region === r;

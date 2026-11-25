@@ -110,6 +110,13 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
       {/* Hero Media & Summary */}
       <View style={styles.heroCard}>
         <Image source={{ uri: hotel.thumbnail }} style={styles.heroImage} />
+        {hotel.photoCredit ? (
+          <Pressable onPress={() => openExternalUrl(hotel.photoCredit!.url)}>
+            <Text style={{ fontSize: 11, color: Colors.inkMuted, paddingHorizontal: 14, paddingTop: 6 }}>
+              {hotel.photoCredit.text}
+            </Text>
+          </Pressable>
+        ) : null}
         <View style={styles.heroBody}>
           <Text style={styles.title}>{hotel.name}</Text>
           <Text style={styles.subtitle}>

@@ -99,6 +99,8 @@ export interface Hotel {
   tier?: 'first_hand_verified' | 'short_preview' | 'global_directory' | string;
   googlePlaceId?: string | null;
   thumbnail: string;
+  /** Credit line for openly licensed (Wikimedia Commons) photos. */
+  photoCredit?: { text: string; url: string } | null;
   scores: HotelScores | null;
   overall: number | null;
   verdict: string;

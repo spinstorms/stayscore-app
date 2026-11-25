@@ -1,0 +1,37 @@
+name: Check app and make screen mock-ups
+
+# Typechecks the app, builds the web version (same screens as iOS/Android via react-native-web)
+# and screenshots every screen at iPhone, Android and tablet sizes. Download them from the run's Artifacts.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  mockups:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - name: Typecheck
+        run: npx tsc --noEmit
+      - name: Expo config and dependency check
+        run: npx expo-doctor || true
+      - name: Build web version
+        run: npx expo export --platform web --output-dir dist
+      - name: Screenshots
+        run: |
+          npm i --no-save playwright@1.57.0 serve@14.2.4
+          npx playwright install --with-deps chromium
+          npx serve -s dist -l 8081 >/dev/null 2>&1 &
+          sleep 3
+          node scripts/screenshots.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: stayodds-app-mockups
+          path: mockups/

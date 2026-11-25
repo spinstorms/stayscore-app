@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -12,12 +12,14 @@ import {
   View,
 } from 'react-native';
 import { openExternalUrl } from '../../lib/api';
+import { AWARD_LISTS, matchesAwardList, type AwardListId } from '../../lib/awards';
 import { computeStayOdds, getTonePalette, isVisitedProperty } from '../../lib/scoring';
 import { useStayOdds } from '../../lib/store';
 import { Colors } from '../../lib/theme';
 import type { Hotel } from '../../lib/types';
 
-type MapScope = 'all' | 'visited' | 'saved';
+type MapScope = 'all' | 'visited' | 'saved' | AwardListId;
+const AWARD_SCOPES = AWARD_LISTS.map((l) => l.id) as string[];
 
 interface RegionViewport {
   id: string;
@@ -55,7 +57,11 @@ export default function WorldMapScreen() {
   const { hotels, shortlist, isShortlisted, toggleShortlist, pushToCompare, loading } = useStayOdds();
 
   const [viewportId, setViewportId] = useState<string>('world');
+  const params = useLocalSearchParams<{ scope?: string }>();
   const [scope, setScope] = useState<MapScope>('all');
+  React.useEffect(() => {
+    if (params.scope && AWARD_SCOPES.includes(String(params.scope))) setScope(params.scope as MapScope);
+  }, [params.scope]);
   const [selectedId, setSelectedId] = useState<string>('taaktana-labuan-bajo');
   const [canvasSize, setCanvasSize] = useState({ width: 340, height: 290 });
 
@@ -70,6 +76,7 @@ export default function WorldMapScreen() {
       if (typeof h.lat !== 'number' || typeof h.lng !== 'number') return false;
       if (scope === 'visited' && !isVisitedProperty(h)) return false;
       if (scope === 'saved' && !savedSet.has(h.id)) return false;
+      if (AWARD_SCOPES.includes(scope) && !matchesAwardList(h, scope as AwardListId)) return false;
       if (viewport.countryFilter && !viewport.countryFilter.includes(h.country)) return false;
       if (viewport.regionFilter && h.region !== viewport.regionFilter) return false;
       return true;
@@ -152,6 +159,20 @@ export default function WorldMapScreen() {
             <Text style={styles.webMapBtnText}>Street Map ↗</Text>
           </Pressable>
         </View>
+
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.regionStrip}>
+          {AWARD_LISTS.map((l) => (
+            <Pressable
+              key={l.id}
+              onPress={() => setScope(scope === l.id ? 'all' : l.id)}
+              style={[styles.scopeBtn, scope === l.id && styles.scopeBtnActive]}
+            >
+              <Text style={[styles.scopeText, scope === l.id && styles.scopeTextActive]}>
+                {l.id === 'w50' ? "World's 50 Best" : `MICHELIN ${l.short}`}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.regionStrip}>
           {REGION_VIEWPORTS.map((rv) => {
