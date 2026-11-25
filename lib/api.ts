@@ -2,10 +2,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as WebBrowser from 'expo-web-browser';
 import { Linking } from 'react-native';
 import { BRAND } from './brand';
+import { PLACEHOLDER_IDS } from './placeholders';
 import type { AffiliateDeal, Hotel, VideoItem } from './types';
 
 export const LIVE_BASE_URL = BRAND.liveApiBaseUrl;
-const CACHE_KEY = 'stayodds_supabase_cache_v19';
+const CACHE_KEY = 'stayodds_supabase_cache_v20';
 
 function resolveHotelThumbnail(id: string, rawHero?: string | null): string {
   const hero = String(rawHero || '').trim();
@@ -14,11 +15,16 @@ function resolveHotelThumbnail(id: string, rawHero?: string | null): string {
     hero.includes('www.fourseasons.com') ||
     hero.includes('www.lungarnocollection.com') ||
     hero.endsWith('/logo.jpg');
+  const ownPlaceholder = PLACEHOLDER_IDS.has(id)
+    ? `${LIVE_BASE_URL}/assets/placeholders/${id}.webp?v=169`
+    : `${LIVE_BASE_URL}/assets/placeholders/default-stayodds.webp?v=169`;
+  const missingPlaceholder = /\/assets\/placeholders\/([^/?]+)\.webp/.exec(hero);
+  if (missingPlaceholder && !PLACEHOLDER_IDS.has(missingPlaceholder[1])) return ownPlaceholder;
   if (!isBlocked && /^https?:\/\//i.test(hero)) {
     return hero.includes('uncharteditinerary.com/assets/') && !hero.includes('?') ? `${hero}?v=169` : hero;
   }
   if (!isBlocked && hero.startsWith('assets/')) return `${LIVE_BASE_URL}/${hero}?v=169`;
-  return `${LIVE_BASE_URL}/assets/placeholders/${id}.webp?v=169`;
+  return ownPlaceholder;
 }
 
 function photoCreditFrom(src: unknown, thumb: string): { text: string; url: string } | null {
