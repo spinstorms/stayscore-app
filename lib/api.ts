@@ -6,7 +6,7 @@ import { PLACEHOLDER_IDS } from './placeholders';
 import type { AffiliateDeal, Hotel, VideoItem } from './types';
 
 export const LIVE_BASE_URL = BRAND.liveApiBaseUrl;
-const CACHE_KEY = 'stayodds_supabase_cache_v20';
+const CACHE_KEY = 'stayodds_supabase_cache_v21';
 
 function resolveHotelThumbnail(id: string, rawHero?: string | null): string {
   const hero = String(rawHero || '').trim();
@@ -185,7 +185,14 @@ async function fetchStayOddsDataFromNetwork(): Promise<StayOddsPayload> {
 
   const factMap = new Map(facts.map((r) => [String(r.property_id), r]));
   const fhMap = new Map(fhReviews.map((r) => [String(r.property_id), r]));
-  const guestMap = new Map(licensedScores.map((r) => [String(r.property_id), r]));
+  // A guest score needs at least 20 verified reviews; thinner ones are left off.
+  const guestMap = new Map(
+    licensedScores
+      .filter((r) =>
+        r.review_count != null ? Number(r.review_count) >= 20 : r.partner_source !== 'nuitee_connect',
+      )
+      .map((r) => [String(r.property_id), r]),
+  );
 
   const awardsMap = new Map<string, any[]>();
   awards.forEach((r) => {
