@@ -12,6 +12,7 @@ import {
   getRoomTipInfo,
 } from '../lib/insights';
 import { formatPersonalScore } from '../lib/layout';
+import { Alternative, HotelRanks, loadGuestRanks, ordinal, RankEntry } from '../lib/ranks';
 import { getPropertyStatusMeta } from '../lib/propertyStatus';
 import { computeStayOdds, getTonePalette, getTripAdvisorUrl, isScoreUnverified } from '../lib/scoring';
 import { useStayOdds } from '../lib/store';
@@ -56,6 +57,26 @@ function ScoreBar({
   );
 }
 
+function RankScale({ title, r }: { title: string; r: RankEntry }) {
+  const pos = r.of <= 1 ? 0 : Math.round(((r.rank - 1) / (r.of - 1)) * 100);
+  return (
+    <View style={{ marginTop: 12 }}>
+      <Text style={styles.rankTitle}>
+        {title} <Text style={{ color: Colors.accent }}>{ordinal(r.rank)} of {r.of}</Text>
+      </Text>
+      <View style={styles.rankTrack}>
+        <View style={[styles.rankDot, { left: `${pos}%` }]} />
+      </View>
+      <View style={styles.rankFoot}>
+        <Text style={styles.rankFootText} numberOfLines={1}>
+          Top: {r.top} ({r.topScore})
+        </Text>
+        <Text style={styles.rankFootText}>Lowest: {r.low}</Text>
+      </View>
+    </View>
+  );
+}
+
 export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
   const router = useRouter();
   const { hotels, setCompareA, setCompareB, setCompareC, pushToCompare, toggleShortlist, isShortlisted } = useStayOdds();
@@ -63,6 +84,22 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
   const [showExplainer, setShowExplainer] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const saved = isShortlisted(hotel.id);
+  const [ranks, setRanks] = useState<HotelRanks | null>(null);
+  const [alts, setAlts] = useState<Alternative[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    setRanks(null);
+    setAlts([]);
+    loadGuestRanks().then((d) => {
+      if (!active || !d) return;
+      setRanks(d.ranks[hotel.id] || null);
+      setAlts((d.alternatives[hotel.id] || []).filter((a) => hotels.some((h) => h.id === a.id)));
+    });
+    return () => {
+      active = false;
+    };
+  }, [hotel.id, hotels]);
 
   useEffect(() => {
     let active = true;
@@ -346,6 +383,44 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
                 .join(' · ')}
               , combined by number of reviews
             </Text>
+          ) : null}
+
+          {ranks?.area ? (
+            <View style={styles.rankBox}>
+              <Text style={styles.rankHeading}>How guests rank it</Text>
+              <Text style={styles.rankSub}>
+                Against other StayOdds hotels nearby, and against hotels at a similar price. Left is the best-rated.
+              </Text>
+              <RankScale title={`In ${ranks.area.group}:`} r={ranks.area} />
+              {ranks.price ? (
+                <RankScale
+                  title={`At a similar price (${ranks.price.group} a night${ranks.price.where ? ` in ${ranks.price.where}` : ', worldwide'}):`}
+                  r={ranks.price}
+                />
+              ) : null}
+              {alts.length ? (
+                <View style={{ marginTop: 14 }}>
+                  <Text style={styles.rankTitle}>Guests rate these higher nearby</Text>
+                  {alts.map((a) => (
+                    <Pressable
+                      key={a.id}
+                      style={styles.altRow}
+                      onPress={() => router.push({ pathname: '/hotel/[id]', params: { id: a.id } })}
+                    >
+                      <Text style={styles.altName} numberOfLines={1}>
+                        {a.name}
+                      </Text>
+                      <Text style={styles.altMeta}>
+                        <Text style={{ color: Colors.accent, fontWeight: '700' }}>{a.g}</Text>/100 · {a.rc.toLocaleString()}
+                        {a.band ? ` · ${a.band}` : ''}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              ) : ranks.area.rank === 1 ? (
+                <Text style={[styles.rankTitle, { marginTop: 12 }]}>Guests' top-rated hotel in {ranks.area.group}.</Text>
+              ) : null}
+            </View>
           ) : null}
 
           {/* Collapsible How StayOdds % Is Calculated Explainer */}
@@ -1045,6 +1120,20 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
 }
 
 const styles = StyleSheet.create({
+  rankBox: { marginTop: 14, padding: 14, borderRadius: 14, borderWidth: 1, borderColor: '#E3E8EF', backgroundColor: '#FFFBF8' },
+  rankHeading: { fontSize: 16, fontWeight: '800', color: Colors.accent },
+  rankSub: { fontSize: 12, color: '#64748B', marginTop: 4, lineHeight: 17 },
+  rankTitle: { fontSize: 13, fontWeight: '700', color: '#0F172A' },
+  rankTrack: { height: 8, borderRadius: 99, backgroundColor: 'rgba(100,110,130,0.18)', marginTop: 10, marginBottom: 4 },
+  rankDot: {
+    position: 'absolute', top: -3, width: 14, height: 14, marginLeft: -7, borderRadius: 7,
+    backgroundColor: Colors.accent, borderWidth: 2, borderColor: '#FFFFFF',
+  },
+  rankFoot: { flexDirection: 'row', justifyContent: 'space-between', gap: 8 },
+  rankFootText: { fontSize: 11, color: '#64748B', flexShrink: 1 },
+  altRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 10, paddingVertical: 7, borderBottomWidth: 1, borderBottomColor: '#EEF1F5' },
+  altName: { fontSize: 13, fontWeight: '600', color: '#0F172A', flex: 1 },
+  altMeta: { fontSize: 12, color: '#475569' },
   guestBreakdown: { fontSize: 11.5, color: '#64748B', marginTop: 6, marginBottom: 4, lineHeight: 16 },
   scroll: { flex: 1, backgroundColor: Colors.bgCanvas },
   content: { padding: 14, gap: 14, paddingBottom: 40 },
