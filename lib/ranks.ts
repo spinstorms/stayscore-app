@@ -25,10 +25,16 @@ export interface Alternative {
   band: string;
 }
 
+export interface HotelExtras {
+  water?: { free: number; paid: number; latest: string; text: string; source: string };
+  dining?: { name: string; distinction: string; url: string }[];
+}
+
 interface RanksPayload {
   updatedAt: string;
   ranks: Record<string, HotelRanks>;
   alternatives: Record<string, Alternative[]>;
+  extras?: Record<string, HotelExtras>;
 }
 
 let cache: RanksPayload | null = null;

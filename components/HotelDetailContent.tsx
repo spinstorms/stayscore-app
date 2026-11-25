@@ -12,7 +12,7 @@ import {
   getRoomTipInfo,
 } from '../lib/insights';
 import { formatPersonalScore } from '../lib/layout';
-import { Alternative, HotelRanks, loadGuestRanks, ordinal, RankEntry } from '../lib/ranks';
+import { Alternative, HotelExtras, HotelRanks, loadGuestRanks, ordinal, RankEntry } from '../lib/ranks';
 import { getPropertyStatusMeta } from '../lib/propertyStatus';
 import { computeStayOdds, getTonePalette, getTripAdvisorUrl, isScoreUnverified } from '../lib/scoring';
 import { useStayOdds } from '../lib/store';
@@ -86,15 +86,18 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
   const saved = isShortlisted(hotel.id);
   const [ranks, setRanks] = useState<HotelRanks | null>(null);
   const [alts, setAlts] = useState<Alternative[]>([]);
+  const [extras, setExtras] = useState<HotelExtras | null>(null);
 
   useEffect(() => {
     let active = true;
     setRanks(null);
+    setExtras(null);
     setAlts([]);
     loadGuestRanks().then((d) => {
       if (!active || !d) return;
       setRanks(d.ranks[hotel.id] || null);
       setAlts((d.alternatives[hotel.id] || []).filter((a) => hotels.some((h) => h.id === a.id)));
+      setExtras((d.extras || {})[hotel.id] || null);
     });
     return () => {
       active = false;
@@ -237,6 +240,28 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
                 <Text style={styles.factKicker}>{roomTip.label.toUpperCase()}</Text>
                 <Text style={[styles.soFactValue, { fontSize: 13 }]} numberOfLines={3}>{roomTip.text}</Text>
               </View>
+            ) : null}
+            {extras?.water ? (
+              <View style={styles.soFactTile}>
+                <Text style={styles.factKicker}>WATER IN THE ROOM</Text>
+                <Text style={[styles.soFactValue, { fontSize: 13 }]}>
+                  {extras.water.paid && !extras.water.free
+                    ? 'Guests report paying'
+                    : extras.water.free && !extras.water.paid
+                    ? 'Guests report it free'
+                    : 'Mixed reports'}
+                </Text>
+                <Text style={styles.factNote} numberOfLines={3}>
+                  &ldquo;{extras.water.text}&rdquo; ({extras.water.source}, {extras.water.latest.slice(0, 7)})
+                </Text>
+              </View>
+            ) : null}
+            {extras?.dining?.length ? (
+              <Pressable style={styles.soFactTile} onPress={() => openExternalUrl(extras.dining![0].url)}>
+                <Text style={styles.factKicker}>DINE AT THE HOTEL</Text>
+                <Text style={[styles.soFactValue, { fontSize: 13 }]}>{extras.dining[0].name}</Text>
+                <Text style={styles.factNote}>{extras.dining[0].distinction} · MICHELIN Guide</Text>
+              </Pressable>
             ) : null}
             <View style={styles.soFactTile}>
               <Text style={styles.factKicker}>STATUS</Text>
