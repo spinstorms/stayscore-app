@@ -13,22 +13,22 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { HotelDetailContent } from '../../components/HotelDetailContent';
-import { RequestResortModal } from '../../components/SupportModals';
-import { openExternalUrl } from '../../lib/api';
-import { BRAND } from '../../lib/brand';
+import { HotelDetailContent } from '../../../components/HotelDetailContent';
+import { RequestResortModal } from '../../../components/SupportModals';
+import { openExternalUrl } from '../../../lib/api';
+import { BRAND } from '../../../lib/brand';
 import {
   getBrandCategories,
   getGuestProfile,
   getMonthShortName,
   getPartnerPrograms,
   isBestInMonth,
-} from '../../lib/insights';
-import { formatPersonalScore, useAdaptiveLayout } from '../../lib/layout';
-import { computeStayOdds, getTonePalette, getTripAdvisorUrl, isVisitedProperty } from '../../lib/scoring';
-import { useStayOdds } from '../../lib/store';
-import { Colors } from '../../lib/theme';
-import type { Hotel } from '../../lib/types';
+} from '../../../lib/insights';
+import { formatPersonalScore, useAdaptiveLayout } from '../../../lib/layout';
+import { computeStayOdds, getTonePalette, getTripAdvisorUrl, isVisitedProperty } from '../../../lib/scoring';
+import { useStayOdds } from '../../../lib/store';
+import { Colors } from '../../../lib/theme';
+import type { Hotel } from '../../../lib/types';
 
 type Scope = 'all' | 'visited' | 'world' | 'saved';
 type VerifiedFeature =
@@ -165,7 +165,7 @@ const FEATURE_FILTERS: { id: VerifiedFeature; label: string; match: (h: Hotel) =
 
 export default function StayOddsHomeScreen() {
   const router = useRouter();
-  const { isSplitScreen } = useAdaptiveLayout();
+  const { isSplitScreen, isWideDesktop } = useAdaptiveLayout();
   const {
     hotels,
     visitedCount,
@@ -607,7 +607,7 @@ export default function StayOddsHomeScreen() {
   if (isSplitScreen) {
     return (
       <View style={styles.splitRoot}>
-        <View style={styles.splitLeft}>
+        <View style={[styles.splitLeft, !isWideDesktop && styles.splitLeftHalf]}>
           <FlatList
             data={filtered}
             keyExtractor={(item) => item.id}
@@ -648,7 +648,9 @@ const styles = StyleSheet.create({
   loadingText: { color: Colors.inkSecondary, fontSize: 14, fontWeight: '600' },
 
   splitRoot: { flex: 1, flexDirection: 'row', backgroundColor: Colors.bgCanvas },
-  splitLeft: { width: '44%', minWidth: 320, borderRightWidth: 1, borderRightColor: Colors.border },
+  splitLeft: { width: '42%', minWidth: 320, borderRightWidth: 1, borderRightColor: Colors.border },
+  // Foldables and iPhone Duo fold down the middle: an even split keeps the crease between list and detail.
+  splitLeftHalf: { width: '50%', minWidth: 0 },
   splitRight: { flex: 1 },
 
   listContent: { paddingBottom: 34, gap: 14 },

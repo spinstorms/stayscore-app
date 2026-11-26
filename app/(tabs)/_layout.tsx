@@ -1,111 +1,36 @@
-import { Ionicons } from '@expo/vector-icons';
-import { Tabs } from 'expo-router';
+import { NativeTabs } from 'expo-router/native-tabs';
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
 import { Colors } from '../../lib/theme';
 
-function StayOddsWordmark() {
-  return (
-    <View style={styles.brandRow}>
-      <Text style={styles.wordmark}>
-        StayOdds<Text style={styles.wordmarkDot}>.</Text>
-      </Text>
-    </View>
-  );
-}
-
+/**
+ * System (native) tabs. iOS places them itself: a bottom tab bar on a normal iPhone,
+ * the side rail on iPhone Duo's outer display, and a sidebar or tab bar on the open
+ * inner display and iPad. Android gets the Material bottom navigation bar.
+ * Each tab has its own Stack (see the (group)/_layout.tsx files) for its header.
+ */
 export default function TabsLayout() {
   return (
-    <Tabs
-      screenOptions={{
-        headerStyle: {
-          backgroundColor: Colors.navy,
-        },
-        headerTintColor: '#FFFFFF',
-        headerShadowVisible: false,
-        headerTitleAlign: 'left',
-        tabBarActiveTintColor: Colors.accent,
-        tabBarInactiveTintColor: Colors.inkMuted,
-        tabBarStyle: {
-          backgroundColor: '#FFFFFF',
-          borderTopColor: Colors.border,
-          borderTopWidth: 1,
-          height: 64,
-          paddingBottom: 9,
-          paddingTop: 7,
-        },
-        tabBarLabelStyle: {
-          fontSize: 10.5,
-          fontWeight: '700',
-          letterSpacing: 0.2,
-        },
-      }}
-    >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Explore',
-          headerTitle: () => <StayOddsWordmark />,
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="search-outline" size={size} color={typeof color === 'string' ? color : Colors.accent} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="map"
-        options={{
-          title: 'Map',
-          headerTitle: 'World Hotel Map',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="map-outline" size={size} color={typeof color === 'string' ? color : Colors.accent} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="compare"
-        options={{
-          title: 'Compare',
-          headerTitle: 'Head-to-Head',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="git-compare-outline" size={size} color={typeof color === 'string' ? color : Colors.accent} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="watch"
-        options={{
-          title: 'Watch',
-          headerTitle: 'Episodes & Shorts',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="play-circle-outline" size={size} color={typeof color === 'string' ? color : Colors.accent} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="deals"
-        options={{
-          title: 'Deals',
-          headerTitle: 'Travel Perks & Gear',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="pricetag-outline" size={size} color={typeof color === 'string' ? color : Colors.accent} />
-          ),
-        }}
-      />
-    </Tabs>
+    <NativeTabs tintColor={Colors.accent}>
+      <NativeTabs.Trigger name="(explore)">
+        <NativeTabs.Trigger.Icon sf={{ default: 'magnifyingglass', selected: 'magnifyingglass' }} md="search" />
+        <NativeTabs.Trigger.Label>Explore</NativeTabs.Trigger.Label>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="(map)">
+        <NativeTabs.Trigger.Icon sf={{ default: 'map', selected: 'map.fill' }} md="map" />
+        <NativeTabs.Trigger.Label>Map</NativeTabs.Trigger.Label>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="(compare)">
+        <NativeTabs.Trigger.Icon sf="arrow.left.arrow.right" md="compare_arrows" />
+        <NativeTabs.Trigger.Label>Compare</NativeTabs.Trigger.Label>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="(watch)">
+        <NativeTabs.Trigger.Icon sf={{ default: 'play.circle', selected: 'play.circle.fill' }} md="play_circle" />
+        <NativeTabs.Trigger.Label>Watch</NativeTabs.Trigger.Label>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="(deals)">
+        <NativeTabs.Trigger.Icon sf={{ default: 'tag', selected: 'tag.fill' }} md="sell" />
+        <NativeTabs.Trigger.Label>Deals</NativeTabs.Trigger.Label>
+      </NativeTabs.Trigger>
+    </NativeTabs>
   );
 }
-
-const styles = StyleSheet.create({
-  brandRow: { flexDirection: 'row', alignItems: 'center' },
-  wordmark: {
-    fontSize: 23,
-    fontWeight: '900',
-    color: '#FFFFFF',
-    letterSpacing: -0.6,
-  },
-  wordmarkDot: {
-    color: Colors.accent,
-    fontSize: 27,
-    fontWeight: '900',
-  },
-});

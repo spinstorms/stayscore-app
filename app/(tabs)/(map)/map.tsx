@@ -11,12 +11,12 @@ import {
   Text,
   View,
 } from 'react-native';
-import { openExternalUrl } from '../../lib/api';
-import { AWARD_LISTS, matchesAwardList, type AwardListId } from '../../lib/awards';
-import { computeStayOdds, getTonePalette, isVisitedProperty } from '../../lib/scoring';
-import { useStayOdds } from '../../lib/store';
-import { Colors } from '../../lib/theme';
-import type { Hotel } from '../../lib/types';
+import { openExternalUrl } from '../../../lib/api';
+import { AWARD_LISTS, matchesAwardList, type AwardListId } from '../../../lib/awards';
+import { computeStayOdds, getTonePalette, isVisitedProperty } from '../../../lib/scoring';
+import { useStayOdds } from '../../../lib/store';
+import { Colors } from '../../../lib/theme';
+import type { Hotel } from '../../../lib/types';
 
 type MapScope = 'all' | 'visited' | 'saved' | AwardListId;
 const AWARD_SCOPES = AWARD_LISTS.map((l) => l.id) as string[];
@@ -319,7 +319,7 @@ export default function WorldMapScreen() {
                 style={styles.btnOutline}
                 onPress={() => {
                   pushToCompare(selectedHotel.id);
-                  router.push('/(tabs)/compare');
+                  router.push('/compare');
                 }}
               >
                 <Ionicons name="git-compare-outline" size={14} color={Colors.accentDark} />

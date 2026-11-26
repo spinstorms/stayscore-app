@@ -16,23 +16,23 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { ShareCardModal } from '../../components/ShareCardModal';
-import { getHotelVideoUrl, openExternalUrl } from '../../lib/api';
-import { BRAND } from '../../lib/brand';
+import { ShareCardModal } from '../../../components/ShareCardModal';
+import { getHotelVideoUrl, openExternalUrl } from '../../../lib/api';
+import { BRAND } from '../../../lib/brand';
 import {
   getBestMonths,
   getBrandCategories,
   getGuestProfile,
   getPartnerPrograms,
   getVerifiedRoomTip,
-} from '../../lib/insights';
-import { formatPersonalScore, useAdaptiveLayout } from '../../lib/layout';
-import { formatCriticSlot, getPropertyStatusMeta } from '../../lib/propertyStatus';
-import { computeStayOdds, getTonePalette, getTripAdvisorUrl, isVisitedProperty } from '../../lib/scoring';
-import { buildStayOddsPick } from '../../lib/pick';
-import { useStayOdds } from '../../lib/store';
-import { Colors } from '../../lib/theme';
-import type { Hotel } from '../../lib/types';
+} from '../../../lib/insights';
+import { formatPersonalScore, useAdaptiveLayout } from '../../../lib/layout';
+import { formatCriticSlot, getPropertyStatusMeta } from '../../../lib/propertyStatus';
+import { computeStayOdds, getTonePalette, getTripAdvisorUrl, isVisitedProperty } from '../../../lib/scoring';
+import { buildStayOddsPick } from '../../../lib/pick';
+import { useStayOdds } from '../../../lib/store';
+import { Colors } from '../../../lib/theme';
+import type { Hotel } from '../../../lib/types';
 
 type PickerTarget = 'A' | 'B' | 'C' | null;
 

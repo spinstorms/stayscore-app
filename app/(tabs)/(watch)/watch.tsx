@@ -11,11 +11,11 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { openExternalUrl } from '../../lib/api';
-import { useAdaptiveLayout } from '../../lib/layout';
-import { useStayOdds } from '../../lib/store';
-import { Colors } from '../../lib/theme';
-import type { VideoItem } from '../../lib/types';
+import { openExternalUrl } from '../../../lib/api';
+import { useAdaptiveLayout } from '../../../lib/layout';
+import { useStayOdds } from '../../../lib/store';
+import { Colors } from '../../../lib/theme';
+import type { VideoItem } from '../../../lib/types';
 
 export default function WatchScreen() {
   const { videos, shorts, refreshing, refresh } = useStayOdds();

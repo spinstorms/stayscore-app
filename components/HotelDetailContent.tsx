@@ -440,7 +440,7 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
               style={[styles.btnCompare, { flex: 1 }]}
               onPress={() => {
                 pushToCompare(hotel.id);
-                router.push('/(tabs)/compare');
+                router.push('/compare');
               }}
             >
               <Ionicons name="git-compare-outline" size={15} color={Colors.accentDark} />

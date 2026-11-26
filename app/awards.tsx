@@ -62,7 +62,7 @@ export default function AwardListsScreen() {
       <Text style={styles.note}>{def.note(rows.length)}</Text>
       <Pressable
         style={styles.mapBtn}
-        onPress={() => router.push({ pathname: '/(tabs)/map', params: { scope: active } })}
+        onPress={() => router.push({ pathname: '/map', params: { scope: active } })}
       >
         <Ionicons name="map-outline" size={16} color="#FFFFFF" />
         <Text style={styles.mapBtnText}>Show these hotels on the map</Text>

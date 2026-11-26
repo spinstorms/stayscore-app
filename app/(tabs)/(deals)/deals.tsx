@@ -11,13 +11,13 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { QuickFeedbackModal, RequestResortModal } from '../../components/SupportModals';
-import { openExternalUrl } from '../../lib/api';
-import { BRAND } from '../../lib/brand';
-import { useAdaptiveLayout } from '../../lib/layout';
-import { useStayOdds } from '../../lib/store';
-import { Colors } from '../../lib/theme';
-import type { AffiliateDeal } from '../../lib/types';
+import { QuickFeedbackModal, RequestResortModal } from '../../../components/SupportModals';
+import { openExternalUrl } from '../../../lib/api';
+import { BRAND } from '../../../lib/brand';
+import { useAdaptiveLayout } from '../../../lib/layout';
+import { useStayOdds } from '../../../lib/store';
+import { Colors } from '../../../lib/theme';
+import type { AffiliateDeal } from '../../../lib/types';
 
 type DealSection = 'all' | 'promos' | 'gear';
 

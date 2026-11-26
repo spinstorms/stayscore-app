@@ -18,6 +18,12 @@ const targets = [
   ['iphone-15-pro', devices['iPhone 15 Pro']],
   ['pixel-7', devices['Pixel 7']],
   ['ipad', devices['iPad Pro 11']],
+  // iPhone Duo (points): outer display, inner display open, inner display in portrait
+  ['iphone-duo-outer', { viewport: { width: 466, height: 678 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true }],
+  ['iphone-duo-open', { viewport: { width: 951, height: 669 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true }],
+  ['iphone-duo-open-portrait', { viewport: { width: 669, height: 951 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true }],
+  // Android book-style foldable, unfolded
+  ['android-fold-open', { viewport: { width: 673, height: 841 }, deviceScaleFactor: 2.6, isMobile: true, hasTouch: true }],
 ];
 fs.mkdirSync('mockups', { recursive: true });
 const browser = await chromium.launch();
