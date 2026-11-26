@@ -49,7 +49,12 @@ export function buildCompareInsights(hotels: Hotel[], data: Extra = {}): Compare
     const gap = (guest(top) ?? 0) - (guest(sorted[sorted.length - 1]) ?? 0);
     out.push({
       icon: '👥',
-      title: gap <= 1 ? 'Guests rate them almost the same' : `Guests prefer ${short(top)}`,
+      title:
+        gap <= 1
+          ? 'Guests rate them almost the same'
+          : guest(sorted[1]) === guest(top)
+            ? `Guests rate ${list(sorted.filter((h) => guest(h) === guest(top)).map(short))} highest`
+            : `Guests prefer ${short(top)}`,
       text:
         sorted.map((h) => `${short(h)} ${guest(h)}/100 from ${n(reviews(h))} reviews`).join(' · ') +
         (gap <= 1 ? '. A gap this small is within normal variation, so decide on location, rooms or price.' : `. That's ${gap} points clear.`),

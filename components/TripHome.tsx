@@ -204,7 +204,7 @@ export function TripHome() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.bgCanvas },
   hero: { minHeight: 360, justifyContent: 'flex-end' },
-  heroShade: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(7, 19, 35, 0.58)' },
+  heroShade: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(7, 19, 35, 0.58)' },
   heroInner: { paddingTop: 22, paddingBottom: 20, gap: 8, maxWidth: 900, width: '100%', alignSelf: 'center' },
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6 },
   logo: { width: 40, height: 40, borderRadius: 10 },
