@@ -203,7 +203,12 @@ export function getVerifiedGuestScore(
 // Scores are pure for a given hotel object, so work each one out once. Screens call this in
 // sorts and lists (1,300+ hotels), which made Compare slow to open.
 const oddsCache = new WeakMap<object, ReturnType<typeof computeStayOddsUncached>>();
-export function computeStayOdds(hotel: Hotel): ReturnType<typeof computeStayOddsUncached> {
+export function computeStayOdds(
+  hotel: Hotel,
+  liveGoogle?: Parameters<typeof computeStayOddsUncached>[1]
+): ReturnType<typeof computeStayOddsUncached> {
+  // a live Google rating changes the result, so that case isn't cached
+  if (liveGoogle) return computeStayOddsUncached(hotel, liveGoogle);
   let o = oddsCache.get(hotel);
   if (!o) {
     o = computeStayOddsUncached(hotel);
