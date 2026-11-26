@@ -34,8 +34,6 @@ function RootStack() {
           {/* The tabs pad their own screens, so the system tab bar / rail itself stays at the edge. */}
           <Stack.Screen name="(tabs)" options={{ headerShown: false, contentStyle: { backgroundColor: Colors.bgCanvas } }} />
           <Stack.Screen name="awards" options={{ title: 'Award Lists', headerBackTitle: 'Back' }} />
-          <Stack.Screen name="holidays" options={{ title: 'Holiday Dates', headerBackTitle: 'Back' }} />
-          <Stack.Screen name="insights" options={{ title: 'Guest Insights', headerBackTitle: 'Back' }} />
           <Stack.Screen
             name="hotel/[id]"
             options={{

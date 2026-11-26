@@ -2,6 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
+import { buildCompareInsights, type CompareInsight } from '../../../lib/compareInsights';
+import { loadGuestRanks } from '../../../lib/ranks';
 import {
   FlatList,
   Image,
@@ -64,6 +66,7 @@ export default function CompareScreen() {
   // Android a long unbroken line inside a card could stop flex from shrinking it and push the
   // second hotel off screen.
   const [gridWidth, setGridWidth] = useState(0);
+  const [genInsights, setGenInsights] = useState<CompareInsight[] | null>(null);
 
   const [pickerTarget, setPickerTarget] = useState<PickerTarget>(null);
   const [pickerQuery, setPickerQuery] = useState('');
@@ -108,6 +111,8 @@ export default function CompareScreen() {
     [hotels, compareC]
   );
   const isThreeWay = Boolean(hotelC);
+  // new hotels picked: clear the old insights
+  useEffect(() => setGenInsights(null), [hotelA?.id, hotelB?.id, hotelC?.id]);
 
   const oddsA = useMemo(() => (hotelA ? computeStayOdds(hotelA) : null), [hotelA]);
   const oddsB = useMemo(() => (hotelB ? computeStayOdds(hotelB) : null), [hotelB]);
@@ -816,6 +821,48 @@ export default function CompareScreen() {
           </View>
         ) : null}
 
+        {hotelA && hotelB ? (
+          <View style={[styles.genWrap, { marginHorizontal: horizontalPadding }]}>
+            {genInsights ? (
+              <View style={styles.genCard}>
+                <View style={styles.genHead}>
+                  <Text style={styles.pickEyebrow}>INSIGHTS FOR THESE {isThreeWay && hotelC ? '3' : '2'} HOTELS</Text>
+                  <Pressable onPress={() => setGenInsights(null)} hitSlop={8}>
+                    <Ionicons name="close" size={18} color={Colors.inkMuted} />
+                  </Pressable>
+                </View>
+                {genInsights.map((g) => (
+                  <View key={g.title} style={styles.genRow}>
+                    <Text style={styles.genIcon}>{g.icon}</Text>
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Text style={styles.genTitle}>{g.title}</Text>
+                      <Text style={styles.genText}>{g.text}</Text>
+                    </View>
+                  </View>
+                ))}
+                <Text style={styles.pickFoot}>Worked out from the guest reviews, critics, our stays, awards, prices and seasons on StayOdds. Nothing is estimated.</Text>
+              </View>
+            ) : (
+              <Pressable
+                style={styles.genBtn}
+                accessibilityRole="button"
+                onPress={async () => {
+                  const r = await loadGuestRanks();
+                  setGenInsights(
+                    buildCompareInsights([hotelA, hotelB, ...(isThreeWay && hotelC ? [hotelC] : [])], {
+                      ranks: r?.ranks,
+                      extras: r?.extras,
+                    })
+                  );
+                }}
+              >
+                <Ionicons name="sparkles" size={16} color="#FFFFFF" />
+                <Text style={styles.genBtnText}>Generate insights for these hotels</Text>
+              </Pressable>
+            )}
+          </View>
+        ) : null}
+
         {hotelA && hotelB && oddsA && oddsB ? (
           <View
             onLayout={(e) => setGridWidth(e.nativeEvent.layout.width)}
@@ -1058,6 +1105,24 @@ const styles = StyleSheet.create({
   inlineEmptyText: { color: '#FDE68A', fontSize: 12, lineHeight: 16 },
 
   vsGrid: { paddingTop: 16, gap: 16 },
+  genWrap: { marginTop: 14 },
+  genBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: Colors.navy,
+    borderRadius: 14,
+    paddingVertical: 13,
+    paddingHorizontal: 16,
+  },
+  genBtnText: { color: '#FFFFFF', fontWeight: '800', fontSize: 14.5 },
+  genCard: { backgroundColor: Colors.bgWhite, borderRadius: 16, borderWidth: 1, borderColor: Colors.border, padding: 16, gap: 12 },
+  genHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  genRow: { flexDirection: 'row', gap: 10 },
+  genIcon: { fontSize: 18, width: 24, textAlign: 'center' },
+  genTitle: { fontSize: 14.5, fontWeight: '800', color: Colors.inkPrimary },
+  genText: { fontSize: 13.5, color: Colors.inkSecondary, lineHeight: 19, marginTop: 2 },
   vsGridRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   vsGridCol: { flexDirection: 'column' },
 

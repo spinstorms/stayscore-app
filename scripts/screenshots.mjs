@@ -3,7 +3,9 @@ import fs from 'node:fs';
 
 const BASE = 'http://localhost:8081';
 const screens = [
-  ['01-explore', '/'],
+  ['00-home', '/'],
+  ['01-explore', '/explore'],
+  ['01b-home-search', '/?q=maldives'],
   ['02-award-lists-top100', '/awards'],
   ['03-award-lists-3keys', '/awards?list=michelin3'],
   ['04-map-3keys', '/map?scope=michelin3'],

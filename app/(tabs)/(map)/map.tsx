@@ -1,17 +1,19 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
-  LayoutChangeEvent,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+import { DotMap } from '../../../components/map/DotMap';
+import { NativeHotelMap, nativeMapAvailable } from '../../../components/map/NativeHotelMap';
 import { openExternalUrl } from '../../../lib/api';
+import { openInMaps } from '../../../lib/openInMaps';
 import {
   applyAwardFilters,
   AWARD_FILTERS,
@@ -102,7 +104,6 @@ export default function WorldMapScreen() {
   const toggleAward = (id: AwardFilterId) =>
     setAwards((a) => (a.includes(id) ? a.filter((x) => x !== id) : [...a, id]));
   const [selectedId, setSelectedId] = useState<string>('taaktana-labuan-bajo');
-  const [canvasSize, setCanvasSize] = useState({ width: 340, height: 290 });
 
   const viewport = useMemo(
     () => REGION_VIEWPORTS.find((v) => v.id === viewportId) || REGION_VIEWPORTS[0],
@@ -136,6 +137,13 @@ export default function WorldMapScreen() {
     [awardMatched, viewport]
   );
 
+  const savedKey = shortlist.join(',');
+  const colorFor = useCallback(
+    (h: Hotel) => (shortlist.includes(h.id) ? '#F43F5E' : isVisitedProperty(h) ? Colors.accent : '#14B8A6'),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [savedKey]
+  );
+
   const selectedHotel: Hotel | null = useMemo(() => {
     return (
       visibleHotels.find((h) => h.id === selectedId) ||
@@ -149,26 +157,6 @@ export default function WorldMapScreen() {
     () => (selectedHotel ? computeStayOdds(selectedHotel) : null),
     [selectedHotel]
   );
-
-  const onCanvasLayout = (e: LayoutChangeEvent) => {
-    const { width, height } = e.nativeEvent.layout;
-    if (width > 0 && height > 0) {
-      setCanvasSize({ width, height });
-    }
-  };
-
-  const project = (lat: number, lng: number) => {
-    const padX = 16;
-    const padY = 16;
-    const w = Math.max(1, canvasSize.width - padX * 2);
-    const h = Math.max(1, canvasSize.height - padY * 2);
-    const xRatio = (lng - viewport.minLng) / Math.max(0.1, viewport.maxLng - viewport.minLng);
-    const yRatio = (viewport.maxLat - lat) / Math.max(0.1, viewport.maxLat - viewport.minLat);
-    return {
-      x: padX + Math.max(0, Math.min(1, xRatio)) * w,
-      y: padY + Math.max(0, Math.min(1, yRatio)) * h,
-    };
-  };
 
   const openWebMap = () => {
     const q = viewport.regionFilter ? `?region=${encodeURIComponent(viewport.regionFilter)}` : '';
@@ -289,9 +277,9 @@ export default function WorldMapScreen() {
 
       {/* Interactive Coordinate Map Canvas (100% Expo Go & Web compatible) */}
       <View style={styles.mapContainer}>
-        <View style={styles.mapCanvas} onLayout={onCanvasLayout}>
-          {/* Subtle coordinate gridlines */}
-          {[0.2, 0.4, 0.6, 0.8].map((frac) => (
+        <View style={styles.mapCanvas}>
+          {/* Subtle coordinate gridlines (dot map only) */}
+          {(nativeMapAvailable ? [] : [0.2, 0.4, 0.6, 0.8]).map((frac) => (
             <React.Fragment key={frac}>
               <View style={[styles.gridLineH, { top: `${frac * 100}%` }]} pointerEvents="none" />
               <View style={[styles.gridLineV, { left: `${frac * 100}%` }]} pointerEvents="none" />
@@ -320,43 +308,24 @@ export default function WorldMapScreen() {
             </View>
           </View>
 
-          {/* Plotted real lat/lng hotel pins */}
-          {visibleHotels.map((h) => {
-            const pos = project(h.lat, h.lng);
-            const isSelected = selectedHotel?.id === h.id;
-            const visited = isVisitedProperty(h);
-            const saved = isShortlisted(h.id);
-            const hasAward = (h.officialAwards || []).length > 0;
-            const pinSize = isSelected ? 18 : visited ? 12 : 9;
-            const bgColor = saved
-              ? '#F43F5E'
-              : visited
-              ? Colors.accent
-              : '#14B8A6';
-
-            return (
-              <Pressable
-                key={h.id}
-                onPress={() => setSelectedId(h.id)}
-                hitSlop={8}
-                accessibilityLabel={`${h.name}, ${h.location}`}
-                style={[
-                  styles.pinWrap,
-                  {
-                    left: pos.x - pinSize / 2,
-                    top: pos.y - pinSize / 2,
-                    width: pinSize,
-                    height: pinSize,
-                    borderRadius: pinSize / 2,
-                    backgroundColor: bgColor,
-                    borderWidth: isSelected ? 2.5 : hasAward ? 1.5 : 1,
-                    borderColor: isSelected ? '#FFFFFF' : hasAward ? '#FDE047' : 'rgba(255,255,255,0.65)',
-                    zIndex: isSelected ? 30 : visited ? 15 : 5,
-                  },
-                ]}
-              />
-            );
-          })}
+          {/* The phone's own map (Apple Maps / Google Maps), or the light dot map */}
+          {nativeMapAvailable ? (
+            <NativeHotelMap
+              hotels={visibleHotels}
+              selectedId={selectedHotel?.id ?? null}
+              onSelect={setSelectedId}
+              colorFor={colorFor}
+              bounds={viewport}
+            />
+          ) : (
+            <DotMap
+              hotels={visibleHotels}
+              selectedId={selectedHotel?.id ?? null}
+              onSelect={setSelectedId}
+              colorFor={colorFor}
+              bounds={viewport}
+            />
+          )}
         </View>
       </View>
 
@@ -410,6 +379,15 @@ export default function WorldMapScreen() {
                 }
               >
                 <Text style={styles.btnPrimaryText}>Full Breakdown →</Text>
+              </Pressable>
+
+              <Pressable
+                style={styles.btnOutline}
+                accessibilityLabel={process.env.EXPO_OS === 'ios' ? 'Open in Apple Maps' : 'Open in Google Maps'}
+                onPress={() => openInMaps(selectedHotel)}
+              >
+                <Ionicons name="navigate-outline" size={14} color={Colors.accentDark} />
+                <Text style={styles.btnOutlineText}>Maps</Text>
               </Pressable>
 
               <Pressable

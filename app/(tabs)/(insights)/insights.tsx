@@ -1,12 +1,12 @@
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { openExternalUrl } from '../lib/api';
-import { useAdaptiveLayout } from '../lib/layout';
-import { ordinal } from '../lib/ranks';
-import { INSIGHTS_PAGE_URL, loadSiteInsights, SITE_URL, TIER_ORDER, type RangeStat, type SiteInsights } from '../lib/siteInsights';
-import { useStayOdds } from '../lib/store';
-import { Colors } from '../lib/theme';
+import { openExternalUrl } from '../../../lib/api';
+import { useAdaptiveLayout } from '../../../lib/layout';
+import { ordinal } from '../../../lib/ranks';
+import { INSIGHTS_PAGE_URL, loadSiteInsights, SITE_URL, TIER_ORDER, type RangeStat, type SiteInsights } from '../../../lib/siteInsights';
+import { useStayOdds } from '../../../lib/store';
+import { Colors } from '../../../lib/theme';
 
 const n = (x: number) => x.toLocaleString('en-GB');
 const fmt = (x: number) => String(Number(x.toFixed(1)));

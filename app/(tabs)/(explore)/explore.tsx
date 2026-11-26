@@ -18,15 +18,16 @@ import { StayOddsWordmark } from '../../../components/TabStack';
 import { RequestResortModal } from '../../../components/SupportModals';
 import { openExternalUrl } from '../../../lib/api';
 import { BRAND } from '../../../lib/brand';
-import {
-  getBrandCategories,
-  getGuestProfile,
-  getMonthShortName,
-  getPartnerPrograms,
-  isBestInMonth,
-} from '../../../lib/insights';
+import { getBrandCategories, getMonthShortName, getPartnerPrograms, isBestInMonth } from '../../../lib/insights';
 import { formatPersonalScore, useAdaptiveLayout } from '../../../lib/layout';
 import { computeStayOdds, getTonePalette, getTripAdvisorUrl, isVisitedProperty } from '../../../lib/scoring';
+import {
+  FEATURE_FILTERS,
+  getForbesRank,
+  getMichelinKeyCount,
+  getW50BestRank,
+  type VerifiedFeature,
+} from '../../../lib/features';
 import { useStayOdds } from '../../../lib/store';
 import { Colors } from '../../../lib/theme';
 import type { Hotel } from '../../../lib/types';
@@ -34,138 +35,6 @@ import type { Hotel } from '../../../lib/types';
 type Scope = 'all' | 'visited' | 'world' | 'saved';
 const IOS = process.env.EXPO_OS === 'ios';
 const stripEmoji = (s: string) => s.replace(/^[^A-Za-z0-9']+\s*/, '');
-type VerifiedFeature =
-  | 'all'
-  | '50best_50'
-  | '50best_100'
-  | 'michelin'
-  | 'michelin_3'
-  | 'michelin_2'
-  | 'michelin_1'
-  | 'forbes'
-  | 'video'
-  | 'adults'
-  | 'family'
-  | 'preferred'
-  | 'points'
-  | 'beach';
-
-function getW50BestRank(h: Hotel): number | null {
-  let best: number | null = null;
-  for (const a of h.officialAwards || []) {
-    const txt = `${a.awardBody || ''} ${a.label || ''}`;
-    if (/50\s*best/i.test(txt)) {
-      const m = String(a.label || '').match(/(?:No\.?|#)\s*(\d{1,3})/i);
-      const val = m ? Number(m[1]) : 999;
-      if (best == null || val < best) best = val;
-    }
-  }
-  return best;
-}
-
-function getMichelinKeyCount(h: Hotel): number | null {
-  let best: number | null = null;
-  for (const a of h.officialAwards || []) {
-    const txt = `${a.awardBody || ''} ${a.label || ''}`;
-    if (/michelin/i.test(txt)) {
-      const m = String(a.label || '').match(/([123])\s*michelin\s*key/i);
-      const val = m ? Number(m[1]) : 1;
-      if (best == null || val > best) best = val;
-    }
-  }
-  return best;
-}
-
-function getForbesRank(h: Hotel): number | null {
-  let best: number | null = null;
-  for (const a of h.officialAwards || []) {
-    const txt = `${a.awardBody || ''} ${a.label || ''}`;
-    if (/forbes/i.test(txt)) {
-      let val = 1;
-      if (/five[- ]star/i.test(txt)) val = 5;
-      else if (/four[- ]star/i.test(txt)) val = 4;
-      else if (/recommended/i.test(txt)) val = 3;
-      if (best == null || val > best) best = val;
-    }
-  }
-  return best;
-}
-
-const FEATURE_FILTERS: { id: VerifiedFeature; label: string; match: (h: Hotel) => boolean }[] = [
-  { id: 'all', label: 'All Data', match: () => true },
-  {
-    id: '50best_50',
-    label: '🏆 Top 50 (#1→50)',
-    match: (h) => {
-      const r = getW50BestRank(h);
-      return r != null && r >= 1 && r <= 50;
-    },
-  },
-  {
-    id: '50best_100',
-    label: '💯 Top 100 (#1→100)',
-    match: (h) => {
-      const r = getW50BestRank(h);
-      return r != null && r >= 1 && r <= 100;
-    },
-  },
-  {
-    id: 'michelin',
-    label: '🗝️ MICHELIN (3→1)',
-    match: (h) => getMichelinKeyCount(h) != null,
-  },
-  {
-    id: 'michelin_3',
-    label: '🗝️ 3 Keys',
-    match: (h) => getMichelinKeyCount(h) === 3,
-  },
-  {
-    id: 'michelin_2',
-    label: '🗝️ 2 Keys',
-    match: (h) => getMichelinKeyCount(h) === 2,
-  },
-  {
-    id: 'michelin_1',
-    label: '🗝️ 1 Key',
-    match: (h) => getMichelinKeyCount(h) === 1,
-  },
-  {
-    id: 'forbes',
-    label: '⭐ Forbes',
-    match: (h) => getForbesRank(h) != null,
-  },
-  {
-    id: 'video',
-    label: 'Video Reviews',
-    match: (h) => Boolean(h.videoId || (h.youtubeReviews && h.youtubeReviews.length > 0)),
-  },
-  {
-    id: 'adults',
-    label: '🥂 Adults-Only',
-    match: (h) => getGuestProfile(h).adultsOnly,
-  },
-  {
-    id: 'family',
-    label: '👨‍👩‍👧 Family & Kids',
-    match: (h) => getGuestProfile(h).familyFriendly,
-  },
-  {
-    id: 'preferred',
-    label: '✨ Preferred Perks',
-    match: (h) => getPartnerPrograms(h).hasPreferredPerks,
-  },
-  {
-    id: 'points',
-    label: '★ Points Brands',
-    match: (h) => getPartnerPrograms(h).isPointsEligible,
-  },
-  {
-    id: 'beach',
-    label: 'Beach / Reef',
-    match: (h) => Boolean(h.keyFacts?.beachOrReef || h.region === 'Maldives'),
-  },
-];
-
 export default function StayOddsHomeScreen() {
   const router = useRouter();
   const { isSplitScreen, isWideDesktop } = useAdaptiveLayout();
@@ -225,6 +94,17 @@ export default function StayOddsHomeScreen() {
     return ['All', ...ordered];
   }, [scopedHotels]);
 
+  // Scores worked out once per hotel, not again inside every sort comparison
+  const oddsCache = useMemo(() => new Map<string, ReturnType<typeof computeStayOdds>>(), [hotels]);
+  const oddsOf = (h: Hotel) => {
+    let o = oddsCache.get(h.id);
+    if (!o) {
+      o = computeStayOdds(h);
+      oddsCache.set(h.id, o);
+    }
+    return o;
+  };
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     const activeFeat = FEATURE_FILTERS.find((f) => f.id === feature) || FEATURE_FILTERS[0];
@@ -269,8 +149,8 @@ export default function StayOddsHomeScreen() {
           const fb = getForbesRank(b) ?? -1;
           if (fb !== fa) return fb - fa;
         }
-        const oa = computeStayOdds(a);
-        const ob = computeStayOdds(b);
+        const oa = oddsOf(a);
+        const ob = oddsOf(b);
         const tierRank = (o: ReturnType<typeof computeStayOdds>) =>
           o.firstHand ? 2 : o.visited ? 1 : 0;
         if (tierRank(ob) !== tierRank(oa)) return tierRank(ob) - tierRank(oa);

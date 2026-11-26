@@ -8,9 +8,11 @@
  *
  *   node scripts/snapshot-data.mjs
  */
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
+import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const outDir = join(root, 'assets', 'data');
@@ -50,6 +52,24 @@ const save = (name, data) => {
   console.log(`snapshot: wrote ${name} (${(JSON.stringify(data).length / 1e6).toFixed(2)} MB)`);
 };
 
+/**
+ * Loads the app's own buildPayload (lib/payload.ts) so the bundled copy is the finished hotel list,
+ * exactly what the app would build itself. Transpiled with the project's TypeScript.
+ */
+async function loadBuildPayload() {
+  const ts = createRequire(join(root, 'package.json'))('typescript');
+  const tmp = mkdtempSync(join(tmpdir(), 'stayodds-payload-'));
+  for (const name of ['brand', 'placeholders', 'payload']) {
+    const src = readFileSync(join(root, 'lib', `${name}.ts`), 'utf8');
+    let out = ts.transpileModule(src, {
+      compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022, verbatimModuleSyntax: false },
+    }).outputText;
+    out = out.replace(/from '\.\/(brand|placeholders|payload)'/g, "from './$1.mjs'").replace(/^import .* from '\.\/types';$/m, '');
+    writeFileSync(join(tmp, `${name}.mjs`), out);
+  }
+  return (await import(pathToFileURL(join(tmp, 'payload.mjs')).href)).buildPayload;
+}
+
 async function main() {
   // Hotel directory (required tables first; optional ones fall back to empty, like the app does)
   try {
@@ -69,10 +89,19 @@ async function main() {
       json(`${LIVE}/data/affiliates.json`, { curated: [], fromVideos: [] }),
     ]);
     if (props.length) {
-      save('snapshot.json', {
+      const raw = {
         snapshotAt: new Date().toISOString(),
         props, facts, fhReviews, licensedScores, awards, editorial, ytReviews, bookingLinks, videosRes, affRes,
-      });
+      };
+      let data = raw;
+      try {
+        const buildPayload = await loadBuildPayload();
+        data = buildPayload(raw);
+        console.log(`snapshot: prepared ${data.hotels.length} hotels`);
+      } catch (e) {
+        console.warn(`snapshot: could not prepare the hotel list here (${e.message}); bundling raw tables instead`);
+      }
+      save('snapshot.json', data);
     }
   } catch (e) {
     console.warn(`snapshot: directory not refreshed (${e.message}); keeping the existing copy`);

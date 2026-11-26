@@ -19,13 +19,24 @@ export function StayOddsWordmark() {
  * The native Stack each tab lives in. Native headers move into the iPhone Duo rail
  * automatically; the side padding keeps screen content clear of the rail and notches.
  */
-export function TabStack({ screen, title, wordmark }: { screen: string; title: string; wordmark?: boolean }) {
+export function TabStack({
+  screen,
+  title,
+  wordmark,
+  hideHeader,
+}: {
+  screen: string;
+  title: string;
+  wordmark?: boolean;
+  /** the screen draws its own top (the home screen's photo header) */
+  hideHeader?: boolean;
+}) {
   const sidePadding = useSideInsetStyle();
   const insets = useSafeAreaInsets();
   const { isSplitScreen } = useAdaptiveLayout();
   // Android/web unfolded: no title bar, so the whole height goes to content (each screen already
   // shows its own heading). iOS keeps the native header because its buttons live in the Duo rail.
-  const compactChrome = process.env.EXPO_OS !== 'ios' && isSplitScreen;
+  const compactChrome = hideHeader || (process.env.EXPO_OS !== 'ios' && isSplitScreen);
   return (
     <Stack
       screenOptions={{
