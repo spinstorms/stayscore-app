@@ -14,6 +14,7 @@ import {
   View,
 } from 'react-native';
 import { HotelDetailContent } from '../../../components/HotelDetailContent';
+import { StayOddsWordmark } from '../../../components/TabStack';
 import { RequestResortModal } from '../../../components/SupportModals';
 import { openExternalUrl } from '../../../lib/api';
 import { BRAND } from '../../../lib/brand';
@@ -514,6 +515,11 @@ export default function StayOddsHomeScreen() {
 
   const listHeader = (
     <View style={styles.navyHeaderPanel}>
+      {!IOS && isSplitScreen ? (
+        <View style={{ marginTop: 6, marginBottom: 12 }}>
+          <StayOddsWordmark />
+        </View>
+      ) : null}
       <View style={styles.searchWrap}>
         <Ionicons name="search" size={17} color="rgba(255,255,255,0.68)" />
         <TextInput

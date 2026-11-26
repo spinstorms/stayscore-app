@@ -1,6 +1,6 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as WebBrowser from 'expo-web-browser';
 import { Linking } from 'react-native';
+import { readBig, writeBig } from './bigStore';
 import { BRAND } from './brand';
 import { PLACEHOLDER_IDS } from './placeholders';
 import type { AffiliateDeal, Hotel, VideoItem } from './types';
@@ -159,7 +159,7 @@ function parseCachedPayload(raw: string | null): { data: StayOddsPayload; isFres
 
 export async function loadCachedDataWithMeta(): Promise<{ data: StayOddsPayload; isFresh: boolean } | null> {
   try {
-    const raw = await AsyncStorage.getItem(CACHE_KEY);
+    const raw = await readBig(CACHE_KEY);
     return parseCachedPayload(raw);
   } catch {
     return null;
@@ -197,7 +197,32 @@ export async function fetchStayOddsData(options?: { forceRefresh?: boolean }): P
   return inFlightDirectoryFetch;
 }
 
+/** The raw tables and site files the directory is built from. Also the shape of the bundled snapshot. */
+export interface RawDirectory {
+  props: Record<string, any>[];
+  facts: Record<string, any>[];
+  fhReviews: Record<string, any>[];
+  licensedScores: Record<string, any>[];
+  awards: Record<string, any>[];
+  editorial: Record<string, any>[];
+  ytReviews: Record<string, any>[];
+  bookingLinks: Record<string, any>[];
+  videosRes: { videos?: VideoItem[]; shorts?: VideoItem[] };
+  affRes: { curated?: AffiliateDeal[]; fromVideos?: AffiliateDeal[] };
+  snapshotAt?: string;
+}
+
 async function fetchStayOddsDataFromNetwork(): Promise<StayOddsPayload> {
+  const payload = buildPayload(await fetchRawDirectory());
+  // Never cache empty or failed responses
+  if (payload.hotels.length > 0) {
+    const envelope: CachedEnvelope = { cachedAt: Date.now(), data: payload };
+    writeBig(CACHE_KEY, JSON.stringify(envelope));
+  }
+  return payload;
+}
+
+export async function fetchRawDirectory(): Promise<RawDirectory> {
   const [props, facts, fhReviews, licensedScores, awards, editorial, ytReviews, bookingLinks, videosRes, affRes] =
     await Promise.all([
       sbSelect<Record<string, any>>('properties'),
@@ -216,6 +241,12 @@ async function fetchStayOddsDataFromNetwork(): Promise<StayOddsPayload> {
         '/data/affiliates.json'
       ).catch(() => ({ curated: [], fromVideos: [] })),
     ]);
+  return { props, facts, fhReviews, licensedScores, awards, editorial, ytReviews, bookingLinks, videosRes, affRes };
+}
+
+/** Turns the raw tables into the app's hotel list. Pure and fast: also used for the bundled snapshot. */
+export function buildPayload(raw: RawDirectory): StayOddsPayload {
+  const { props, facts, fhReviews, licensedScores, awards, editorial, ytReviews, bookingLinks, videosRes, affRes } = raw;
 
   const factMap = new Map(facts.map((r) => [String(r.property_id), r]));
   const fhMap = new Map(fhReviews.map((r) => [String(r.property_id), r]));
@@ -369,19 +400,27 @@ async function fetchStayOddsDataFromNetwork(): Promise<StayOddsPayload> {
     videos: videosRes.videos || [],
     shorts: videosRes.shorts || [],
     deals: [...(affRes.curated || []), ...(affRes.fromVideos || [])],
-    updatedAt: new Date().toISOString(),
+    updatedAt: raw.snapshotAt || new Date().toISOString(),
   };
-
-  // Never cache empty or failed responses; silently ignore storage errors (private mode / quota)
-  if (payload.hotels.length > 0) {
-    try {
-      const envelope: CachedEnvelope = { cachedAt: Date.now(), data: payload };
-      AsyncStorage.setItem(CACHE_KEY, JSON.stringify(envelope)).catch(() => {});
-    } catch {
-      // Ignore storage serialization/quota errors
-    }
-  }
   return payload;
+}
+
+let snapshotPayload: StayOddsPayload | null = null;
+/**
+ * The directory as it was when the app was built (assets/data/snapshot.json, refreshed on every
+ * EAS build). Used on first launch and offline, so the app never opens to a loading screen.
+ */
+export function loadBundledSnapshot(): StayOddsPayload | null {
+  if (snapshotPayload) return snapshotPayload;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const raw = require('../assets/data/snapshot.json') as RawDirectory;
+    if (!raw?.props?.length) return null;
+    snapshotPayload = buildPayload(raw);
+    return snapshotPayload;
+  } catch {
+    return null;
+  }
 }
 
 const liveGoogleMemoryCache = new Map<string, LiveGoogleRating>();

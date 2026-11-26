@@ -60,6 +60,10 @@ export default function CompareScreen() {
     refresh,
   } = useStayOdds();
   const { isSplitScreen, horizontalPadding } = useAdaptiveLayout();
+  // Measured width of the cards row. Cards get an explicit width when side by side, because on
+  // Android a long unbroken line inside a card could stop flex from shrinking it and push the
+  // second hotel off screen.
+  const [gridWidth, setGridWidth] = useState(0);
 
   const [pickerTarget, setPickerTarget] = useState<PickerTarget>(null);
   const [pickerQuery, setPickerQuery] = useState('');
@@ -383,7 +387,13 @@ export default function CompareScreen() {
         : Colors.inkSecondary;
 
     return (
-      <View style={[styles.vsCard, isSplitScreen && !isThreeWay && styles.vsCardHalf]}>
+      <View
+        style={[
+          styles.vsCard,
+          isSplitScreen && !isThreeWay && styles.vsCardHalf,
+          isSplitScreen && !isThreeWay && gridWidth > 0 ? { width: (gridWidth - 2 * horizontalPadding - 12) / 2 } : null,
+        ]}
+      >
         <View style={styles.cardHeroWrap}>
           <Image source={{ uri: hotel.thumbnail }} style={styles.cardHeroImg} resizeMode="cover" />
           <View style={styles.cardHeroTopBadges}>
@@ -808,6 +818,7 @@ export default function CompareScreen() {
 
         {hotelA && hotelB && oddsA && oddsB ? (
           <View
+            onLayout={(e) => setGridWidth(e.nativeEvent.layout.width)}
             style={[
               styles.vsGrid,
               isSplitScreen && !isThreeWay ? styles.vsGridRow : styles.vsGridCol,
@@ -1047,7 +1058,7 @@ const styles = StyleSheet.create({
   inlineEmptyText: { color: '#FDE68A', fontSize: 12, lineHeight: 16 },
 
   vsGrid: { paddingTop: 16, gap: 16 },
-  vsGridRow: { flexDirection: 'row', alignItems: 'flex-start' },
+  vsGridRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   vsGridCol: { flexDirection: 'column' },
 
   vsCard: {
@@ -1057,7 +1068,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     overflow: 'hidden',
   },
-  vsCardHalf: { flex: 1 },
+  vsCardHalf: { flexGrow: 0, flexShrink: 1, minWidth: 0 },
   cardHeroWrap: { position: 'relative', height: 180, backgroundColor: Colors.charcoal },
   cardHeroImg: { width: '100%', height: '100%' },
   cardHeroTopBadges: {

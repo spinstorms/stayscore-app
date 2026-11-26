@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import { fetchStayOddsData, loadCachedDataWithMeta } from './api';
+import { fetchStayOddsData, loadBundledSnapshot, loadCachedDataWithMeta } from './api';
 import type { AffiliateDeal, Hotel, VideoItem } from './types';
 
 const SHORTLIST_STORAGE_KEY = 'stayodds_shortlist_v1';
@@ -75,21 +75,31 @@ export function StayOddsProvider({ children }: { children: React.ReactNode }) {
       })
       .catch(() => {});
 
+    const apply = (data: { hotels: Hotel[]; visitedCount: number; worldCount: number; videos: VideoItem[]; shorts: VideoItem[]; deals: AffiliateDeal[] }) => {
+      setHotels(data.hotels);
+      setVisitedCount(data.visitedCount);
+      setWorldCount(data.worldCount);
+      setVideos(data.videos);
+      setShorts(data.shorts);
+      setDeals(data.deals);
+      setLoading(false);
+    };
+    // Open instantly: the last saved copy, or the copy bundled into the app. Then refresh quietly
+    // in the background (no spinner) when the saved copy is older than 12 hours.
     loadCachedDataWithMeta()
       .then((cached) => {
         if (cached && cached.data.hotels.length) {
-          setHotels(cached.data.hotels);
-          setVisitedCount(cached.data.visitedCount);
-          setWorldCount(cached.data.worldCount);
-          setVideos(cached.data.videos);
-          setShorts(cached.data.shorts);
-          setDeals(cached.data.deals);
-          setLoading(false);
+          apply(cached.data);
           if (cached.isFresh) return;
+        } else {
+          const snap = loadBundledSnapshot();
+          if (snap) apply(snap);
         }
         hydrate(false);
       })
       .catch(() => {
+        const snap = loadBundledSnapshot();
+        if (snap) apply(snap);
         hydrate(false);
       });
   }, [hydrate]);

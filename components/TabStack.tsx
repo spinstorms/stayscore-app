@@ -1,7 +1,8 @@
 import { Stack } from 'expo-router';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { useSideInsetStyle } from '../lib/layout';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAdaptiveLayout, useSideInsetStyle } from '../lib/layout';
 import { Colors } from '../lib/theme';
 
 export function StayOddsWordmark() {
@@ -20,6 +21,11 @@ export function StayOddsWordmark() {
  */
 export function TabStack({ screen, title, wordmark }: { screen: string; title: string; wordmark?: boolean }) {
   const sidePadding = useSideInsetStyle();
+  const insets = useSafeAreaInsets();
+  const { isSplitScreen } = useAdaptiveLayout();
+  // Android/web unfolded: no title bar, so the whole height goes to content (each screen already
+  // shows its own heading). iOS keeps the native header because its buttons live in the Duo rail.
+  const compactChrome = process.env.EXPO_OS !== 'ios' && isSplitScreen;
   return (
     <Stack
       screenOptions={{
@@ -28,7 +34,13 @@ export function TabStack({ screen, title, wordmark }: { screen: string; title: s
         headerTitleStyle: { fontWeight: '700', color: '#FFFFFF' },
         headerTitleAlign: 'left',
         headerShadowVisible: false,
-        contentStyle: { backgroundColor: Colors.bgCanvas, ...sidePadding },
+        headerShown: !compactChrome,
+        contentStyle: {
+          // navy behind the status bar so its light icons stay readable
+          backgroundColor: compactChrome ? Colors.navy : Colors.bgCanvas,
+          ...sidePadding,
+          ...(compactChrome ? { paddingTop: insets.top } : null),
+        },
       }}
     >
       <Stack.Screen

@@ -1,37 +1,84 @@
+import { Ionicons } from '@expo/vector-icons';
+import { Tabs } from 'expo-router';
 import { NativeTabs } from 'expo-router/native-tabs';
 import React from 'react';
+import { useAdaptiveLayout } from '../../lib/layout';
 import { Colors } from '../../lib/theme';
 
+const IOS = process.env.EXPO_OS === 'ios';
+
+type IonName = keyof typeof Ionicons.glyphMap;
+const TABS: { name: string; label: string; ion: IonName; ionOn: IonName }[] = [
+  { name: '(explore)', label: 'Explore', ion: 'search-outline', ionOn: 'search' },
+  { name: '(map)', label: 'Map', ion: 'map-outline', ionOn: 'map' },
+  { name: '(compare)', label: 'Compare', ion: 'git-compare-outline', ionOn: 'git-compare' },
+  { name: '(watch)', label: 'Watch', ion: 'play-circle-outline', ionOn: 'play-circle' },
+  { name: '(deals)', label: 'Deals', ion: 'pricetag-outline', ionOn: 'pricetag' },
+];
+
 /**
- * System (native) tabs. preferredPlacement="sidebar" asks iOS 27 for a sidebar wherever it fits
- * (iPhone Duo open, iPad, large iPhones in landscape); folded, the tabs sit in the Duo's side rail. iOS places them itself: a bottom tab bar on a normal iPhone,
- * the side rail on iPhone Duo's outer display, and a sidebar or tab bar on the open
- * inner display and iPad. Android gets the Material bottom navigation bar.
- * Each tab has its own Stack (see the (group)/_layout.tsx files) for its header.
+ * iOS: system tabs. iOS places them itself: bottom bar on iPhone, the side rail on iPhone Duo
+ * folded, and a sidebar when it's open or on iPad.
+ *
+ * Android (and web): a compact bottom bar on a phone. Unfolded (600dp+ wide, e.g. Pixel Fold)
+ * it becomes a Material navigation rail down the left edge, so the full height goes to content,
+ * as Google recommends for foldables and tablets.
  */
 export default function TabsLayout() {
+  const { isSplitScreen } = useAdaptiveLayout();
+
+  if (IOS) {
+    return (
+      <NativeTabs tintColor={Colors.accent} preferredPlacement="sidebar">
+        <NativeTabs.Trigger name="(explore)">
+          <NativeTabs.Trigger.Icon sf={{ default: 'magnifyingglass', selected: 'magnifyingglass' }} md="search" />
+          <NativeTabs.Trigger.Label>Explore</NativeTabs.Trigger.Label>
+        </NativeTabs.Trigger>
+        <NativeTabs.Trigger name="(map)">
+          <NativeTabs.Trigger.Icon sf={{ default: 'map', selected: 'map.fill' }} md="map" />
+          <NativeTabs.Trigger.Label>Map</NativeTabs.Trigger.Label>
+        </NativeTabs.Trigger>
+        <NativeTabs.Trigger name="(compare)">
+          <NativeTabs.Trigger.Icon sf="arrow.left.arrow.right" md="compare_arrows" />
+          <NativeTabs.Trigger.Label>Compare</NativeTabs.Trigger.Label>
+        </NativeTabs.Trigger>
+        <NativeTabs.Trigger name="(watch)">
+          <NativeTabs.Trigger.Icon sf={{ default: 'play.circle', selected: 'play.circle.fill' }} md="play_circle" />
+          <NativeTabs.Trigger.Label>Watch</NativeTabs.Trigger.Label>
+        </NativeTabs.Trigger>
+        <NativeTabs.Trigger name="(deals)">
+          <NativeTabs.Trigger.Icon sf={{ default: 'tag', selected: 'tag.fill' }} md="sell" />
+          <NativeTabs.Trigger.Label>Deals</NativeTabs.Trigger.Label>
+        </NativeTabs.Trigger>
+      </NativeTabs>
+    );
+  }
+
   return (
-    <NativeTabs tintColor={Colors.accent} preferredPlacement="sidebar">
-      <NativeTabs.Trigger name="(explore)">
-        <NativeTabs.Trigger.Icon sf={{ default: 'magnifyingglass', selected: 'magnifyingglass' }} md="search" />
-        <NativeTabs.Trigger.Label>Explore</NativeTabs.Trigger.Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="(map)">
-        <NativeTabs.Trigger.Icon sf={{ default: 'map', selected: 'map.fill' }} md="map" />
-        <NativeTabs.Trigger.Label>Map</NativeTabs.Trigger.Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="(compare)">
-        <NativeTabs.Trigger.Icon sf="arrow.left.arrow.right" md="compare_arrows" />
-        <NativeTabs.Trigger.Label>Compare</NativeTabs.Trigger.Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="(watch)">
-        <NativeTabs.Trigger.Icon sf={{ default: 'play.circle', selected: 'play.circle.fill' }} md="play_circle" />
-        <NativeTabs.Trigger.Label>Watch</NativeTabs.Trigger.Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="(deals)">
-        <NativeTabs.Trigger.Icon sf={{ default: 'tag', selected: 'tag.fill' }} md="sell" />
-        <NativeTabs.Trigger.Label>Deals</NativeTabs.Trigger.Label>
-      </NativeTabs.Trigger>
-    </NativeTabs>
+    <Tabs
+      screenOptions={{
+        headerShown: false,
+        tabBarActiveTintColor: Colors.accent,
+        tabBarInactiveTintColor: 'rgba(255,255,255,0.72)',
+        tabBarStyle: isSplitScreen
+          ? { backgroundColor: Colors.navy, borderRightWidth: 0 }
+          : { backgroundColor: Colors.navy, borderTopWidth: 0 },
+        tabBarLabelStyle: { fontSize: 11, fontWeight: '700' },
+        tabBarPosition: isSplitScreen ? 'left' : 'bottom',
+        tabBarVariant: isSplitScreen ? 'material' : 'uikit',
+        tabBarLabelPosition: 'below-icon',
+      }}
+    >
+      {TABS.map((t) => (
+        <Tabs.Screen
+          key={t.name}
+          name={t.name}
+          options={{
+            title: t.label,
+            tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? t.ionOn : t.ion} size={22} color={color} />,
+          }}
+        />
+      ))}
+    </Tabs>
   );
 }

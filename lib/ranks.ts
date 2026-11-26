@@ -1,4 +1,4 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { readBig, writeBig } from './bigStore';
 import { LIVE_BASE_URL } from './api';
 
 /** Guest ranks and better-rated alternatives, computed by the website build (data/guest-ranks.json). */
@@ -59,7 +59,7 @@ function fetchFresh(): Promise<RanksPayload | null> {
       .then((d) => {
         if (d) {
           cache = d;
-          AsyncStorage.setItem(STORE_KEY, JSON.stringify({ savedAt: Date.now(), data: d })).catch(() => {});
+          writeBig(STORE_KEY, JSON.stringify({ savedAt: Date.now(), data: d }));
         }
         return d || cache;
       })
@@ -75,7 +75,7 @@ function fetchFresh(): Promise<RanksPayload | null> {
 export async function loadGuestRanks(): Promise<RanksPayload | null> {
   if (cache) return cache;
   try {
-    const raw = await AsyncStorage.getItem(STORE_KEY);
+    const raw = await readBig(STORE_KEY);
     if (raw) {
       const saved = JSON.parse(raw) as { savedAt: number; data: RanksPayload };
       cache = saved.data;
@@ -84,6 +84,18 @@ export async function loadGuestRanks(): Promise<RanksPayload | null> {
     }
   } catch {
     // no saved copy; fall through
+  }
+  // First launch: use the copy bundled into the app, and download the latest in the background.
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const bundled = require('../assets/data/guest-ranks.json') as RanksPayload;
+    if (bundled && (bundled as { ranks?: unknown }).ranks) {
+      cache = bundled;
+      fetchFresh();
+      return cache;
+    }
+  } catch {
+    // no bundled copy
   }
   return fetchFresh();
 }

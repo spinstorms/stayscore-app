@@ -1,4 +1,4 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { readBig, writeBig } from './bigStore';
 
 /**
  * Data behind stayodds.com/insights/. The website build computes it from the whole directory and
@@ -74,7 +74,7 @@ function fetchFresh(): Promise<SiteInsights | null> {
         const d = html ? parseInsightsPage(html) : null;
         if (d) {
           cache = d;
-          AsyncStorage.setItem(STORE_KEY, JSON.stringify({ savedAt: Date.now(), data: d })).catch(() => {});
+          writeBig(STORE_KEY, JSON.stringify({ savedAt: Date.now(), data: d }));
         }
         return d || cache;
       })
@@ -90,7 +90,7 @@ export async function loadSiteInsights(options?: { force?: boolean }): Promise<S
   if (options?.force) return fetchFresh();
   if (cache) return cache;
   try {
-    const raw = await AsyncStorage.getItem(STORE_KEY);
+    const raw = await readBig(STORE_KEY);
     if (raw) {
       const saved = JSON.parse(raw) as { savedAt: number; data: SiteInsights };
       cache = saved.data;
@@ -99,6 +99,17 @@ export async function loadSiteInsights(options?: { force?: boolean }): Promise<S
     }
   } catch {
     // no saved copy
+  }
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const bundled = require('../assets/data/insights.json') as SiteInsights;
+    if (bundled?.brands) {
+      cache = bundled;
+      fetchFresh();
+      return cache;
+    }
+  } catch {
+    // no bundled copy
   }
   return fetchFresh();
 }
