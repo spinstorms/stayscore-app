@@ -25,6 +25,14 @@ export interface Alternative {
   band: string;
 }
 
+export interface NearbyHotel {
+  id: string;
+  name: string;
+  g: number;
+  rc: number;
+  km: number;
+}
+
 export interface HotelExtras {
   water?: { free: number; paid: number; latest: string; text: string; source: string };
   dining?: { name: string; distinction: string; url: string }[];
@@ -35,6 +43,7 @@ interface RanksPayload {
   updatedAt: string;
   ranks: Record<string, HotelRanks>;
   alternatives: Record<string, Alternative[]>;
+  nearby?: Record<string, NearbyHotel[]>;
   extras?: Record<string, HotelExtras>;
 }
 

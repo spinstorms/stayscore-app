@@ -12,7 +12,7 @@ import {
   getRoomTipInfo,
 } from '../lib/insights';
 import { formatPersonalScore } from '../lib/layout';
-import { Alternative, HotelExtras, HotelRanks, loadGuestRanks, ordinal, RankEntry } from '../lib/ranks';
+import { Alternative, HotelExtras, HotelRanks, NearbyHotel, loadGuestRanks, ordinal, RankEntry } from '../lib/ranks';
 import { getPropertyStatusMeta } from '../lib/propertyStatus';
 import { computeStayOdds, getTonePalette, getTripAdvisorUrl, isScoreUnverified } from '../lib/scoring';
 import { useStayOdds } from '../lib/store';
@@ -87,17 +87,20 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
   const [ranks, setRanks] = useState<HotelRanks | null>(null);
   const [alts, setAlts] = useState<Alternative[]>([]);
   const [extras, setExtras] = useState<HotelExtras | null>(null);
+  const [nearby, setNearby] = useState<NearbyHotel[]>([]);
 
   useEffect(() => {
     let active = true;
     setRanks(null);
     setExtras(null);
+    setNearby([]);
     setAlts([]);
     loadGuestRanks().then((d) => {
       if (!active || !d) return;
       setRanks(d.ranks[hotel.id] || null);
       setAlts((d.alternatives[hotel.id] || []).filter((a) => hotels.some((h) => h.id === a.id)));
       setExtras((d.extras || {})[hotel.id] || null);
+      setNearby(((d.nearby || {})[hotel.id] || []).filter((a) => hotels.some((h) => h.id === a.id)));
     });
     return () => {
       active = false;
@@ -334,7 +337,28 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
                   r={ranks.price}
                 />
               ) : null}
-              {alts.length ? (
+              {nearby.length && o.guest100 != null ? (
+                <View style={{ marginTop: 14 }}>
+                  <Text style={styles.rankTitle}>How guests compare nearby</Text>
+                  {[{ id: hotel.id, name: hotel.name, g: o.guest100, rc: 0, km: 0, me: true }, ...nearby.map((n) => ({ ...n, me: false }))]
+                    .sort((a, b) => b.g - a.g)
+                    .map((a) => (
+                      <Pressable
+                        key={a.id}
+                        disabled={a.me}
+                        style={[styles.altRow, a.me && { backgroundColor: '#FFF7F2', borderRadius: 8, paddingHorizontal: 6 }]}
+                        onPress={() => router.push({ pathname: '/hotel/[id]', params: { id: a.id } })}
+                      >
+                        <Text style={[styles.altName, a.me && { fontWeight: '800' }]} numberOfLines={1}>
+                          {a.name}{a.me ? ' (this hotel)' : ''}
+                        </Text>
+                        <Text style={styles.altMeta}>
+                          <Text style={{ color: Colors.accent, fontWeight: '700' }}>{a.g}</Text>/100{a.me ? '' : ` · ${a.km} km`}
+                        </Text>
+                      </Pressable>
+                    ))}
+                </View>
+              ) : alts.length ? (
                 <View style={{ marginTop: 14 }}>
                   <Text style={styles.rankTitle}>Guests rate these higher nearby</Text>
                   {alts.map((a) => (
