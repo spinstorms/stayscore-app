@@ -28,6 +28,7 @@ export interface Alternative {
 export interface HotelExtras {
   water?: { free: number; paid: number; latest: string; text: string; source: string };
   dining?: { name: string; distinction: string; url: string }[];
+  waterPolicy?: { status: string; summary: string; url: string };
 }
 
 interface RanksPayload {

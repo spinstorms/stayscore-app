@@ -241,7 +241,15 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
                 <Text style={[styles.soFactValue, { fontSize: 13 }]} numberOfLines={3}>{roomTip.text}</Text>
               </View>
             ) : null}
-            {extras?.water ? (
+            {extras?.waterPolicy ? (
+              <Pressable style={styles.soFactTile} onPress={() => openExternalUrl(extras.waterPolicy!.url)}>
+                <Text style={styles.factKicker}>DRINKING WATER</Text>
+                <Text style={[styles.soFactValue, { fontSize: 13 }]}>{extras.waterPolicy.status}</Text>
+                <Text style={styles.factNote} numberOfLines={3}>
+                  {extras.waterPolicy.summary} Source: isthewaterfree.com
+                </Text>
+              </Pressable>
+            ) : extras?.water ? (
               <View style={styles.soFactTile}>
                 <Text style={styles.factKicker}>DRINKING WATER</Text>
                 <Text style={[styles.soFactValue, { fontSize: 13 }]}>
