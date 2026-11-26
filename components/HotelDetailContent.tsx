@@ -19,10 +19,13 @@ import { useStayOdds } from '../lib/store';
 import { Colors } from '../lib/theme';
 import type { Hotel } from '../lib/types';
 import { ShareCardModal } from './ShareCardModal';
+import { WhenBox } from './WhenBox';
 
 interface Props {
   hotel: Hotel;
   isSidePane?: boolean;
+  /** quick-date key to preselect, e.g. 'christmas' (from the Holidays screen) */
+  when?: string;
 }
 
 function ScoreBar({
@@ -77,7 +80,7 @@ function RankScale({ title, r }: { title: string; r: RankEntry }) {
   );
 }
 
-export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
+export function HotelDetailContent({ hotel, isSidePane = false, when }: Props) {
   const router = useRouter();
   const { hotels, setCompareA, setCompareB, setCompareC, pushToCompare, toggleShortlist, isShortlisted } = useStayOdds();
   const [liveGoogle, setLiveGoogle] = useState<LiveGoogleRating | null>(null);
@@ -216,13 +219,11 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
                 {o.personalScoreLabel ? ` · our filmed stay ${o.personalScoreLabel}` : ''}.
               </Text>
             ) : null}
-            {hotel.bookingUrl ? (
-              <Pressable style={styles.btnPrice} onPress={() => openExternalUrl(hotel.bookingUrl)}>
-                <Text style={styles.btnPriceText}>
-                  Check prices{hotel.priceRange ? ` · from ${hotel.priceRange.replace(/\s*\/\s*night/i, '')}` : ''} ↗
-                </Text>
-              </Pressable>
-            ) : null}
+            <WhenBox
+              bookingUrl={hotel.bookingUrl}
+              priceFrom={hotel.priceRange ? hotel.priceRange.replace(/\s*\/\s*night/i, '') : undefined}
+              when={when}
+            />
           </View>
 
           {/* Even 2x2 facts: no empty gaps */}
@@ -1081,8 +1082,6 @@ const styles = StyleSheet.create({
   gapBig: { fontSize: 18, fontWeight: '800', color: '#0F172A' },
   gapLbl: { fontSize: 11, color: '#64748B', marginTop: 2 },
   gapNote: { fontSize: 12.5, color: '#475569', lineHeight: 18 },
-  btnPrice: { backgroundColor: '#16A34A', borderRadius: 12, minHeight: 46, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 },
-  btnPriceText: { color: '#FFFFFF', fontWeight: '700', fontSize: 15 },
   factGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 12 },
   soFactTile: { flexBasis: '47%', flexGrow: 1, backgroundColor: '#FFFFFF', borderRadius: 16, borderWidth: 1, borderColor: '#E7E2DA', padding: 12 },
   factKicker: { fontSize: 10.5, fontWeight: '700', letterSpacing: 0.8, color: '#64748B' },

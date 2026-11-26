@@ -12,7 +12,16 @@ import {
   View,
 } from 'react-native';
 import { openExternalUrl } from '../../../lib/api';
-import { AWARD_LISTS, matchesAwardList, type AwardListId } from '../../../lib/awards';
+import {
+  applyAwardFilters,
+  AWARD_FILTERS,
+  AWARD_LISTS,
+  matchesAwardList,
+  type AwardFilterId,
+  type AwardListId,
+  type DiningMap,
+} from '../../../lib/awards';
+import { loadGuestRanks } from '../../../lib/ranks';
 import { computeStayOdds, getTonePalette, isVisitedProperty } from '../../../lib/scoring';
 import { useStayOdds } from '../../../lib/store';
 import { Colors } from '../../../lib/theme';
@@ -57,11 +66,41 @@ export default function WorldMapScreen() {
   const { hotels, shortlist, isShortlisted, toggleShortlist, pushToCompare, loading } = useStayOdds();
 
   const [viewportId, setViewportId] = useState<string>('world');
-  const params = useLocalSearchParams<{ scope?: string }>();
+  const params = useLocalSearchParams<{ scope?: string; awards?: string; match?: string }>();
   const [scope, setScope] = useState<MapScope>('all');
+  // Multi-select award filters, as on stayodds.com/hotels/: pick one or more, match all or any.
+  const [awards, setAwards] = useState<AwardFilterId[]>([]);
+  const [awardMatch, setAwardMatch] = useState<'all' | 'any'>('all');
+  const [dining, setDining] = useState<DiningMap>({});
   React.useEffect(() => {
-    if (params.scope && AWARD_SCOPES.includes(String(params.scope))) setScope(params.scope as MapScope);
-  }, [params.scope]);
+    const sc = params.scope ? String(params.scope) : '';
+    if (sc === 'w50') {
+      // legacy single-award scope -> award filter (the website migrates it the same way)
+      setScope('all');
+      setAwards((a) => (a.includes('w50') ? a : [...a, 'w50']));
+    } else if (sc && AWARD_SCOPES.includes(sc)) setScope(sc as MapScope);
+    if (params.awards) {
+      const ids = String(params.awards)
+        .split(',')
+        .filter((a): a is AwardFilterId => AWARD_FILTERS.some((f) => f.id === a));
+      setAwards(ids);
+    }
+    if (params.match === 'any') setAwardMatch('any');
+  }, [params.scope, params.awards, params.match]);
+  React.useEffect(() => {
+    let active = true;
+    loadGuestRanks().then((d) => {
+      if (!active || !d?.extras) return;
+      const m: DiningMap = {};
+      for (const [id, x] of Object.entries(d.extras)) if (x.dining?.length) m[id] = x.dining;
+      setDining(m);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+  const toggleAward = (id: AwardFilterId) =>
+    setAwards((a) => (a.includes(id) ? a.filter((x) => x !== id) : [...a, id]));
   const [selectedId, setSelectedId] = useState<string>('taaktana-labuan-bajo');
   const [canvasSize, setCanvasSize] = useState({ width: 340, height: 290 });
 
@@ -70,18 +109,32 @@ export default function WorldMapScreen() {
     [viewportId]
   );
 
-  const visibleHotels = useMemo(() => {
+  // Hotels in the chosen scope, before award filters (award chip counts are taken from this, as on the website)
+  const scopeBase = useMemo(() => {
     const savedSet = new Set(shortlist);
     return hotels.filter((h) => {
       if (typeof h.lat !== 'number' || typeof h.lng !== 'number') return false;
       if (scope === 'visited' && !isVisitedProperty(h)) return false;
       if (scope === 'saved' && !savedSet.has(h.id)) return false;
       if (AWARD_SCOPES.includes(scope) && !matchesAwardList(h, scope as AwardListId)) return false;
-      if (viewport.countryFilter && !viewport.countryFilter.includes(h.country)) return false;
-      if (viewport.regionFilter && h.region !== viewport.regionFilter) return false;
       return true;
     });
-  }, [hotels, scope, shortlist, viewport]);
+  }, [hotels, scope, shortlist]);
+
+  const awardMatched = useMemo(
+    () => applyAwardFilters(scopeBase, awards, awardMatch, dining),
+    [scopeBase, awards, awardMatch, dining]
+  );
+
+  const visibleHotels = useMemo(
+    () =>
+      awardMatched.filter((h) => {
+        if (viewport.countryFilter && !viewport.countryFilter.includes(h.country)) return false;
+        if (viewport.regionFilter && h.region !== viewport.regionFilter) return false;
+        return true;
+      }),
+    [awardMatched, viewport]
+  );
 
   const selectedHotel: Hotel | null = useMemo(() => {
     return (
@@ -160,19 +213,63 @@ export default function WorldMapScreen() {
           </Pressable>
         </View>
 
+        <Text style={styles.awardRowLabel}>Awards (pick one or more)</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.regionStrip}>
-          {AWARD_LISTS.map((l) => (
-            <Pressable
-              key={l.id}
-              onPress={() => setScope(scope === l.id ? 'all' : l.id)}
-              style={[styles.scopeBtn, scope === l.id && styles.scopeBtnActive]}
-            >
-              <Text style={[styles.scopeText, scope === l.id && styles.scopeTextActive]}>
-                {l.id === 'w50' ? "World's 50 Best" : `MICHELIN ${l.short}`}
-              </Text>
+          {AWARD_SCOPES.includes(scope)
+            ? AWARD_LISTS.filter((l) => l.id === scope).map((l) => (
+                <Pressable key={l.id} onPress={() => setScope('all')} style={[styles.scopeBtn, styles.scopeBtnActive]}>
+                  <Text style={[styles.scopeText, styles.scopeTextActive]}>
+                    {l.id === 'w50' ? "World's 50 Best" : `MICHELIN ${l.short}`} ✕
+                  </Text>
+                </Pressable>
+              ))
+            : null}
+          {AWARD_FILTERS.map((f) => {
+            const on = awards.includes(f.id);
+            const cnt = scopeBase.filter((h) => f.test(h, dining)).length;
+            if (!cnt && !on) return null;
+            return (
+              <Pressable
+                key={f.id}
+                accessibilityRole="button"
+                accessibilityState={{ selected: on }}
+                onPress={() => toggleAward(f.id)}
+                style={[styles.scopeBtn, on && styles.scopeBtnActive]}
+              >
+                <Text style={[styles.scopeText, on && styles.scopeTextActive]}>
+                  {on ? '✓ ' : ''}
+                  {f.label} ({cnt})
+                </Text>
+              </Pressable>
+            );
+          })}
+          {awards.length ? (
+            <Pressable onPress={() => setAwards([])} style={styles.awardClear}>
+              <Text style={styles.awardClearText}>Clear</Text>
             </Pressable>
-          ))}
+          ) : null}
         </ScrollView>
+        {awards.length > 1 ? (
+          <View style={styles.matchRow}>
+            <Text style={styles.matchText}>Show hotels with</Text>
+            {(['all', 'any'] as const).map((m) => (
+              <Pressable
+                key={m}
+                accessibilityRole="button"
+                accessibilityState={{ selected: awardMatch === m }}
+                onPress={() => setAwardMatch(m)}
+                style={[styles.matchBtn, awardMatch === m && styles.matchBtnActive]}
+              >
+                <Text style={[styles.matchBtnText, awardMatch === m && styles.matchBtnTextActive]}>
+                  {m === 'all' ? 'all of these' : 'any of these'}
+                </Text>
+              </Pressable>
+            ))}
+            <Text style={styles.matchText}>
+              · {awardMatched.length} hotel{awardMatched.length === 1 ? '' : 's'}
+            </Text>
+          </View>
+        ) : null}
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.regionStrip}>
           {REGION_VIEWPORTS.map((rv) => {
@@ -429,6 +526,21 @@ const styles = StyleSheet.create({
   scopeTextActive: {
     color: '#FFFFFF',
   },
+  awardRowLabel: { color: 'rgba(255,255,255,0.6)', fontSize: 11, fontWeight: '700', letterSpacing: 0.3 },
+  awardClear: { paddingHorizontal: 10, paddingVertical: 6, justifyContent: 'center' },
+  awardClearText: { color: '#FDBA74', fontSize: 12, fontWeight: '700', textDecorationLine: 'underline' },
+  matchRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 },
+  matchText: { color: 'rgba(255,255,255,0.78)', fontSize: 12 },
+  matchBtn: {
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
+  },
+  matchBtnActive: { backgroundColor: '#FFFFFF', borderColor: '#FFFFFF' },
+  matchBtnText: { color: 'rgba(255,255,255,0.85)', fontSize: 12, fontWeight: '700' },
+  matchBtnTextActive: { color: Colors.navy },
   webMapBtn: {
     flexDirection: 'row',
     alignItems: 'center',

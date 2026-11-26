@@ -13,6 +13,10 @@ const screens = [
   ['08-compare', '/compare'],
   ['09-watch', '/watch'],
   ['10-deals', '/deals'],
+  ['11-holidays', '/holidays?when=christmas'],
+  ['12-insights', '/insights'],
+  ['13-hotel-christmas', '/hotel/rosewood-hong-kong?when=christmas'],
+  ['14-map-awards', '/map?awards=keys,stars&match=any'],
 ];
 const targets = [
   ['iphone-15-pro', devices['iPhone 15 Pro']],

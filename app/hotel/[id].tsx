@@ -7,7 +7,7 @@ import { useStayOdds } from '../../lib/store';
 import { Colors } from '../../lib/theme';
 
 export default function HotelDetailRoute() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, when } = useLocalSearchParams<{ id: string; when?: string }>();
   const { hotels } = useStayOdds();
   const hotel = hotels.find((h) => h.id === id) || hotels[0];
 
@@ -22,7 +22,7 @@ export default function HotelDetailRoute() {
   return (
     <View style={styles.screen}>
       <Stack.Screen options={{ title: hotel.name }} />
-      <HotelDetailContent hotel={hotel} />
+      <HotelDetailContent hotel={hotel} when={typeof when === 'string' ? when : undefined} />
     </View>
   );
 }

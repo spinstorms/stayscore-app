@@ -487,6 +487,17 @@ export default function StayOddsHomeScreen() {
         <Ionicons name="chevron-forward" size={16} color="#FFFFFF" />
       </Pressable>
 
+      <View style={styles.quickLinks}>
+        <Pressable onPress={() => router.push('/holidays')} style={styles.quickLink}>
+          <Ionicons name="gift-outline" size={15} color="#FFFFFF" />
+          <Text style={styles.quickLinkText} numberOfLines={1}>Holidays</Text>
+        </Pressable>
+        <Pressable onPress={() => router.push('/insights')} style={styles.quickLink}>
+          <Ionicons name="stats-chart-outline" size={15} color="#FFFFFF" />
+          <Text style={styles.quickLinkText} numberOfLines={1}>Guest insights</Text>
+        </Pressable>
+      </View>
+
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.regionRow}>
         {regions.map((r) => {
           const isActive = region === r;
@@ -654,6 +665,20 @@ const styles = StyleSheet.create({
   splitRight: { flex: 1 },
 
   listContent: { paddingBottom: 34, gap: 14 },
+  quickLinks: { flexDirection: 'row', gap: 8, marginHorizontal: 14, marginTop: -2, marginBottom: 10 },
+  quickLink: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 9,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.18)',
+  },
+  quickLinkText: { color: '#FFFFFF', fontWeight: '800', fontSize: 13 },
 
   navyHeaderPanel: {
     backgroundColor: Colors.navy,
