@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useMemo, useState } from 'react';
-import { Image, ImageBackground, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Animated, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getBestMonths } from '../lib/insights';
 import { InlineVideo } from './video/InlineVideo';
 import { useAdaptiveLayout } from '../lib/layout';
@@ -13,13 +14,48 @@ import type { Hotel } from '../lib/types';
 const guest = (h: Hotel) => h.verifiedGuest?.licensed?.normalized100 ?? 0;
 const SHOW = 24;
 
+const SLIDES = [
+  { src: require('../assets/images/hero-maldives.jpg'), place: 'Maldives' },
+  { src: require('../assets/images/hero-bora-bora.jpg'), place: 'Bora Bora' },
+  { src: require('../assets/images/hero-seychelles.jpg'), place: 'Seychelles' },
+  { src: require('../assets/images/hero-bali.jpg'), place: 'Bali' },
+];
+
+/** Full-screen photos that slowly cross-fade, built into the app so they show instantly. */
+function Slideshow() {
+  const fades = useRef(SLIDES.map((_, i) => new Animated.Value(i === 0 ? 1 : 0))).current;
+  const [i, setI] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => {
+      setI((cur) => {
+        const next = (cur + 1) % SLIDES.length;
+        Animated.parallel([
+          Animated.timing(fades[cur], { toValue: 0, duration: 1400, useNativeDriver: true }),
+          Animated.timing(fades[next], { toValue: 1, duration: 1400, useNativeDriver: true }),
+        ]).start();
+        return next;
+      });
+    }, 5500);
+    return () => clearInterval(t);
+  }, [fades]);
+  return (
+    <>
+      {SLIDES.map((sl, k) => (
+        <Animated.Image key={sl.place} source={sl.src} resizeMode="cover" style={[StyleSheet.absoluteFill, { opacity: fades[k] }]} />
+      ))}
+      <View style={styles.heroShade} />
+      <Text style={styles.place}>{SLIDES[i].place}</Text>
+    </>
+  );
+}
+
 /**
  * Home: shows instantly (everything above the results is built into the app, no data needed).
  * Describe a trip in plain English, like stayodds.com's trip finder, or jump to the other parts.
  */
 export function TripHome() {
   const router = useRouter();
-  const { hotels, deals, videos, shorts } = useStayOdds();
+  const { hotels, deals, videos } = useStayOdds();
   const { isSplitScreen, horizontalPadding } = useAdaptiveLayout();
   const params = useLocalSearchParams<{ q?: string }>();
   const initial = typeof params.q === 'string' ? params.q : '';
@@ -33,64 +69,63 @@ export function TripHome() {
     [hotels, parsed, query]
   );
 
+  const ready = hotels.length > 0;
+  const { height } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  // the photo screen fills the first view; results and the rest sit below it
+  const heroHeight = Math.max(460, height - insets.top - (isSplitScreen ? 0 : 70));
+  const scrollRef = useRef<ScrollView>(null);
   const run = (t: string) => {
     setText(t);
     setQuery(t.trim());
     setLimit(SHOW);
+    // bring the results into view under the photo screen
+    if (t.trim()) setTimeout(() => scrollRef.current?.scrollTo({ y: heroHeight - 40, animated: true }), 120);
   };
   const open = (h: Hotel) => router.push({ pathname: '/hotel/[id]', params: { id: h.id } });
-  const ready = hotels.length > 0;
 
   return (
     <ScrollView
+      ref={scrollRef}
       style={styles.screen}
       contentContainerStyle={{ paddingBottom: 40 }}
       keyboardShouldPersistTaps="handled"
       contentInsetAdjustmentBehavior="automatic"
     >
-      <ImageBackground source={require('../assets/images/welcome-hero.jpg')} style={styles.hero} resizeMode="cover">
-        <View style={styles.heroShade} />
+      {/* Clean first screen: photos, one question, one button */}
+      <View style={[styles.hero, { minHeight: heroHeight }]}>
+        <Slideshow />
         <View style={[styles.heroInner, { paddingHorizontal: horizontalPadding }]}>
           <View style={styles.brandRow}>
             <Image source={require('../assets/images/stayodds-logo.png')} style={styles.logo} />
-            <View>
-              <Text style={styles.wordmark}>
-                StayOdds<Text style={{ color: Colors.accent }}>.</Text>
-              </Text>
-              <Text style={styles.byline}>by The Uncharted Itinerary</Text>
-            </View>
+            <Text style={styles.wordmark}>
+              StayOdds<Text style={{ color: Colors.accent }}>.</Text>
+            </Text>
           </View>
-          <Text style={styles.h1}>Find the luxury hotel guests actually love.</Text>
+          <Text style={styles.h1}>Where do you want to go?</Text>
+          <TextInput
+            value={text}
+            onChangeText={setText}
+            onSubmitEditing={() => run(text)}
+            placeholder="e.g. sunny Caribbean in January"
+            placeholderTextColor="#94A3B8"
+            style={styles.askInput}
+            returnKeyType="go"
+            accessibilityLabel="Describe your trip in plain English"
+          />
+          <Pressable
+            style={styles.genBtn}
+            accessibilityRole="button"
+            onPress={() => run(text.trim() ? text : TRIP_EXAMPLES[Math.floor(Math.random() * TRIP_EXAMPLES.length)])}
+          >
+            <Ionicons name="sparkles" size={18} color="#FFFFFF" />
+            <Text style={styles.genBtnText}>{text.trim() ? 'Find my hotels' : 'Surprise me'}</Text>
+          </Pressable>
           <Text style={styles.lead}>
-            Real guest scores, critics and our own filmed stays for {ready ? hotels.length.toLocaleString('en-GB') : '1,300+'} hotels,
-            in one simple score.
+            Real guest scores, critics and our own filmed stays for {ready ? hotels.length.toLocaleString('en-GB') : '1,300+'} luxury hotels.
           </Text>
-
-          <View style={styles.askBox}>
-            <Ionicons name="sparkles" size={18} color={Colors.accent} />
-            <TextInput
-              value={text}
-              onChangeText={setText}
-              onSubmitEditing={() => run(text)}
-              placeholder="Describe your trip, e.g. sunny Caribbean in January"
-              placeholderTextColor="#94A3B8"
-              style={styles.askInput}
-              returnKeyType="search"
-              accessibilityLabel="Describe your trip in plain English"
-            />
-            <Pressable style={styles.askBtn} onPress={() => run(text)} accessibilityRole="button">
-              <Text style={styles.askBtnText}>Find</Text>
-            </Pressable>
-          </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingTop: 10 }}>
-            {TRIP_EXAMPLES.map((ex) => (
-              <Pressable key={ex} onPress={() => run(ex)} style={styles.example}>
-                <Text style={styles.exampleText}>{ex}</Text>
-              </Pressable>
-            ))}
-          </ScrollView>
         </View>
-      </ImageBackground>
+      </View>
 
       <View style={[styles.body, { paddingHorizontal: horizontalPadding }]}>
         {query ? (
@@ -162,8 +197,8 @@ export function TripHome() {
               </Pressable>
             </View>
             <View style={isSplitScreen ? styles.grid : undefined}>
-              {videos.slice(0, isSplitScreen ? 2 : 1).map((v) => (
-                <View key={v.id} style={[{ gap: 6 }, isSplitScreen && styles.cardHalf]}>
+              {videos.slice(0, 1).map((v) => (
+                <View key={v.id} style={{ gap: 6, maxWidth: 640 }}>
                   <InlineVideo url={v.url} thumbnail={v.thumbnail || v.fallbackThumbnail} badge="The Uncharted Itinerary" />
                   <Text style={styles.cardName} numberOfLines={2}>
                     {v.title}
@@ -171,34 +206,8 @@ export function TripHome() {
                 </View>
               ))}
             </View>
-            {shorts.length ? (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingTop: 4 }}>
-                {shorts.slice(0, 10).map((v) => (
-                  <View key={v.id} style={{ width: 130 }}>
-                    <InlineVideo url={v.url} thumbnail={v.thumbnail || v.fallbackThumbnail} aspect={9 / 16} />
-                  </View>
-                ))}
-              </ScrollView>
-            ) : null}
           </View>
         ) : null}
-
-        <View style={styles.section}>
-          <Text style={styles.eyebrow}>How StayOdds works</Text>
-          <View style={isSplitScreen ? styles.grid : undefined}>
-            {[
-              ['chatbubble-ellipses-outline', 'Describe your trip', 'Type it in plain English, or browse by place, award or month.'],
-              ['analytics-outline', 'See one honest score', 'Thousands of real guest reviews, the critics and our own filmed stays, side by side.'],
-              ['bed-outline', 'Book the right room', 'Best months to go, the rooms we would book, and prices for your dates.'],
-            ].map(([icon, title, body]) => (
-              <View key={title} style={[styles.step, isSplitScreen && styles.cardThird]}>
-                <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={22} color={Colors.accent} />
-                <Text style={styles.stepTitle}>{title}</Text>
-                <Text style={styles.sub}>{body}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
 
         <Pressable style={styles.deals} onPress={() => router.push('/deals')}>
           <View style={{ flex: 1, gap: 4 }}>
@@ -212,21 +221,6 @@ export function TripHome() {
           <Ionicons name="chevron-forward" size={20} color="#FFFFFF" />
         </Pressable>
 
-        <View style={[styles.section, styles.quickRow]}>
-          {(
-            [
-              ['gift-outline', 'Holiday dates', '/holidays'],
-              ['stats-chart-outline', 'Guest insights', '/insights'],
-              ['map-outline', 'World map', '/map'],
-              ['play-circle-outline', 'Our stays', '/watch'],
-            ] as const
-          ).map(([icon, label, href]) => (
-            <Pressable key={href} style={styles.quick} onPress={() => router.push(href)}>
-              <Ionicons name={icon} size={20} color={Colors.navy} />
-              <Text style={styles.quickText}>{label}</Text>
-            </Pressable>
-          ))}
-        </View>
       </View>
     </ScrollView>
   );
@@ -234,15 +228,35 @@ export function TripHome() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.bgCanvas },
-  hero: { minHeight: 360, justifyContent: 'flex-end' },
-  heroShade: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(7, 19, 35, 0.58)' },
-  heroInner: { paddingTop: 22, paddingBottom: 20, gap: 8, maxWidth: 900, width: '100%', alignSelf: 'center' },
-  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6 },
+  hero: { justifyContent: 'center', overflow: 'hidden', backgroundColor: Colors.navy },
+  heroShade: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(7, 19, 35, 0.38)' },
+  heroInner: { paddingVertical: 28, gap: 14, maxWidth: 560, width: '100%', alignSelf: 'center' },
+  place: {
+    position: 'absolute',
+    right: 16,
+    bottom: 14,
+    color: 'rgba(255,255,255,0.85)',
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  genBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    backgroundColor: Colors.accent,
+    borderRadius: 16,
+    paddingVertical: 17,
+  },
+  genBtnText: { color: '#FFFFFF', fontSize: 18, fontWeight: '900', letterSpacing: -0.2 },
+  brandRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 4 },
   logo: { width: 40, height: 40, borderRadius: 10 },
   wordmark: { color: '#FFFFFF', fontSize: 24, fontWeight: '900', letterSpacing: -0.6 },
   byline: { color: 'rgba(255,255,255,0.8)', fontSize: 11.5, fontWeight: '600' },
-  h1: { color: '#FFFFFF', fontSize: 27, fontWeight: '900', lineHeight: 32, letterSpacing: -0.5 },
-  lead: { color: 'rgba(255,255,255,0.9)', fontSize: 14.5, lineHeight: 20 },
+  h1: { color: '#FFFFFF', fontSize: 32, fontWeight: '900', lineHeight: 38, letterSpacing: -0.8, textAlign: 'center' },
+  lead: { color: 'rgba(255,255,255,0.9)', fontSize: 13.5, lineHeight: 19, textAlign: 'center' },
   askBox: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -254,7 +268,14 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     marginTop: 8,
   },
-  askInput: { flex: 1, fontSize: 15, color: Colors.inkPrimary, paddingVertical: 8, minHeight: 40 },
+  askInput: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    fontSize: 17,
+    color: Colors.inkPrimary,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+  },
   askBtn: { backgroundColor: Colors.accent, borderRadius: 10, paddingHorizontal: 16, paddingVertical: 10 },
   askBtnText: { color: '#FFFFFF', fontWeight: '800', fontSize: 14 },
   example: { backgroundColor: 'rgba(255,255,255,0.16)', borderColor: 'rgba(255,255,255,0.3)', borderWidth: 1, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7 },

@@ -51,6 +51,8 @@ export function TabStack({
           backgroundColor: compactChrome ? Colors.navy : Colors.bgCanvas,
           ...sidePadding,
           ...(compactChrome ? { paddingTop: insets.top } : null),
+          // Android unfolded has no bottom tab bar, so keep content above the system navigation bar
+          ...(process.env.EXPO_OS === 'android' && isSplitScreen ? { paddingBottom: insets.bottom } : null),
         },
       }}
     >

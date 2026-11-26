@@ -1,7 +1,7 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React from 'react';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BRAND } from '../lib/brand';
 import { useSideInsetStyle } from '../lib/layout';
 import { StayOddsProvider } from '../lib/store';
@@ -21,6 +21,9 @@ export default function RootLayout() {
 function RootStack() {
   // Pushed screens (hotel breakdown, award lists) keep their content clear of the iPhone Duo rail.
   const sidePadding = useSideInsetStyle();
+  const insets = useSafeAreaInsets();
+  // Android draws edge to edge: keep pushed screens (hotel pages, award lists) above the navigation bar
+  const bottomPad = process.env.EXPO_OS === 'android' ? { paddingBottom: insets.bottom } : null;
   return (
         <Stack
           screenOptions={{
@@ -28,7 +31,7 @@ function RootStack() {
             headerTintColor: '#FFFFFF',
             headerTitleStyle: { fontWeight: '700', color: '#FFFFFF' },
             headerShadowVisible: false,
-            contentStyle: { backgroundColor: Colors.bgCanvas, ...sidePadding },
+            contentStyle: { backgroundColor: Colors.bgCanvas, ...sidePadding, ...bottomPad },
           }}
         >
           {/* The tabs pad their own screens, so the system tab bar / rail itself stays at the edge. */}
