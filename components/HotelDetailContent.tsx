@@ -19,6 +19,7 @@ import { useStayOdds } from '../lib/store';
 import { Colors } from '../lib/theme';
 import type { Hotel } from '../lib/types';
 import { ShareCardModal } from './ShareCardModal';
+import { InlineVideo } from './video/InlineVideo';
 import { WhenBox } from './WhenBox';
 
 interface Props {
@@ -425,16 +426,15 @@ export function HotelDetailContent({ hotel, isSidePane = false, when }: Props) {
           </View>
 
           {/* Primary Actions (Mobile-Compliant Booking Routing) */}
-          <View style={styles.actionRow}>
-            {videoUrl ? (
-              <Pressable style={[styles.btnDark, { flex: 1 }]} onPress={() => openExternalUrl(videoUrl)}>
-                <Ionicons name="logo-youtube" size={16} color="#FFFFFF" />
-                <Text style={styles.btnDarkText}>
-                  {hotel.coverageType === 'Short Tour' ? 'Watch Short' : 'Watch Review'}
-                </Text>
-              </Pressable>
-            ) : null}
-          </View>
+          {videoUrl ? (
+            // Our video review plays right here
+            <InlineVideo
+              url={videoUrl}
+              aspect={hotel.coverageType === 'Short Tour' ? 9 / 16 : 16 / 9}
+              badge={hotel.coverageType === 'Short Tour' ? 'Our short' : 'Our video review'}
+              style={hotel.coverageType === 'Short Tour' ? { maxWidth: 300, alignSelf: 'center' } : undefined}
+            />
+          ) : null}
 
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <Pressable

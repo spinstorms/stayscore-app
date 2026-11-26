@@ -11,6 +11,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { InlineVideo } from '../../../components/video/InlineVideo';
 import { openExternalUrl } from '../../../lib/api';
 import { useAdaptiveLayout } from '../../../lib/layout';
 import { useStayOdds } from '../../../lib/store';
@@ -49,32 +50,21 @@ export default function WatchScreen() {
   const remainingVideos = featuredVideo ? filteredVideos.slice(1) : [];
 
   const renderVideoCard = (video: VideoItem, isFeatured = false) => (
-    <Pressable
+    <View
       key={video.id}
       style={[
         styles.videoCard,
         isFeatured && styles.featuredCard,
         !isFeatured && isSplitScreen && { flex: 1, minWidth: '47%' },
       ]}
-      onPress={() => openExternalUrl(video.url)}
     >
-      <View style={[styles.thumbWrap, isFeatured && styles.featuredThumbWrap]}>
-        <Image
-          source={{ uri: video.thumbnail || video.fallbackThumbnail }}
-          style={styles.thumbImg}
-          resizeMode="cover"
-        />
-        <View style={styles.playOverlay}>
-          <View style={styles.playCircle}>
-            <Ionicons name="play" size={18} color="#FFFFFF" style={{ marginLeft: 2 }} />
-          </View>
-        </View>
-        {video.category ? (
-          <View style={styles.catBadge}>
-            <Text style={styles.catBadgeText}>{video.category}</Text>
-          </View>
-        ) : null}
-      </View>
+      {/* Tap to play right here, like the play buttons on stayodds.com */}
+      <InlineVideo
+        url={video.url}
+        thumbnail={video.thumbnail || video.fallbackThumbnail}
+        badge={video.category || undefined}
+        style={{ borderRadius: 0 }}
+      />
 
       <View style={styles.videoBody}>
         <Text style={[styles.videoTitle, isFeatured && styles.featuredTitle]} numberOfLines={2}>
@@ -105,14 +95,14 @@ export default function WatchScreen() {
           </View>
         ) : null}
 
-        <View style={styles.watchRow}>
+        <Pressable style={styles.watchRow} onPress={() => openExternalUrl(video.url)}>
           <Ionicons name="logo-youtube" size={15} color={isFeatured ? Colors.accent : '#EF4444'} />
           <Text style={[styles.watchCta, isFeatured && { color: '#FFFFFF' }]}>
-            Watch Full Episode on YouTube
+            Open on YouTube (comments, subscribe)
           </Text>
-        </View>
+        </Pressable>
       </View>
-    </Pressable>
+    </View>
   );
 
   return (
@@ -202,24 +192,12 @@ export default function WatchScreen() {
             keyExtractor={(item) => item.id}
             contentContainerStyle={{ paddingHorizontal: horizontalPadding, gap: 10 }}
             renderItem={({ item }) => (
-              <Pressable style={styles.shortCard} onPress={() => openExternalUrl(item.url)}>
-                <Image
-                  source={{ uri: item.thumbnail || item.fallbackThumbnail }}
-                  style={styles.shortImg}
-                  resizeMode="cover"
-                />
-                <View style={styles.shortScrim} />
-                <View style={styles.shortBadge}>
-                  <Ionicons name="play" size={10} color="#FFFFFF" />
-                  <Text style={styles.shortBadgeText}>SHORT</Text>
-                </View>
-                <View style={styles.shortFooter}>
-                  <Text style={styles.shortTitle} numberOfLines={2}>
-                    {item.title}
-                  </Text>
-                  {item.viewsText ? <Text style={styles.shortViews}>{item.viewsText}</Text> : null}
-                </View>
-              </Pressable>
+              <View style={styles.shortCard}>
+                <InlineVideo url={item.url} thumbnail={item.thumbnail || item.fallbackThumbnail} aspect={9 / 16} badge="SHORT" style={{ borderRadius: 14 }} />
+                <Text style={styles.shortTitleBelow} numberOfLines={2}>
+                  {item.title}
+                </Text>
+              </View>
             )}
           />
         </View>
@@ -239,6 +217,7 @@ export default function WatchScreen() {
 }
 
 const styles = StyleSheet.create({
+  shortTitleBelow: { fontSize: 12.5, fontWeight: '700', color: Colors.inkPrimary, marginTop: 6 },
   screen: { flex: 1, backgroundColor: Colors.bgCanvas },
   channelBanner: {
     backgroundColor: Colors.charcoal,
@@ -370,14 +349,7 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 16, fontWeight: '800', color: Colors.inkPrimary },
   sectionHint: { fontSize: 12, fontWeight: '700', color: Colors.accent },
 
-  shortCard: {
-    width: 136,
-    height: 220,
-    borderRadius: 14,
-    overflow: 'hidden',
-    backgroundColor: Colors.charcoal,
-    position: 'relative',
-  },
+  shortCard: { width: 150 },
   shortImg: { width: '100%', height: '100%' },
   shortScrim: {
     position: 'absolute',

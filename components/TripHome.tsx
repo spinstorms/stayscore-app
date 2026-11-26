@@ -3,6 +3,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import { Image, ImageBackground, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { getBestMonths } from '../lib/insights';
+import { InlineVideo } from './video/InlineVideo';
 import { useAdaptiveLayout } from '../lib/layout';
 import { useStayOdds } from '../lib/store';
 import { Colors } from '../lib/theme';
@@ -18,7 +19,7 @@ const SHOW = 24;
  */
 export function TripHome() {
   const router = useRouter();
-  const { hotels, deals } = useStayOdds();
+  const { hotels, deals, videos, shorts } = useStayOdds();
   const { isSplitScreen, horizontalPadding } = useAdaptiveLayout();
   const params = useLocalSearchParams<{ q?: string }>();
   const initial = typeof params.q === 'string' ? params.q : '';
@@ -152,6 +153,36 @@ export function TripHome() {
           </View>
         ) : null}
 
+        {videos.length ? (
+          <View style={styles.section}>
+            <View style={styles.rowBetween}>
+              <Text style={styles.eyebrow}>Watch our latest stay</Text>
+              <Pressable onPress={() => router.push('/watch')} hitSlop={8}>
+                <Text style={styles.clear}>All videos →</Text>
+              </Pressable>
+            </View>
+            <View style={isSplitScreen ? styles.grid : undefined}>
+              {videos.slice(0, isSplitScreen ? 2 : 1).map((v) => (
+                <View key={v.id} style={[{ gap: 6 }, isSplitScreen && styles.cardHalf]}>
+                  <InlineVideo url={v.url} thumbnail={v.thumbnail || v.fallbackThumbnail} badge="The Uncharted Itinerary" />
+                  <Text style={styles.cardName} numberOfLines={2}>
+                    {v.title}
+                  </Text>
+                </View>
+              ))}
+            </View>
+            {shorts.length ? (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingTop: 4 }}>
+                {shorts.slice(0, 10).map((v) => (
+                  <View key={v.id} style={{ width: 130 }}>
+                    <InlineVideo url={v.url} thumbnail={v.thumbnail || v.fallbackThumbnail} aspect={9 / 16} />
+                  </View>
+                ))}
+              </ScrollView>
+            ) : null}
+          </View>
+        ) : null}
+
         <View style={styles.section}>
           <Text style={styles.eyebrow}>How StayOdds works</Text>
           <View style={isSplitScreen ? styles.grid : undefined}>
@@ -230,6 +261,7 @@ const styles = StyleSheet.create({
   exampleText: { color: '#FFFFFF', fontSize: 12.5, fontWeight: '600' },
   body: { maxWidth: 900, width: '100%', alignSelf: 'center' },
   section: { marginTop: 18, gap: 10 },
+  rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   understood: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 },
   understoodLabel: { fontSize: 13, fontWeight: '700', color: Colors.inkSecondary },
   chip: { fontSize: 12.5, fontWeight: '700', color: Colors.inkPrimary, backgroundColor: '#FFE8DD', borderRadius: 99, paddingHorizontal: 10, paddingVertical: 4, overflow: 'hidden' },

@@ -143,6 +143,8 @@ export default function CompareScreen() {
   }, [hotels, inlineSearchC]);
 
   const pickerList = useMemo(() => {
+    // only build the full list when the picker is open
+    if (!pickerTarget) return [];
     const savedSet = new Set(shortlist);
     return hotels
       .filter((h) => {
@@ -159,7 +161,7 @@ export default function CompareScreen() {
         if (bv !== av) return bv - av;
         return (ob.greatStayOdds ?? -1) - (oa.greatStayOdds ?? -1) || a.name.localeCompare(b.name);
       });
-  }, [hotels, pickerQuery, pickerScope, shortlist]);
+  }, [hotels, pickerQuery, pickerScope, shortlist, pickerTarget]);
 
   const handleToggleThreeWay = () => {
     if (compareC) {
