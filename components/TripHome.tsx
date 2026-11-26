@@ -74,7 +74,8 @@ export function TripHome() {
   const insets = useSafeAreaInsets();
   // the photo screen fills the first view; results and the rest sit below it
   const heroHeight = Math.max(460, height - insets.top - (isSplitScreen ? 0 : 70));
-  const scrollRef = useRef<ScrollView>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const scrollRef = useRef<any>(null);
   const run = (t: string) => {
     setText(t);
     setQuery(t.trim());
