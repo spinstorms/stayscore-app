@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -31,6 +31,8 @@ import { Colors } from '../../../lib/theme';
 import type { Hotel } from '../../../lib/types';
 
 type Scope = 'all' | 'visited' | 'world' | 'saved';
+const IOS = process.env.EXPO_OS === 'ios';
+const stripEmoji = (s: string) => s.replace(/^[^A-Za-z0-9']+\s*/, '');
 type VerifiedFeature =
   | 'all'
   | '50best_50'
@@ -185,6 +187,8 @@ export default function StayOddsHomeScreen() {
   const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState<string>('taaktana-labuan-bajo');
   const [requestOpen, setRequestOpen] = useState(false);
+  // Android/web: the less-used filter rows sit behind a "Filters" chip so the front screen stays calm.
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const savedCount = useMemo(
     () => hotels.filter((h) => shortlist.includes(h.id)).length,
@@ -433,6 +437,81 @@ export default function StayOddsHomeScreen() {
     );
   };
 
+  const scopeLabels: Record<Scope, string> = {
+    all: `All (${hotels.length})`,
+    visited: `Verified by us (${visitedCount})`,
+    world: `Global directory (${worldCount})`,
+    saved: `Shortlist (${savedCount})`,
+  };
+  const activeFilterLabels = [
+    scope !== 'all' ? scopeLabels[scope].replace(/ \(\d+\)$/, '') : '',
+    feature !== 'all' ? stripEmoji(FEATURE_FILTERS.find((f) => f.id === feature)?.label || '') : '',
+    selectedMonth ? `Best in ${getMonthShortName(selectedMonth)}` : '',
+  ].filter(Boolean);
+  const clearFilters = () => {
+    setScope('all');
+    setFeature('all');
+    setSelectedMonth(0);
+  };
+
+  // iOS: filters and destinations live in the native header. On iPhone Duo the system moves
+  // these icon buttons into the side rail, so the folded front screen keeps just search,
+  // regions and the hotels.
+  const iosToolbar = IOS ? (
+    <Stack.Toolbar placement="right">
+      <Stack.Toolbar.Menu
+        icon={
+          activeFilterLabels.length
+            ? 'line.3.horizontal.decrease.circle.fill'
+            : 'line.3.horizontal.decrease.circle'
+        }
+        accessibilityLabel="Filters"
+      >
+        <Stack.Toolbar.Menu title="Show" inline>
+          {(['all', 'visited', 'world', 'saved'] as const).map((val) => (
+            <Stack.Toolbar.MenuAction
+              key={val}
+              isOn={scope === val}
+              onPress={() => {
+                setScope(val);
+                setRegion('All');
+              }}
+            >
+              {scopeLabels[val]}
+            </Stack.Toolbar.MenuAction>
+          ))}
+        </Stack.Toolbar.Menu>
+        <Stack.Toolbar.Menu title="Awards and data" icon="trophy">
+          {FEATURE_FILTERS.map((f) => (
+            <Stack.Toolbar.MenuAction key={f.id} isOn={feature === f.id} onPress={() => setFeature(f.id)}>
+              {stripEmoji(f.label)}
+            </Stack.Toolbar.MenuAction>
+          ))}
+        </Stack.Toolbar.Menu>
+        <Stack.Toolbar.Menu title="Best month to go" icon="calendar">
+          {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((m) => (
+            <Stack.Toolbar.MenuAction key={m} isOn={selectedMonth === m} onPress={() => setSelectedMonth(m)}>
+              {m === 0 ? 'Any month' : getMonthShortName(m)}
+            </Stack.Toolbar.MenuAction>
+          ))}
+        </Stack.Toolbar.Menu>
+        <Stack.Toolbar.Menu title="More" inline>
+          <Stack.Toolbar.MenuAction icon="plus.circle" onPress={() => setRequestOpen(true)}>
+            Request a resort
+          </Stack.Toolbar.MenuAction>
+          {activeFilterLabels.length ? (
+            <Stack.Toolbar.MenuAction icon="xmark.circle" onPress={clearFilters}>
+              Clear filters
+            </Stack.Toolbar.MenuAction>
+          ) : null}
+        </Stack.Toolbar.Menu>
+      </Stack.Toolbar.Menu>
+      <Stack.Toolbar.Button icon="trophy" accessibilityLabel="Award lists" onPress={() => router.push('/awards')} />
+      <Stack.Toolbar.Button icon="gift" accessibilityLabel="Holiday dates" onPress={() => router.push('/holidays')} />
+      <Stack.Toolbar.Button icon="chart.bar" accessibilityLabel="Guest insights" onPress={() => router.push('/insights')} />
+    </Stack.Toolbar>
+  ) : null;
+
   const listHeader = (
     <View style={styles.navyHeaderPanel}>
       <View style={styles.searchWrap}>
@@ -452,6 +531,7 @@ export default function StayOddsHomeScreen() {
         ) : null}
       </View>
 
+      {IOS ? null : (
       <View style={styles.scopeBar}>
         {(
           [
@@ -475,28 +555,45 @@ export default function StayOddsHomeScreen() {
           </Pressable>
         ))}
       </View>
+      )}
 
-      <Pressable
-        onPress={() => router.push('/awards')}
-        style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 14, marginBottom: 10, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 12, backgroundColor: 'rgba(255, 93, 34, 0.18)', borderWidth: 1, borderColor: Colors.accent }}
-      >
-        <Ionicons name="trophy-outline" size={16} color="#FFFFFF" />
-        <Text style={{ color: '#FFFFFF', fontWeight: '800', fontSize: 13.5, flex: 1 }}>
-          Award lists: World's 50 Best Top 100 • MICHELIN Keys
-        </Text>
-        <Ionicons name="chevron-forward" size={16} color="#FFFFFF" />
-      </Pressable>
-
-      <View style={styles.quickLinks}>
-        <Pressable onPress={() => router.push('/holidays')} style={styles.quickLink}>
-          <Ionicons name="gift-outline" size={15} color="#FFFFFF" />
-          <Text style={styles.quickLinkText} numberOfLines={1}>Holidays</Text>
-        </Pressable>
-        <Pressable onPress={() => router.push('/insights')} style={styles.quickLink}>
-          <Ionicons name="stats-chart-outline" size={15} color="#FFFFFF" />
-          <Text style={styles.quickLinkText} numberOfLines={1}>Guest insights</Text>
-        </Pressable>
-      </View>
+      {IOS ? (
+        activeFilterLabels.length ? (
+          <View style={styles.activeFilters}>
+            <Ionicons name="funnel" size={12} color="rgba(255,255,255,0.7)" />
+            <Text style={styles.activeFiltersText} numberOfLines={1}>
+              {activeFilterLabels.join(' · ')}
+            </Text>
+            <Pressable onPress={clearFilters} hitSlop={8}>
+              <Text style={styles.activeFiltersClear}>Clear</Text>
+            </Pressable>
+          </View>
+        ) : null
+      ) : (
+        <View style={styles.quickLinks}>
+          <Pressable
+            onPress={() => setFiltersOpen((o) => !o)}
+            style={[styles.quickLink, (filtersOpen || activeFilterLabels.length > 0) && styles.quickLinkOn]}
+          >
+            <Ionicons name="options-outline" size={15} color="#FFFFFF" />
+            <Text style={styles.quickLinkText} numberOfLines={1}>
+              Filters{activeFilterLabels.length ? ` (${activeFilterLabels.length})` : ''}
+            </Text>
+          </Pressable>
+          <Pressable onPress={() => router.push('/awards')} style={styles.quickLink} accessibilityLabel="Award lists">
+            <Ionicons name="trophy-outline" size={15} color="#FFFFFF" />
+            <Text style={styles.quickLinkText} numberOfLines={1}>Awards</Text>
+          </Pressable>
+          <Pressable onPress={() => router.push('/holidays')} style={styles.quickLink} accessibilityLabel="Holidays">
+            <Ionicons name="gift-outline" size={15} color="#FFFFFF" />
+            <Text style={styles.quickLinkText} numberOfLines={1}>Holidays</Text>
+          </Pressable>
+          <Pressable onPress={() => router.push('/insights')} style={styles.quickLink} accessibilityLabel="Guest insights">
+            <Ionicons name="stats-chart-outline" size={15} color="#FFFFFF" />
+            <Text style={styles.quickLinkText} numberOfLines={1}>Insights</Text>
+          </Pressable>
+        </View>
+      )}
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.regionRow}>
         {regions.map((r) => {
@@ -511,14 +608,18 @@ export default function StayOddsHomeScreen() {
             </Pressable>
           );
         })}
-        <Pressable
-          onPress={() => setRequestOpen(true)}
-          style={[styles.regionPill, { borderColor: Colors.accent, backgroundColor: 'rgba(255, 93, 34, 0.22)' }]}
-        >
-          <Text style={[styles.regionText, { color: '#FFFFFF', fontWeight: '700' }]}>+ Request Resort</Text>
-        </Pressable>
+        {IOS ? null : (
+          <Pressable
+            onPress={() => setRequestOpen(true)}
+            style={[styles.regionPill, { borderColor: Colors.accent, backgroundColor: 'rgba(255, 93, 34, 0.22)' }]}
+          >
+            <Text style={[styles.regionText, { color: '#FFFFFF', fontWeight: '700' }]}>+ Request Resort</Text>
+          </Pressable>
+        )}
       </ScrollView>
 
+      {!IOS && filtersOpen ? (
+        <>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -583,6 +684,8 @@ export default function StayOddsHomeScreen() {
           );
         })}
       </ScrollView>
+        </>
+      ) : null}
     </View>
   );
 
@@ -618,6 +721,7 @@ export default function StayOddsHomeScreen() {
   if (isSplitScreen) {
     return (
       <View style={styles.splitRoot}>
+        {iosToolbar}
         <View style={[styles.splitLeft, !isWideDesktop && styles.splitLeftHalf]}>
           <FlatList
             data={filtered}
@@ -639,6 +743,7 @@ export default function StayOddsHomeScreen() {
 
   return (
     <View style={styles.screen}>
+      {iosToolbar}
       <FlatList
         data={filtered}
         keyExtractor={(item) => item.id}
@@ -665,7 +770,20 @@ const styles = StyleSheet.create({
   splitRight: { flex: 1 },
 
   listContent: { paddingBottom: 34, gap: 14 },
-  quickLinks: { flexDirection: 'row', gap: 8, marginHorizontal: 14, marginTop: -2, marginBottom: 10 },
+  quickLinks: { flexDirection: 'row', gap: 6, marginBottom: 10 },
+  quickLinkOn: { backgroundColor: 'rgba(255, 93, 34, 0.22)', borderColor: Colors.accent },
+  activeFilters: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  activeFiltersText: { flex: 1, color: 'rgba(255,255,255,0.85)', fontSize: 12.5, fontWeight: '600' },
+  activeFiltersClear: { color: '#FDBA74', fontSize: 12.5, fontWeight: '700' },
   quickLink: {
     flex: 1,
     flexDirection: 'row',
@@ -678,7 +796,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.18)',
   },
-  quickLinkText: { color: '#FFFFFF', fontWeight: '800', fontSize: 13 },
+  quickLinkText: { color: '#FFFFFF', fontWeight: '700', fontSize: 12 },
 
   navyHeaderPanel: {
     backgroundColor: Colors.navy,

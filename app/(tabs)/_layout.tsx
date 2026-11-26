@@ -3,14 +3,15 @@ import React from 'react';
 import { Colors } from '../../lib/theme';
 
 /**
- * System (native) tabs. iOS places them itself: a bottom tab bar on a normal iPhone,
+ * System (native) tabs. preferredPlacement="sidebar" asks iOS 27 for a sidebar wherever it fits
+ * (iPhone Duo open, iPad, large iPhones in landscape); folded, the tabs sit in the Duo's side rail. iOS places them itself: a bottom tab bar on a normal iPhone,
  * the side rail on iPhone Duo's outer display, and a sidebar or tab bar on the open
  * inner display and iPad. Android gets the Material bottom navigation bar.
  * Each tab has its own Stack (see the (group)/_layout.tsx files) for its header.
  */
 export default function TabsLayout() {
   return (
-    <NativeTabs tintColor={Colors.accent}>
+    <NativeTabs tintColor={Colors.accent} preferredPlacement="sidebar">
       <NativeTabs.Trigger name="(explore)">
         <NativeTabs.Trigger.Icon sf={{ default: 'magnifyingglass', selected: 'magnifyingglass' }} md="search" />
         <NativeTabs.Trigger.Label>Explore</NativeTabs.Trigger.Label>
