@@ -145,8 +145,25 @@ export async function fetchStayOddsData(options?: { forceRefresh?: boolean }): P
 }
 
 
+/** The website's photo for each hotel (card photos, the hotel's own gallery, official photos) beats the database's first photo. */
+async function withSitePhotos(payload: StayOddsPayload): Promise<StayOddsPayload> {
+  try {
+    const res = await fetchLiveJson<{ photos?: Record<string, string>; galleries?: Record<string, string[]> }>('/data/app-photos.json');
+    const photos = res?.photos || {};
+    const galleries = res?.galleries || {};
+    for (const h of payload.hotels as Array<{ id: string; thumbnail?: string; gallery?: string[] }>) {
+      const p = photos[h.id];
+      if (p && /^https?:\/\//.test(p) && !p.includes('/placeholders/')) h.thumbnail = p;
+      if (galleries[h.id]?.length) h.gallery = galleries[h.id];
+    }
+  } catch {
+    // keep the database photos
+  }
+  return payload;
+}
+
 async function fetchStayOddsDataFromNetwork(): Promise<StayOddsPayload> {
-  const payload = buildPayload(withSavedRatings(await fetchRawDirectory()));
+  const payload = await withSitePhotos(buildPayload(withSavedRatings(await fetchRawDirectory())));
   // Never cache empty or failed responses
   if (payload.hotels.length > 0) {
     const envelope: CachedEnvelope = { cachedAt: Date.now(), data: payload };

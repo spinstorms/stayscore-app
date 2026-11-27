@@ -183,6 +183,17 @@ export function HotelDetailContent({ hotel, isSidePane = false, when }: Props) {
       {/* Hero Media & Summary */}
       <View style={styles.heroCard}>
         <Image source={{ uri: hotel.thumbnail }} style={styles.heroImage} />
+        {/* photo-first: a strip of the hotel's own photos under the hero */}
+        {hotel.gallery && hotel.gallery.filter((u) => u !== hotel.thumbnail).length >= 2 ? (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.photoStrip}>
+            {hotel.gallery
+              .filter((u) => u !== hotel.thumbnail)
+              .slice(0, 6)
+              .map((u) => (
+                <Image key={u} source={{ uri: u }} style={styles.photoStripImg} accessibilityLabel={hotel.name} />
+              ))}
+          </ScrollView>
+        ) : null}
         {hotel.photoCredit ? (
           <Pressable onPress={() => openExternalUrl(hotel.photoCredit!.url)}>
             <Text style={{ fontSize: 11, color: Colors.inkMuted, paddingHorizontal: 14, paddingTop: 6 }}>
@@ -1167,6 +1178,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   heroImage: { width: '100%', height: 205, backgroundColor: Colors.charcoal },
+  photoStrip: { gap: 6, paddingHorizontal: 8, paddingTop: 8 },
+  photoStripImg: { width: 132, height: 88, borderRadius: 10, backgroundColor: Colors.sandBorder },
   heroBody: { padding: 14 },
   badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 8 },
   pill: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999, borderWidth: 1 },

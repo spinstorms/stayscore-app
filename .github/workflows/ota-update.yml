@@ -17,5 +17,5 @@ jobs:
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
-          npx eas-cli@latest update --channel preview --platform android --message "Guest scores match stayodds.com" --non-interactive
-          npx eas-cli@latest update --channel production --platform android --message "Guest scores match stayodds.com" --non-interactive
+          npx eas-cli@latest update --channel preview --platform android --message "$(tail -1 ota.txt | cut -c22-)" --non-interactive
+          npx eas-cli@latest update --channel production --platform android --message "$(tail -1 ota.txt | cut -c22-)" --non-interactive

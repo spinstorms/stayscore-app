@@ -194,28 +194,44 @@ export function TripHome() {
         if (h > 0 && Math.abs(h - viewH) > 1) setViewH(h);
       }}
     >
-      <Modal visible={langOpen} transparent animationType="slide" onRequestClose={() => setLangOpen(false)}>
-        <Pressable style={styles.sheetBackdrop} onPress={() => setLangOpen(false)} accessibilityLabel={t('Close')} />
-        <View style={[styles.sheet, { paddingBottom: insets.bottom + 16 }]}>
-          <Text style={styles.sheetTitle}>{t('Language')}</Text>
-          {LANGUAGES.map((l) => {
-            const on = l.code === getLanguage();
-            return (
-              <Pressable
-                key={l.code}
-                style={[styles.langRow, on && styles.langRowOn]}
-                accessibilityRole="button"
-                accessibilityState={{ selected: on }}
-                onPress={() => {
-                  setLangOpen(false);
-                  setLanguage(l.code as Lang);
-                }}
-              >
-                <Text style={[styles.langName, on && { fontWeight: '800' }]}>{l.name}</Text>
-                {on ? <Ionicons name="checkmark" size={18} color={Colors.accent} /> : null}
+      <Modal
+        visible={langOpen}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        navigationBarTranslucent
+        onRequestClose={() => setLangOpen(false)}
+      >
+        <View style={styles.sheetWrap}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setLangOpen(false)} accessibilityLabel={t('Close')} />
+          <View style={[styles.sheet, { paddingBottom: insets.bottom + 16, maxHeight: Math.round(height * 0.82) }]}>
+            <View style={styles.sheetHead}>
+              <Text style={styles.sheetTitle}>{t('Language')}</Text>
+              <Pressable onPress={() => setLangOpen(false)} hitSlop={12} accessibilityRole="button" accessibilityLabel={t('Close')}>
+                <Ionicons name="close" size={22} color={Colors.inkPrimary} />
               </Pressable>
-            );
-          })}
+            </View>
+            <ScrollView contentContainerStyle={styles.langGrid} showsVerticalScrollIndicator={false}>
+              {LANGUAGES.map((l) => {
+                const on = l.code === getLanguage();
+                return (
+                  <Pressable
+                    key={l.code}
+                    style={[styles.langRow, on && styles.langRowOn]}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: on }}
+                    onPress={() => {
+                      setLangOpen(false);
+                      setLanguage(l.code as Lang);
+                    }}
+                  >
+                    <Text style={[styles.langName, on && { fontWeight: '800' }]} numberOfLines={1}>{l.name}</Text>
+                    {on ? <Ionicons name="checkmark" size={18} color={Colors.accent} /> : null}
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </View>
         </View>
       </Modal>
       {/* light status bar icons over the photos; the other screens are light, with dark icons */}
@@ -418,7 +434,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(15,43,51,0.45)',
   },
   langBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '800' },
-  sheetBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)' },
+  sheetWrap: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.38)' },
+  sheetHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, marginBottom: 8 },
+  langGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   sheet: {
     backgroundColor: Colors.bgWhite,
     borderTopLeftRadius: 24,
@@ -430,9 +448,13 @@ const styles = StyleSheet.create({
     maxWidth: 560,
     alignSelf: 'center',
   },
-  sheetTitle: { fontSize: 15, fontWeight: '800', color: Colors.inkPrimary, marginLeft: 12, marginBottom: 6 },
+  sheetTitle: { fontSize: 17, fontWeight: '800', color: Colors.inkPrimary },
   langRow: {
-    minHeight: 46,
+    flexGrow: 1,
+    flexBasis: '46%',
+    minHeight: 48,
+    borderWidth: 1,
+    borderColor: Colors.sandBorder,
     paddingHorizontal: 14,
     borderRadius: 12,
     flexDirection: 'row',
