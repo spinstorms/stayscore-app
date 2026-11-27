@@ -22,9 +22,12 @@ const TABS: { name: string; label: string; ion: IonName; ionOn: IonName; wideOnl
 ];
 
 /**
- * iOS: five system tabs, the most iPhone and the Duo rail show without a "More" button (the
- * tabs behind "More" froze): Home, Explore (with the map inside), Compare, Watch & Deals and
- * Plan (Holidays + Insights). Each screen adds its own buttons to the rail above the tabs.
+ * iOS, laid out for the iPhone Duo rail in groups, like Apple's own apps:
+ *  - the tab group (five, the most the rail shows without a "More" button, whose tabs froze):
+ *    Home, Explore, Map, Compare, Insights;
+ *  - a shortcut group above it on each screen: Watch, Deals and Holiday dates (RailShortcuts),
+ *    which open as pages over the current tab;
+ *  - the screen's own buttons (Explore's filters, Compare's share).
  *
  * iOS: system tabs. iOS places them itself: the bottom bar on iPhone and the side rail on
  * iPhone Duo, folded and open. No sidebar placement: on the open Duo it turned the rail into a
@@ -49,17 +52,17 @@ export default function TabsLayout() {
           <NativeTabs.Trigger.Icon sf={{ default: 'magnifyingglass', selected: 'magnifyingglass' }} md="search" />
           <NativeTabs.Trigger.Label>Explore</NativeTabs.Trigger.Label>
         </NativeTabs.Trigger>
+        <NativeTabs.Trigger name="(map)">
+          <NativeTabs.Trigger.Icon sf={{ default: 'map', selected: 'map.fill' }} md="map" />
+          <NativeTabs.Trigger.Label>Map</NativeTabs.Trigger.Label>
+        </NativeTabs.Trigger>
         <NativeTabs.Trigger name="(compare)">
           <NativeTabs.Trigger.Icon sf="arrow.left.arrow.right" md="compare_arrows" />
           <NativeTabs.Trigger.Label>Compare</NativeTabs.Trigger.Label>
         </NativeTabs.Trigger>
-        <NativeTabs.Trigger name="(watch)">
-          <NativeTabs.Trigger.Icon sf={{ default: 'play.circle', selected: 'play.circle.fill' }} md="play_circle" />
-          <NativeTabs.Trigger.Label>Watch</NativeTabs.Trigger.Label>
-        </NativeTabs.Trigger>
-        <NativeTabs.Trigger name="(plan)">
-          <NativeTabs.Trigger.Icon sf={{ default: 'calendar', selected: 'calendar' }} md="event" />
-          <NativeTabs.Trigger.Label>Plan</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger name="(insights)">
+          <NativeTabs.Trigger.Icon sf="chart.bar" md="bar_chart" />
+          <NativeTabs.Trigger.Label>Insights</NativeTabs.Trigger.Label>
         </NativeTabs.Trigger>
       </NativeTabs>
     );
@@ -108,8 +111,6 @@ export default function TabsLayout() {
           }}
         />
       ))}
-      {/* iPhone only: Holidays + Insights together; Android has them as their own rail tabs */}
-      <Tabs.Screen name="(plan)" options={{ href: null }} />
     </Tabs>
   );
 }

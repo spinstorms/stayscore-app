@@ -18,9 +18,6 @@ import { useStayOdds } from '../../../lib/store';
 import { Colors } from '../../../lib/theme';
 import type { VideoItem } from '../../../lib/types';
 import { lazyTab } from '../../../components/LazyTab';
-import { SectionSwitch } from '../../../components/SectionSwitch';
-import { Stack, useLocalSearchParams } from 'expo-router';
-import { DealsScreen } from '../(deals)/deals';
 
 export function WatchScreen() {
   const { videos, shorts, refreshing, refresh } = useStayOdds();
@@ -384,34 +381,4 @@ const styles = StyleSheet.create({
   episodesGridWide: { flexDirection: 'row', flexWrap: 'wrap' },
 });
 
-const IOS_WATCH = process.env.EXPO_OS === 'ios';
-
-/** iPhone and Duo: Watch and Deals share one rail button, with Subscribe in the rail too. */
-function WatchAndDeals() {
-  const params = useLocalSearchParams<{ section?: string }>();
-  const [section, setSection] = useState<'watch' | 'deals'>(params.section === 'deals' ? 'deals' : 'watch');
-  React.useEffect(() => {
-    if (params.section === 'deals' || params.section === 'watch') setSection(params.section);
-  }, [params.section]);
-  return (
-    <>
-      <Stack.Toolbar placement="right">
-        <Stack.Toolbar.Button
-          icon="play.rectangle.fill"
-          accessibilityLabel="Subscribe on YouTube"
-          onPress={() => openExternalUrl('https://www.youtube.com/@TheUnchartedItinerary?sub_confirmation=1')}
-        />
-      </Stack.Toolbar>
-      <SectionSwitch
-        value={section}
-        onChange={setSection}
-        sections={[
-          { key: 'watch', label: 'Watch', render: () => <WatchScreen /> },
-          { key: 'deals', label: 'Deals', render: () => <DealsScreen /> },
-        ]}
-      />
-    </>
-  );
-}
-
-export default lazyTab(IOS_WATCH ? WatchAndDeals : WatchScreen);
+export default lazyTab(WatchScreen);

@@ -37,6 +37,10 @@ function RootStack() {
           {/* The tabs pad their own screens, so the system tab bar / rail itself stays at the edge. */}
           <Stack.Screen name="(tabs)" options={{ headerShown: false, contentStyle: { backgroundColor: Colors.bgCanvas } }} />
           <Stack.Screen name="awards" options={{ title: 'Award Lists', headerBackTitle: 'Back' }} />
+          {/* iPhone: opened from the rail's shortcut group (Watch, Deals, Holiday dates) */}
+          <Stack.Screen name="videos" options={{ title: 'Episodes & Shorts', headerBackTitle: 'Back' }} />
+          <Stack.Screen name="offers" options={{ title: 'Deals', headerBackTitle: 'Back' }} />
+          <Stack.Screen name="holiday-dates" options={{ title: 'Holiday Dates', headerBackTitle: 'Back' }} />
           <Stack.Screen
             name="hotel/[id]"
             options={{

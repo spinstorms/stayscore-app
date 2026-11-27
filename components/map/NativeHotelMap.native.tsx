@@ -1,5 +1,5 @@
 import Constants from 'expo-constants';
-import { AppleMaps, AppleMapsMapType, GoogleMaps, GoogleMapsMapType } from 'expo-maps';
+import { AppleMaps, GoogleMaps } from 'expo-maps';
 import React, { useMemo } from 'react';
 import { Platform, StyleSheet } from 'react-native';
 import { cameraFor, type HotelMapProps } from './types';
@@ -42,7 +42,8 @@ export function NativeHotelMap({ hotels, selectedId, onSelect, colorFor, bounds,
         cameraPosition={camera}
         markers={markers}
         onMarkerClick={(m) => m.id && onSelect(m.id)}
-        properties={{ mapType: satellite ? AppleMapsMapType.HYBRID : AppleMapsMapType.STANDARD }}
+        // map types are the strings expo-maps' enums hold: satellite photos with labels, or streets
+        properties={{ mapType: (satellite ? 'HYBRID' : 'STANDARD') as never }}
         uiSettings={{ compassEnabled: true, scaleBarEnabled: true }}
       />
     );
@@ -54,7 +55,7 @@ export function NativeHotelMap({ hotels, selectedId, onSelect, colorFor, bounds,
       cameraPosition={camera}
       markers={markers.map(({ tintColor: _t, ...m }) => ({ ...m, zIndex: m.id === selectedId ? 10 : 0 }))}
       onMarkerClick={(m) => m.id && onSelect(m.id)}
-      properties={{ mapType: satellite ? GoogleMapsMapType.HYBRID : GoogleMapsMapType.NORMAL }}
+      properties={{ mapType: (satellite ? 'HYBRID' : 'NORMAL') as never }}
       uiSettings={{
         compassEnabled: true,
         mapToolbarEnabled: false,

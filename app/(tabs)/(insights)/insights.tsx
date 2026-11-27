@@ -11,6 +11,7 @@ import { INSIGHTS_PAGE_URL, loadSiteInsights, SITE_URL, TIER_ORDER, type RangeSt
 import { useStayOdds } from '../../../lib/store';
 import { Colors } from '../../../lib/theme';
 import { lazyTab } from '../../../components/LazyTab';
+import { withRailShortcuts } from '../../../components/RailShortcuts';
 
 const n = (x: number) => x.toLocaleString('en-GB');
 const fmt = (x: number) => String(Number(x.toFixed(1)));
@@ -554,4 +555,4 @@ const styles = StyleSheet.create({
   rrDot: { position: 'absolute', width: 12, height: 12, marginLeft: -6, borderRadius: 6, backgroundColor: Colors.accent },
 });
 
-export default lazyTab(InsightsScreen);
+export default lazyTab(withRailShortcuts(InsightsScreen));

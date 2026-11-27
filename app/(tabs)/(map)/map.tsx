@@ -29,6 +29,7 @@ import { useStayOdds } from '../../../lib/store';
 import { Colors } from '../../../lib/theme';
 import type { Hotel } from '../../../lib/types';
 import { lazyTab } from '../../../components/LazyTab';
+import { withRailShortcuts } from '../../../components/RailShortcuts';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type MapScope = 'all' | 'visited' | 'saved' | AwardListId;
@@ -843,4 +844,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default lazyTab(WorldMapScreen);
+export default lazyTab(withRailShortcuts(WorldMapScreen));

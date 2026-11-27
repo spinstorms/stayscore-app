@@ -1,12 +1,11 @@
-// Some screens sit inside another tab on iPhone (five rail tabs) but have their own tab on
-// Android. These give the right address for each.
+// On iPhone, Watch, Deals and Holiday dates open as pages from the rail's shortcut group (the
+// tab group holds five); on Android they are tabs in the rail. These give the right address.
 const IOS = process.env.EXPO_OS === 'ios';
 
 export const routes = {
-  map: (scope?: string) =>
-    IOS ? `/explore?view=map${scope ? `&scope=${scope}` : ''}` : `/map${scope ? `?scope=${scope}` : ''}`,
-  holidays: () => (IOS ? '/plan?section=holidays' : '/holidays'),
-  insights: () => (IOS ? '/plan?section=insights' : '/insights'),
-  deals: () => (IOS ? '/watch?section=deals' : '/deals'),
-  watch: () => (IOS ? '/watch?section=watch' : '/watch'),
+  map: (scope?: string) => `/map${scope ? `?scope=${scope}` : ''}`,
+  holidays: () => (IOS ? '/holiday-dates' : '/holidays'),
+  insights: () => '/insights',
+  deals: () => (IOS ? '/offers' : '/deals'),
+  watch: () => (IOS ? '/videos' : '/watch'),
 };

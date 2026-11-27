@@ -36,6 +36,7 @@ import { useStayOdds } from '../../../lib/store';
 import { Colors } from '../../../lib/theme';
 import type { Hotel } from '../../../lib/types';
 import { lazyTab } from '../../../components/LazyTab';
+import { withRailShortcuts } from '../../../components/RailShortcuts';
 
 type PickerTarget = 'A' | 'B' | 'C' | null;
 
@@ -1347,4 +1348,4 @@ const styles = StyleSheet.create({
   pickerScoreText: { color: '#FFFFFF', fontSize: 12.5, fontWeight: '800' },
 });
 
-export default lazyTab(CompareScreen);
+export default lazyTab(withRailShortcuts(CompareScreen));
