@@ -1,88 +1,22 @@
-name: Store screenshots (iPhone, iPad, Android)
+name: Store screenshots (save into the repo)
+# Screenshots are taken on a Mac simulator elsewhere and uploaded as a zip; this saves them here.
 on:
   push:
     branches: [store-screenshots]
-    paths: [.github/workflows/store-screenshots.yml, store/screenshots.env]
+    paths: [store/screenshot-url.txt]
 permissions:
   contents: write
 jobs:
-  ios:
-    runs-on: macos-14
-    timeout-minutes: 40
-    steps:
-      - uses: actions/checkout@v4
-      - name: Take iPhone and iPad screenshots
-        run: |
-          set -x
-          source store/screenshots.env
-          curl -sL "$IOS_SIM_URL" -o app.tar.gz && mkdir app && tar -xzf app.tar.gz -C app
-          APP=$(find app -maxdepth 3 -name "*.app" | head -1); echo "$APP"
-          xcrun simctl list devices available
-          shoot () {
-            NAME="$1"; OUT="$2"
-            UDID=$(xcrun simctl list devices available | grep -E "^\s+$NAME \(" | head -1 | grep -oE '[0-9A-F-]{36}')
-            [ -z "$UDID" ] && { echo "no $NAME"; return; }
-            xcrun simctl boot "$UDID"; xcrun simctl bootstatus "$UDID" -b
-            xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --batteryLevel 100 --wifiBars 3 --cellularBars 4
-            xcrun simctl privacy "$UDID" grant location com.stayodds.app || true
-            xcrun simctl install "$UDID" "$APP"
-            mkdir -p "$OUT"
-            xcrun simctl launch "$UDID" com.stayodds.app; sleep 25
-            xcrun simctl io "$UDID" screenshot "$OUT/01-home.png"
-            i=2
-            for p in explore map compare insights videos; do
-              xcrun simctl openurl "$UDID" "stayodds:///$p"; sleep 14
-              xcrun simctl io "$UDID" screenshot "$OUT/0$i-$p.png"; i=$((i+1))
-            done
-            xcrun simctl shutdown "$UDID"
-          }
-          shoot "$IPHONE" store/screenshots/ios/iphone-6.9
-          shoot "$IPAD" store/screenshots/ios/ipad-13
-          ls -R store/screenshots
-      - uses: actions/upload-artifact@v4
-        with: { name: ios-screens, path: store/screenshots/ios }
-  android:
-    runs-on: ubuntu-latest
-    timeout-minutes: 40
-    steps:
-      - uses: actions/checkout@v4
-      - name: Enable KVM
-        run: |
-          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
-          sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
-      - name: Get APK
-        run: source store/screenshots.env && [ -n "$ANDROID_APK_URL" ] && curl -sL "$ANDROID_APK_URL" -o app.apk && ls -la app.apk
-      - name: Phone screenshots
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 34
-          target: google_apis
-          arch: x86_64
-          profile: pixel_7_pro
-          disable-animations: true
-          script: bash store/shoot-android.sh store/screenshots/android/phone
-      - name: Tablet screenshots
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 34
-          target: google_apis
-          arch: x86_64
-          profile: pixel_tablet
-          disable-animations: true
-          script: bash store/shoot-android.sh store/screenshots/android/tablet
-      - uses: actions/upload-artifact@v4
-        with: { name: android-screens, path: store/screenshots/android }
-  commit:
-    needs: [ios]
-    if: always()
+  save:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        with: { path: dl }
       - run: |
-          mkdir -p store/screenshots
-          [ -d dl/ios-screens ] && cp -r dl/ios-screens store/screenshots/ios || true
-          [ -d dl/android-screens ] && cp -r dl/android-screens store/screenshots/android || true
+          URL=$(head -1 store/screenshot-url.txt)
+          curl -fsSL "$URL" -o shots.tgz
+          mkdir -p tmp && tar -xzf shots.tgz -C tmp
+          rm -rf store/screenshots/ios && mkdir -p store/screenshots
+          cp -r tmp/shots store/screenshots/ios
+          find store/screenshots -name "*.png" | sort
           git config user.name "github-actions[bot]"; git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add store/screenshots && git commit -m "Store screenshots" && git push || echo nothing
+          git add store/screenshots && git commit -m "Store screenshots (iPhone 6.9in, iPad 13in)" && git push || echo nothing
