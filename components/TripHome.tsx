@@ -142,7 +142,7 @@ export function TripHome() {
     const g = guest(h);
     const best = getBestMonths(h);
     return (
-      <Pressable key={h.id} style={[styles.card, isSplitScreen && (cols === 3 ? styles.cardThird : styles.cardHalf)]} onPress={() => open(h)}>
+      <Pressable key={h.id} style={[styles.card, isSplitScreen && styles.cardHalf]} onPress={() => open(h)}>
         {h.thumbnail ? <Image source={{ uri: h.thumbnail }} style={styles.cardImg} /> : <View style={styles.cardImg} />}
         <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
           <Text style={styles.cardName} numberOfLines={2}>
@@ -170,8 +170,8 @@ export function TripHome() {
       hotels
         .filter((h) => h.visitedByUs && h.coverageType !== 'Global Directory')
         .sort((a, b) => guest(b) - guest(a))
-        .slice(0, isTablet ? 6 : 4),
-    [hotels, isTablet]
+        .slice(0, 4),
+    [hotels]
   );
   const monthName = new Date().toLocaleString('en-GB', { month: 'long' });
   const monthPicks = useMemo(() => {
@@ -179,8 +179,8 @@ export function TripHome() {
     const filmedIds = new Set(filmedStays.map((h) => h.id));
     return sortTripResults(matchTrip(hotels, q), q, guest)
       .filter((h) => !filmedIds.has(h.id))
-      .slice(0, isTablet ? 6 : 4);
-  }, [hotels, monthName, filmedStays, isTablet]);
+      .slice(0, 4);
+  }, [hotels, monthName, filmedStays]);
 
   return (
     <ScrollView
@@ -352,8 +352,8 @@ export function TripHome() {
               </Pressable>
             </View>
             <View style={isSplitScreen ? styles.grid : undefined}>
-              {videos.slice(0, isSplitScreen ? 3 : 1).map((v) => (
-                <View key={v.id} style={isSplitScreen ? [styles.cardThird, { gap: 6 }] : { gap: 6, maxWidth: 640 }}>
+              {videos.slice(0, isSplitScreen ? 2 : 1).map((v) => (
+                <View key={v.id} style={isSplitScreen ? [styles.cardHalf, { gap: 6 }] : { gap: 6, maxWidth: 640 }}>
                   <InlineVideo url={v.url} thumbnail={v.thumbnail || v.fallbackThumbnail} badge="The Uncharted Itinerary" />
                   <Text style={styles.cardName} numberOfLines={2}>
                     {v.title}

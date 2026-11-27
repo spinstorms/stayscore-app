@@ -43,6 +43,10 @@ export function useSideInsetStyle() {
 
 /** Width of the floating rail on unfolded Android (the pill plus its margins). */
 export const ANDROID_RAIL_WIDTH = 96;
+/** the Android rail pill itself (ANDROID_RAIL_WIDTH = 10 margin + pill + 6 gap) */
+export const ANDROID_RAIL_PILL = 80;
+/** height of the floating bottom bar on a folded Android phone */
+export const ANDROID_BAR_HEIGHT = 64;
 
 /**
  * Space taken by the rail on each side of a tab screen: the iPhone Duo's system rail (safe-area
@@ -52,14 +56,21 @@ export const ANDROID_RAIL_WIDTH = 96;
 export function useRailInsets(opts?: { rail?: boolean }) {
   const insets = useSafeAreaInsets();
   const { isSplitScreen } = useAdaptiveLayout();
-  // the Android rail sits beside the screen (not over it), so only the safe area counts
-  const androidRail = false && opts?.rail !== false && isSplitScreen;
+  // the Android rail floats over the screen, so tab screens keep their content clear of it
+  const androidRail = opts?.rail !== false && process.env.EXPO_OS === 'android' && isSplitScreen;
   return { left: insets.left + (androidRail ? ANDROID_RAIL_WIDTH : 0), right: insets.right };
 }
 
 export function useTabSideInsetStyle() {
   const r = useRailInsets();
   return { paddingLeft: r.left, paddingRight: r.right };
+}
+
+/** Folded Android: space the floating bottom bar covers, so a screen's last item can scroll clear of it. */
+export function useAndroidBarSpace() {
+  const insets = useSafeAreaInsets();
+  const { isSplitScreen } = useAdaptiveLayout();
+  return process.env.EXPO_OS === 'android' && !isSplitScreen ? ANDROID_BAR_HEIGHT + insets.bottom + 16 : 0;
 }
 
 /**

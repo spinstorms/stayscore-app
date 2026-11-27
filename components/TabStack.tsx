@@ -2,7 +2,7 @@ import { Stack } from 'expo-router';
 import React from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useAdaptiveLayout, useTabSideInsetStyle } from '../lib/layout';
+import { useAdaptiveLayout, useAndroidBarSpace, useTabSideInsetStyle } from '../lib/layout';
 import { Colors } from '../lib/theme';
 
 type Tone = 'default' | 'uncharted' | 'sand';
@@ -45,6 +45,8 @@ export function TabStack({
 }) {
   const t = TONES[tone ?? 'default'];
   const sidePadding = useTabSideInsetStyle();
+  // folded Android: content stops above the floating bar (its own colour shows around the bar)
+  const barSpace = useAndroidBarSpace();
   const insets = useSafeAreaInsets();
   const { isSplitScreen } = useAdaptiveLayout();
   // Android/web unfolded: no title bar, so the whole height goes to content (each screen already
@@ -67,6 +69,7 @@ export function TabStack({
           ...(compactChrome && !hideHeader ? { paddingTop: insets.top } : null),
           // Android unfolded has no bottom tab bar, so keep content above the system navigation bar
           ...(process.env.EXPO_OS === 'android' && isSplitScreen && !hideHeader ? { paddingBottom: insets.bottom } : null),
+          ...(barSpace && !hideHeader ? { paddingBottom: barSpace } : null),
         },
       }}
     >
