@@ -62,6 +62,8 @@ const storeScreens = [
 ];
 const storeTargets = [
   ['apple-iphone-6.9', { viewport: { width: 440, height: 956 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true }], // 1320x2868
+  ['apple-iphone-6.3', { viewport: { width: 402, height: 874 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true }], // 1206x2622
+  ['apple-duo', { viewport: { width: 699, height: 1017 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true }], // 1398x2034
   ['apple-ipad-13', { viewport: { width: 1032, height: 1376 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true }], // 2064x2752
   ['google-phone', { viewport: { width: 360, height: 640 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true }], // 1080x1920
   ['google-tablet-7', { viewport: { width: 600, height: 960 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true }], // 1200x1920
