@@ -78,7 +78,9 @@
       "ar": "./locales/ar.json",
       "ja": "./locales/ja.json",
       "id": "./locales/id.json",
-      "fa": "./locales/fa.json"
+      "fa": "./locales/fa.json",
+      "zh-Hans": "./locales/zh-Hans.json",
+      "ko": "./locales/ko.json"
     },
     "runtimeVersion": {
       "policy": "appVersion"

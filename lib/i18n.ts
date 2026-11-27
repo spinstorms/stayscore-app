@@ -18,6 +18,8 @@ export const LANGUAGES = [
   { code: 'ja', name: '日本語' },
   { code: 'id', name: 'Bahasa Indonesia' },
   { code: 'fa', name: 'فارسی', rtl: true },
+  { code: 'zh-Hans', name: '简体中文' },
+  { code: 'ko', name: '한국어' },
 ] as const;
 export type Lang = (typeof LANGUAGES)[number]['code'];
 
@@ -30,6 +32,7 @@ function match(tag: string | undefined): Lang | null {
   if (!tag) return null;
   const t = tag.toLowerCase();
   if (t.startsWith('pt')) return 'pt-BR';
+  if (t.startsWith('zh')) return 'zh-Hans';
   const base = t.split(/[-_]/)[0];
   return (LANGUAGES.find((l) => l.code === base)?.code as Lang) ?? null;
 }

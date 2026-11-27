@@ -9,6 +9,7 @@ import { useAdaptiveLayout } from '../../../lib/layout';
 import { ordinal } from '../../../lib/ranks';
 import { INSIGHTS_PAGE_URL, loadSiteInsights, SITE_URL, TIER_ORDER, type RangeStat, type SiteInsights } from '../../../lib/siteInsights';
 import { useStayOdds } from '../../../lib/store';
+import { t } from '../../../lib/i18n';
 import { Colors } from '../../../lib/theme';
 import { lazyTab } from '../../../components/LazyTab';
 import { withRailShortcuts } from '../../../components/RailShortcuts';
@@ -91,7 +92,7 @@ export function InsightsScreen() {
     >
       <View style={[styles.header, { width: '100%' }]}>
         <Text style={styles.eyebrow}>StayOdds insights{d.updated ? ` · updated ${d.updated}` : ''}</Text>
-        <Text style={styles.h1}>How guests really rate luxury hotels</Text>
+        <Text style={styles.h1}>{t('How guests really rate luxury hotels')}</Text>
         <Text style={styles.sub}>
           What {d.nHotels || 'our'} luxury hotels look like when you put real guest reviews next to the critics, the awards, the
           price and the destination. Every chart uses hotels with a guest score from 20 or more reviews, and every rank is among
@@ -408,9 +409,9 @@ function Panel({ eyebrow, title, sub, children }: { eyebrow: string; title: stri
             StayOdds<Text style={{ color: Colors.coral }}>.</Text>
           </Text>
         </View>
-        <Text style={[styles.eyebrow, { paddingRight: 44 }]}>{eyebrow}</Text>
-        <Text style={styles.h2}>{title}</Text>
-        <Text style={styles.sub}>{sub}</Text>
+        <Text style={[styles.eyebrow, { paddingRight: 44 }]}>{t(eyebrow)}</Text>
+        <Text style={styles.h2}>{t(title)}</Text>
+        <Text style={styles.sub}>{t(sub)}</Text>
         <View style={{ gap: 10 }}>{children}</View>
         <Text style={styles.shareFoot}>stayodds.com/insights · real guest scores, not adverts</Text>
       </ViewShot>

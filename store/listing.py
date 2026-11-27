@@ -285,17 +285,73 @@ L["fa"] = dict(
 از The Uncharted Itinerary، یک کانال بریتانیایی سفرهای لوکس.""")
 
 # App Store locale keys (Apple has no Persian listing; the app itself still speaks Persian)
+L["zh-Hans"] = dict(
+ title="StayOdds：酒店评分对比",
+ subtitle="真实住客与评论家的评价",
+ promo="找到适合你行程的酒店，而不是广告做得最好的那家。1,300 多家奢华酒店的真实住客评分、评论家意见和我们亲自拍摄的入住体验。",
+ short="按真实住客评分、评论家意见和我们的亲身入住对比奢华酒店。",
+ keywords="奢华酒店,度假村,酒店点评,对比,马尔代夫,巴厘岛,蜜月,别墅,旅行,住客评分",
+ notes="首个版本。",
+ description="""StayOdds 帮你用诚实的方式挑选奢华酒店：看真实住客怎么说、评论家怎么评，以及我们亲自入住时的发现。
+
+每家酒店都有一个 StayOdds 评分，即你获得一次美好入住的几率，综合了经过验证的住客评价、主要评论家榜单，以及我们拍摄过的酒店的亲身入住体验。
+
+你可以
+• 用自己的话描述行程，例如"一月阳光明媚的加勒比"，查看合适的酒店
+• 并排对比两三家酒店，看清它们的差别
+• 在地图上浏览 1,300 多家奢华酒店，支持街道和卫星视图
+• 了解评论家与住客意见不同的地方、住客最喜欢的品牌以及最划算的选择
+• 观看 The Uncharted Itinerary 的完整酒店评测和短片
+• 查看假期日期和最佳出行月份
+• 收藏清单，并把对比分享为图片卡片
+
+为大屏幕打造
+不仅适配手机，也适配折叠屏和平板：折叠屏展开时并排对比，iPhone Duo 和 Pixel Fold 的侧边栏，以及 iPad 的完整布局。
+
+坦诚是我们的原则
+无需注册，应用内没有广告。如果你通过我们的链接预订，我们可能获得少量佣金，你无需多付费用。这绝不会改变任何评分。
+
+来自英国奢华旅行频道 The Uncharted Itinerary。""")
+
+L["ko"] = dict(
+ title="StayOdds: 호텔 점수 비교",
+ subtitle="실제 투숙객 vs 평론가",
+ promo="광고가 가장 좋은 호텔이 아니라 여행에 꼭 맞는 호텔을 찾으세요. 럭셔리 호텔 1,300곳 이상의 실제 투숙객 점수, 평론가 평가, 저희가 직접 촬영한 숙박 후기.",
+ short="실제 투숙객 점수, 평론가 평가, 직접 묵은 경험으로 럭셔리 호텔을 비교하세요.",
+ keywords="럭셔리 호텔,리조트,호텔 리뷰,비교,몰디브,발리,신혼여행,빌라,여행,투숙객 점수",
+ notes="첫 출시입니다.",
+ description="""StayOdds는 정직한 방법으로 럭셔리 호텔을 고르도록 도와줍니다. 실제 투숙객의 이야기, 평론가의 평가, 그리고 저희가 직접 묵으며 확인한 내용을 바탕으로요.
+
+모든 호텔에는 멋진 숙박이 될 확률인 StayOdds 점수가 있으며, 검증된 투숙객 리뷰와 주요 평론가 목록, 그리고 저희가 촬영한 호텔의 경우 직접 묵은 경험을 반영해 계산합니다.
+
+이런 걸 할 수 있어요
+• "1월의 화창한 카리브해"처럼 원하는 여행을 자연스럽게 입력하고 맞는 호텔 보기
+• 호텔 두세 곳을 나란히 비교하고 차이점 확인하기
+• 지도에서 1,300곳 이상의 럭셔리 호텔을 거리 또는 위성 보기로 탐색하기
+• 평론가와 투숙객의 의견이 다른 곳, 투숙객이 가장 좋아하는 브랜드, 가성비 좋은 곳 알아보기
+• The Uncharted Itinerary의 호텔 리뷰 영상과 쇼츠 보기
+• 연휴 날짜와 여행하기 좋은 달 확인하기
+• 목록을 저장하고 비교 결과를 이미지 카드로 공유하기
+
+큰 화면을 위해 만들었어요
+휴대폰은 물론 폴더블과 태블릿에도 맞춰 설계했습니다. 펼친 폴더블에서 나란히 비교하고, iPhone Duo 및 Pixel Fold의 사이드 레일, iPad의 전체 레이아웃을 지원합니다.
+
+정직함이 원칙입니다
+가입이 필요 없고 앱 안에 광고가 없습니다. 저희 링크로 예약하시면 추가 비용 없이 소액의 수수료를 받을 수 있지만, 점수에는 절대 영향을 주지 않습니다.
+
+영국의 럭셔리 여행 채널 The Uncharted Itinerary가 만들었습니다.""")
+
 APPLE = {"en-GB": "en", "en-US": "en", "es-ES": "es", "es-MX": "es", "pt-BR": "pt-BR", "fr-FR": "fr",
-         "de-DE": "de", "it": "it", "ar-SA": "ar", "ja": "ja", "id": "id"}
+         "de-DE": "de", "it": "it", "ar-SA": "ar", "ja": "ja", "id": "id", "zh-Hans": "zh-Hans", "ko": "ko"}
 # Google Play language codes
 GOOGLE = {"en-GB": "en", "en-US": "en", "es-ES": "es", "es-419": "es", "pt-BR": "pt-BR", "fr-FR": "fr",
-          "de-DE": "de", "it-IT": "it", "ar": "ar", "ja-JP": "ja", "id": "id", "fa": "fa"}
+          "de-DE": "de", "it-IT": "it", "ar": "ar", "ja-JP": "ja", "id": "id", "fa": "fa", "zh-CN": "zh-Hans", "ko-KR": "ko"}
 
 import re
 
 def for_apple(text):
     # Apple doesn't allow other platforms' device names in the listing (guideline 2.3.10)
-    return re.sub(r"\s*(?:and|y|e|et|und|و|と|dan)\s*Pixel Fold", "", text)
+    return re.sub(r"\s*(?:and|y|e|et|und|و|と|dan|和|및)\s*Pixel Fold", "", text)
 
 def for_google(text):
     return re.sub(r"iPhone Duo\s*(?:\S+\s*)?Pixel Fold", "Pixel Fold", text)
