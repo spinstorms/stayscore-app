@@ -87,7 +87,7 @@ export function HotelDetailContent({ hotel, isSidePane = false, when }: Props) {
   const { hotels, setCompareA, setCompareB, setCompareC, pushToCompare, toggleShortlist, isShortlisted } = useStayOdds();
   const [liveGoogle, setLiveGoogle] = useState<LiveGoogleRating | null>(null);
   // "Full details below": jumps past the booking buttons to the StayOdds breakdown
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
   const [detailsY, setDetailsY] = useState(0);
   const jumpToDetails = () => scrollRef.current?.scrollTo({ y: Math.max(0, detailsY - 8), animated: true });
   const [showExplainer, setShowExplainer] = useState(false);
