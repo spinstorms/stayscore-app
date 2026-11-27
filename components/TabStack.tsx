@@ -2,7 +2,7 @@ import { Stack } from 'expo-router';
 import React from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useAdaptiveLayout, useSideInsetStyle } from '../lib/layout';
+import { useAdaptiveLayout, useTabSideInsetStyle } from '../lib/layout';
 import { Colors } from '../lib/theme';
 
 type Tone = 'default' | 'uncharted' | 'sand';
@@ -44,7 +44,7 @@ export function TabStack({
   tone?: Tone;
 }) {
   const t = TONES[tone ?? 'default'];
-  const sidePadding = useSideInsetStyle();
+  const sidePadding = useTabSideInsetStyle();
   const insets = useSafeAreaInsets();
   const { isSplitScreen } = useAdaptiveLayout();
   // Android/web unfolded: no title bar, so the whole height goes to content (each screen already

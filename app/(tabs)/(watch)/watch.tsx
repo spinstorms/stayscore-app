@@ -1,3 +1,4 @@
+import { useBleed } from '../../../lib/layout';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo, useState } from 'react';
 import {
@@ -23,6 +24,8 @@ import { t } from '../../../lib/i18n';
 export function WatchScreen() {
   const { videos, shorts, refreshing, refresh } = useStayOdds();
   const { isSplitScreen, gridColumns, horizontalPadding } = useAdaptiveLayout();
+  // seamless rail: the page colours, and the orange banner, run under the rail
+  const bleed = useBleed();
 
   const [category, setCategory] = useState('All');
   const [query, setQuery] = useState('');
@@ -109,12 +112,12 @@ export function WatchScreen() {
 
   return (
     <ScrollView
-      style={styles.screen}
-      contentContainerStyle={{ paddingBottom: 36 }}
+      style={[styles.screen, bleed.root]}
+      contentContainerStyle={[{ paddingBottom: 36 }, bleed.pad]}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={Colors.accent} />}
     >
       {/* Channel Banner */}
-      <View style={[styles.channelBanner, { paddingHorizontal: horizontalPadding }]}>
+      <View style={[styles.channelBanner, bleed.band(horizontalPadding)]}>
         <View style={{ flex: 1 }}>
           <Text style={styles.bannerEyebrow}>{t("THE UNCHARTED ITINERARY ON YOUTUBE")}</Text>
           <Text style={styles.bannerTitle}>

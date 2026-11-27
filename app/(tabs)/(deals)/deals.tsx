@@ -1,3 +1,4 @@
+import { useBleed } from '../../../lib/layout';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
@@ -26,6 +27,8 @@ type DealSection = 'all' | 'promos' | 'gear';
 export function DealsScreen() {
   const { deals, refreshing, refresh } = useStayOdds();
   const { isSplitScreen, gridColumns, horizontalPadding } = useAdaptiveLayout();
+  // seamless rail: the page colours, and the orange banner, run under the rail
+  const bleed = useBleed();
 
   const [section, setSection] = useState<DealSection>('all');
   const [query, setQuery] = useState('');
@@ -69,12 +72,12 @@ export function DealsScreen() {
 
   return (
     <ScrollView
-      style={styles.screen}
-      contentContainerStyle={{ paddingBottom: 38 }}
+      style={[styles.screen, bleed.root]}
+      contentContainerStyle={[{ paddingBottom: 38 }, bleed.pad]}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={Colors.accent} />}
     >
       {/* Header Banner */}
-      <View style={[styles.banner, { paddingHorizontal: horizontalPadding }]}>
+      <View style={[styles.banner, bleed.band(horizontalPadding)]}>
         <Text style={styles.bannerEyebrow}>{t("PERSONALLY CURATED PERKS & FILMING KIT")}</Text>
         <Text style={styles.bannerTitle}>{t("Our Active Discount Codes & Gear")}</Text>
         <Text style={styles.bannerSub}>

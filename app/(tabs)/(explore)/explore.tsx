@@ -533,7 +533,7 @@ export function StayOddsHomeScreen() {
                 styles.regionPill,
                 {
                   borderColor: isActive ? '#38BDF8' : Colors.border,
-                  backgroundColor: isActive ? 'rgba(56, 189, 248, 0.22)' : Colors.bgCanvas,
+                  backgroundColor: isActive ? 'rgba(56, 189, 248, 0.22)' : Colors.sandCard,
                 },
               ]}
             >
@@ -566,7 +566,7 @@ export function StayOddsHomeScreen() {
                 styles.regionPill,
                 {
                   borderColor: isActive ? '#FBBF24' : Colors.border,
-                  backgroundColor: isActive ? 'rgba(251, 191, 36, 0.22)' : Colors.bgCanvas,
+                  backgroundColor: isActive ? 'rgba(251, 191, 36, 0.22)' : Colors.sandCard,
                 },
               ]}
             >
@@ -657,11 +657,11 @@ export function StayOddsHomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.bgCanvas },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: Colors.bgCanvas },
+  screen: { flex: 1, backgroundColor: Colors.sand },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: Colors.sand },
   loadingText: { color: Colors.inkSecondary, fontSize: 14, fontWeight: '600' },
 
-  splitRoot: { flex: 1, flexDirection: 'row', backgroundColor: Colors.bgCanvas },
+  splitRoot: { flex: 1, flexDirection: 'row', backgroundColor: Colors.sand },
   splitLeft: { width: '42%', minWidth: 320, borderRightWidth: 1, borderRightColor: Colors.border },
   // Foldables and iPhone Duo fold down the middle: an even split keeps the crease between list and detail.
   splitLeftHalf: { width: '50%', minWidth: 0 },
@@ -678,7 +678,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 7,
     borderRadius: 10,
-    backgroundColor: Colors.bgCanvas,
+    backgroundColor: Colors.sand,
   },
   activeFiltersText: { flex: 1, color: Colors.inkSecondary, fontSize: 12.5, fontWeight: '600' },
   activeFiltersClear: { color: '#FDBA74', fontSize: 12.5, fontWeight: '700' },
@@ -690,14 +690,14 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 9,
     borderRadius: 12,
-    backgroundColor: Colors.bgCanvas,
+    backgroundColor: Colors.sand,
     borderWidth: 1,
     borderColor: Colors.border,
   },
   quickLinkText: { color: Colors.inkPrimary, fontWeight: '700', fontSize: 12 },
 
   navyHeaderPanel: {
-    backgroundColor: Colors.bgWhite,
+    backgroundColor: Colors.sand,
     paddingHorizontal: 14,
     paddingTop: 6,
     paddingBottom: 18,
@@ -710,7 +710,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: Colors.bgCanvas,
+    backgroundColor: Colors.sand,
     borderRadius: 14,
     borderWidth: 1,
     borderColor: Colors.border,
@@ -721,7 +721,7 @@ const styles = StyleSheet.create({
 
   scopeBar: {
     flexDirection: 'row',
-    backgroundColor: Colors.bgCanvas,
+    backgroundColor: Colors.sand,
     borderRadius: 999,
     padding: 3,
     gap: 4,
@@ -736,7 +736,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: 999,
-    backgroundColor: Colors.bgCanvas,
+    backgroundColor: Colors.sand,
     borderWidth: 1,
     borderColor: Colors.border,
   },
@@ -746,10 +746,10 @@ const styles = StyleSheet.create({
 
   card: {
     marginHorizontal: 14,
-    backgroundColor: Colors.bgWhite,
+    backgroundColor: Colors.sandCard,
     borderRadius: 22,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: Colors.sandBorder,
     overflow: 'hidden',
     shadowColor: '#0F172A',
     shadowOpacity: 0.08,

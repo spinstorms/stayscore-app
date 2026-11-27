@@ -1,3 +1,4 @@
+import { useRailInsets } from '../lib/layout';
 import { Ionicons } from '@expo/vector-icons';
 import { useIsFocused, useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -113,7 +114,10 @@ export function TripHome() {
 
   const ready = hotels.length > 0;
   const { height } = useWindowDimensions();
-  const insets = useSafeAreaInsets();
+  const safe = useSafeAreaInsets();
+  // on unfolded Android the rail floats over the photo, so text keeps clear of it
+  const rail = useRailInsets();
+  const insets = { ...safe, left: rail.left, right: rail.right };
   // the photo screen fills the whole first view, edge to edge: under the status bar, the
   // iPhone Duo rail and the tab bar. Only the text and buttons keep clear of them.
   // the real height of the screen area (measured: window sizes differ from the visible area on
@@ -356,7 +360,8 @@ export function TripHome() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.bgCanvas },
+  // the lower half sits on sand, under the rail too (seamless)
+  screen: { flex: 1, backgroundColor: Colors.sand },
   hero: { justifyContent: 'center', overflow: 'hidden', backgroundColor: Colors.navy },
   langBtn: {
     position: 'absolute',
@@ -476,10 +481,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.sandCard,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: Colors.sandBorder,
     padding: 10,
     marginBottom: 10,
   },
@@ -492,10 +497,10 @@ const styles = StyleSheet.create({
   score: { alignItems: 'center', minWidth: 48 },
   scoreNum: { fontSize: 20, fontWeight: '900', color: Colors.accent },
   scoreLbl: { fontSize: 10.5, color: Colors.inkMuted },
-  more: { alignSelf: 'center', paddingHorizontal: 18, paddingVertical: 10, borderRadius: 999, borderWidth: 1, borderColor: Colors.border, marginTop: 4 },
+  more: { alignSelf: 'center', paddingHorizontal: 18, paddingVertical: 10, borderRadius: 999, borderWidth: 1, borderColor: Colors.sandBorder, marginTop: 4 },
   moreText: { fontWeight: '700', color: Colors.inkPrimary },
   eyebrow: { fontSize: 11.5, fontWeight: '800', letterSpacing: 1.3, textTransform: 'uppercase', color: Colors.accent },
-  step: { backgroundColor: '#FFFFFF', borderRadius: 14, borderWidth: 1, borderColor: Colors.border, padding: 14, gap: 4, marginBottom: 10 },
+  step: { backgroundColor: Colors.sandCard, borderRadius: 14, borderWidth: 1, borderColor: Colors.sandBorder, padding: 14, gap: 4, marginBottom: 10 },
   stepTitle: { fontSize: 15.5, fontWeight: '800', color: Colors.inkPrimary },
   deals: {
     marginTop: 8,
@@ -516,10 +521,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.sandCard,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: Colors.sandBorder,
     paddingHorizontal: 12,
     paddingVertical: 12,
   },

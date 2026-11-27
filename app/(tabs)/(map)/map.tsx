@@ -1,3 +1,4 @@
+import { useBleed } from '../../../lib/layout';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useMemo, useState } from 'react';
@@ -117,6 +118,8 @@ export function WorldMapScreen() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [satellite, setSatellite] = useState(true);
   const insets = useSafeAreaInsets();
+  // seamless rail: the panel and the map run under the rail; controls stay clear of it
+  const bleed = useBleed();
   // keep the floating card above the iPhone tab bar; on the Duo the tabs sit in the side rail
   const railOnSide = insets.left > 40 || insets.right > 40;
   const cardBottom =
@@ -199,9 +202,9 @@ export function WorldMapScreen() {
   }
 
   return (
-    <View style={styles.screen}>
+    <View style={[styles.screen, bleed.root]}>
       {/* Top Coastal Navy Controls */}
-      <View style={styles.headerPanel}>
+      <View style={[styles.headerPanel, { paddingLeft: 14 + bleed.l, paddingRight: 14 + bleed.r }]}>
         <View style={styles.topRow}>
           <View style={styles.scopeRow}>
             {(
@@ -325,13 +328,13 @@ export function WorldMapScreen() {
           ))}
 
           {/* Legend & Count Badge */}
-          <View style={styles.mapOverlayBadge} pointerEvents="none">
+          <View style={[styles.mapOverlayBadge, { left: 10 + bleed.l }]} pointerEvents="none">
             <Text style={styles.mapOverlayBadgeText}>
               {viewport.label} • {visibleHotels.length} {visibleHotels.length === 1 ? 'stay' : 'stays'}
             </Text>
           </View>
 
-          <View style={styles.legendRow} pointerEvents="none">
+          <View style={[styles.legendRow, { left: 10 + bleed.l }]} pointerEvents="none">
             <View style={styles.legendItem}>
               <View style={[styles.legendDot, { backgroundColor: Colors.uncharted }]} />
               <Text style={styles.legendText}>{t("Our stays")}</Text>
@@ -348,7 +351,7 @@ export function WorldMapScreen() {
 
           {nativeMapAvailable && !cardOpen ? (
             <Pressable
-              style={styles.layerBtn}
+              style={[styles.layerBtn, { right: 12 + bleed.r }]}
               onPress={() => setSatellite((v) => !v)}
               accessibilityRole="button"
               accessibilityLabel={satellite ? 'Show street map' : 'Show satellite view'}
@@ -383,7 +386,7 @@ export function WorldMapScreen() {
 
       {/* Selected Hotel Preview Sheet */}
       {cardOpen && selectedHotel && selectedOdds ? (
-        <View style={[styles.previewWrap, { bottom: cardBottom }]}>
+        <View style={[styles.previewWrap, { bottom: cardBottom, left: 12 + bleed.l, right: 12 + bleed.r }]}>
           <View style={styles.previewCard}>
             <Pressable
               onPress={() => setCardOpen(false)}

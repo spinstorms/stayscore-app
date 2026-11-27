@@ -1128,7 +1128,8 @@ const styles = StyleSheet.create({
   altName: { fontSize: 13, fontWeight: '600', color: '#0F172A', flex: 1 },
   altMeta: { fontSize: 12, color: '#475569' },
   guestBreakdown: { fontSize: 11.5, color: '#64748B', marginTop: 6, marginBottom: 4, lineHeight: 16 },
-  scroll: { flex: 1, backgroundColor: Colors.bgCanvas },
+  // the StayOdds breakdown sits on sand (the hero card stays white)
+  scroll: { flex: 1, backgroundColor: Colors.sand },
   content: { padding: 14, gap: 14, paddingBottom: 40 },
   contentSidePane: { paddingTop: 14 },
 
@@ -1213,10 +1214,10 @@ const styles = StyleSheet.create({
   vipText: { flex: 1, fontSize: 11.5, color: Colors.inkSecondary, lineHeight: 16 },
 
   sectionCard: {
-    backgroundColor: Colors.bgWhite,
+    backgroundColor: Colors.sandCard,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: Colors.sandBorder,
     padding: 15,
   },
   gapCard: { borderLeftWidth: 4 },

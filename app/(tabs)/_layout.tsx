@@ -78,7 +78,13 @@ export default function TabsLayout() {
         // unfolded: a floating rail on the edge, like the iPhone Duo's, instead of a full-height strip
         tabBarStyle: isSplitScreen
           ? {
-              backgroundColor: Colors.bgWhite,
+              // floats over the screen, so each screen's colours run underneath it (seamless rail)
+              position: 'absolute',
+              top: 0,
+              bottom: 0,
+              left: 0,
+              width: 80,
+              backgroundColor: 'rgba(255,255,255,0.94)',
               borderRightWidth: 0,
               marginLeft: insets.left + 10,
               marginTop: insets.top + 10,
@@ -93,7 +99,7 @@ export default function TabsLayout() {
               shadowOffset: { width: 0, height: 4 },
             }
           : { backgroundColor: Colors.bgWhite, borderTopWidth: 1, borderTopColor: Colors.border },
-        sceneStyle: { backgroundColor: Colors.bgCanvas },
+        sceneStyle: { backgroundColor: 'transparent' },
         tabBarLabelStyle: { fontSize: 11, fontWeight: '700' },
         tabBarPosition: isSplitScreen ? 'left' : 'bottom',
         tabBarVariant: isSplitScreen ? 'material' : 'uikit',

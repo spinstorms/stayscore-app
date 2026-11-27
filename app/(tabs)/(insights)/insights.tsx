@@ -475,15 +475,15 @@ function RangeRows({ rows, min }: { rows: { label: string; stat: RangeStat; logo
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.bgCanvas },
+  screen: { flex: 1, backgroundColor: Colors.sand },
   content: { paddingTop: 16, paddingBottom: 40, gap: 16, maxWidth: 960, width: '100%', alignSelf: 'center' },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 24, backgroundColor: Colors.bgCanvas },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 24, backgroundColor: Colors.sand },
   header: { gap: 6 },
   eyebrow: { fontSize: 11.5, fontWeight: '800', letterSpacing: 1.4, textTransform: 'uppercase', color: Colors.accent },
   h1: { fontSize: 28, fontWeight: '900', color: Colors.inkPrimary, letterSpacing: -0.5, lineHeight: 32 },
   h2: { fontSize: 19, fontWeight: '800', color: Colors.inkPrimary, lineHeight: 24 },
   sub: { fontSize: 14, color: Colors.inkSecondary, lineHeight: 20 },
-  panel: { backgroundColor: '#FFFFFF', borderRadius: 18, borderWidth: 1, borderColor: Colors.border, padding: 18, gap: 6 },
+  panel: { backgroundColor: Colors.sandCard, borderRadius: 18, borderWidth: 1, borderColor: Colors.sandBorder, padding: 18, gap: 6 },
   panelWrap: { position: 'relative' },
   shareBtn: {
     position: 'absolute',

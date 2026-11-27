@@ -41,6 +41,43 @@ export function useSideInsetStyle() {
   return { paddingLeft: insets.left, paddingRight: insets.right };
 }
 
+/** Width of the floating rail on unfolded Android (the pill plus its margins). */
+export const ANDROID_RAIL_WIDTH = 96;
+
+/**
+ * Space taken by the rail on each side of a tab screen: the iPhone Duo's system rail (safe-area
+ * inset), or the floating rail on unfolded Android, which now floats over the screen.
+ * `rail: false` for pushed screens, where Android has no rail.
+ */
+export function useRailInsets(opts?: { rail?: boolean }) {
+  const insets = useSafeAreaInsets();
+  const { isSplitScreen } = useAdaptiveLayout();
+  const androidRail = opts?.rail !== false && process.env.EXPO_OS === 'android' && isSplitScreen;
+  return { left: insets.left + (androidRail ? ANDROID_RAIL_WIDTH : 0), right: insets.right };
+}
+
+export function useTabSideInsetStyle() {
+  const r = useRailInsets();
+  return { paddingLeft: r.left, paddingRight: r.right };
+}
+
+/**
+ * Seamless rail: the screen's own colours run underneath the rail instead of stopping beside it.
+ *  - root: on the screen's outer view, so its background covers the rail area
+ *  - pad: on the content, so text and buttons stay clear of the rail
+ *  - band(h): on a full-width coloured strip (a banner) inside padded content, so it reaches the edge too
+ */
+export function useBleed(opts?: { rail?: boolean }) {
+  const { left: l, right: r } = useRailInsets(opts);
+  return {
+    l,
+    r,
+    root: { marginLeft: -l, marginRight: -r },
+    pad: { paddingLeft: l, paddingRight: r },
+    band: (h = 0) => ({ marginLeft: -l, marginRight: -r, paddingLeft: h + l, paddingRight: h + r }),
+  };
+}
+
 export function formatPersonalScore(val: number | null | undefined): string {
   if (val == null || Number.isNaN(Number(val))) return '—';
   const num = Number(val);
