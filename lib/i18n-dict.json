@@ -1098,5 +1098,49 @@
   "ja": "3軒の比較を共有",
   "id": "Bagikan perbandingan 3 hotel ini",
   "fa": "اشتراک مقایسه ۳ هتل"
+ },
+ "We stayed and filmed it": {
+  "es": "Nos alojamos y lo grabamos",
+  "pt-BR": "Ficamos e filmamos",
+  "fr": "Nous y avons séjourné et filmé",
+  "de": "Wir waren dort und haben gefilmt",
+  "it": "Ci siamo stati e l'abbiamo filmato",
+  "ar": "أقمنا فيه وصوّرناه",
+  "ja": "宿泊して撮影しました",
+  "id": "Kami menginap dan memfilmkannya",
+  "fa": "آنجا ماندیم و فیلم گرفتیم"
+ },
+ "guests": {
+  "es": "huéspedes",
+  "pt-BR": "hóspedes",
+  "fr": "clients",
+  "de": "Gäste",
+  "it": "ospiti",
+  "ar": "النزلاء",
+  "ja": "宿泊者",
+  "id": "tamu",
+  "fa": "مهمانان"
+ },
+ "Hotels we stayed at and filmed": {
+  "es": "Hoteles donde nos alojamos y grabamos",
+  "pt-BR": "Hotéis onde ficamos e filmamos",
+  "fr": "Hôtels où nous avons séjourné et filmé",
+  "de": "Hotels, in denen wir waren und gefilmt haben",
+  "it": "Hotel dove siamo stati e abbiamo filmato",
+  "ar": "فنادق أقمنا فيها وصوّرناها",
+  "ja": "宿泊して撮影したホテル",
+  "id": "Hotel yang kami inapi dan filmkan",
+  "fa": "هتل‌هایی که در آن ماندیم و فیلم گرفتیم"
+ },
+ "Best for {m}": {
+  "es": "Lo mejor para {m}",
+  "pt-BR": "O melhor para {m}",
+  "fr": "Le meilleur pour {m}",
+  "de": "Am besten im {m}",
+  "it": "Il meglio per {m}",
+  "ar": "الأفضل في {m}",
+  "ja": "{m}におすすめ",
+  "id": "Terbaik untuk {m}",
+  "fa": "بهترین برای {m}"
  }
 }

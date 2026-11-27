@@ -113,7 +113,9 @@ export function TripHome() {
   );
 
   const ready = hotels.length > 0;
-  const { height } = useWindowDimensions();
+  const { height, width } = useWindowDimensions();
+  // iPad and big tablets: a shorter photo screen, so there's something to see below it straight away
+  const isTablet = isSplitScreen && Math.min(width, height) >= 700;
   const safe = useSafeAreaInsets();
   // on unfolded Android the rail floats over the photo, so text keeps clear of it
   const rail = useRailInsets();
@@ -124,7 +126,7 @@ export function TripHome() {
   // the real height of the screen area (measured: window sizes differ from the visible area on
   // Android, tall iPhones and iPad), so the photo screen is exactly one screen tall
   const [viewH, setViewH] = useState(height);
-  const heroHeight = Math.max(460, viewH);
+  const heroHeight = isTablet ? Math.max(460, Math.round(viewH * 0.62)) : Math.max(460, viewH);
   const [heroH, setHeroH] = useState(heroHeight);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const scrollRef = useRef<any>(null);
@@ -136,6 +138,49 @@ export function TripHome() {
     if (t.trim()) setTimeout(() => scrollRef.current?.scrollTo({ y: heroHeight - 40, animated: true }), 120);
   };
   const open = (h: Hotel) => router.push({ pathname: '/hotel/[id]', params: { id: h.id } });
+  const renderCard = (h: Hotel, cols: 2 | 3 = 2) => {
+    const g = guest(h);
+    const best = getBestMonths(h);
+    return (
+      <Pressable key={h.id} style={[styles.card, isSplitScreen && (cols === 3 ? styles.cardThird : styles.cardHalf)]} onPress={() => open(h)}>
+        {h.thumbnail ? <Image source={{ uri: h.thumbnail }} style={styles.cardImg} /> : <View style={styles.cardImg} />}
+        <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+          <Text style={styles.cardName} numberOfLines={2}>
+            {h.name}
+          </Text>
+          <Text style={styles.cardMeta} numberOfLines={1}>
+            {h.location}, {h.country}
+          </Text>
+          <Text style={styles.cardMeta} numberOfLines={1}>
+            Best: {best.shortLabel}
+            {h.priceRange ? ` · from ${h.priceRange}` : ''}
+          </Text>
+          {h.visitedByUs ? <Text style={styles.filmed}>▶ {t('We stayed and filmed it')}</Text> : null}
+        </View>
+        <View style={styles.score}>
+          <Text style={styles.scoreNum}>{g || '—'}</Text>
+          <Text style={styles.scoreLbl}>{t('guests')}</Text>
+        </View>
+      </Pressable>
+    );
+  };
+  // more to look at below the photo: our filmed stays, and what's best this month
+  const filmedStays = useMemo(
+    () =>
+      hotels
+        .filter((h) => h.visitedByUs && h.coverageType !== 'Global Directory')
+        .sort((a, b) => guest(b) - guest(a))
+        .slice(0, isTablet ? 6 : 4),
+    [hotels, isTablet]
+  );
+  const monthName = new Date().toLocaleString('en-GB', { month: 'long' });
+  const monthPicks = useMemo(() => {
+    const q = parseTripQuery(monthName);
+    const filmedIds = new Set(filmedStays.map((h) => h.id));
+    return sortTripResults(matchTrip(hotels, q), q, guest)
+      .filter((h) => !filmedIds.has(h.id))
+      .slice(0, isTablet ? 6 : 4);
+  }, [hotels, monthName, filmedStays, isTablet]);
 
   return (
     <ScrollView
@@ -284,32 +329,7 @@ export function TripHome() {
                   {results.length} hotel{results.length === 1 ? '' : 's'} match, best first
                 </Text>
                 <View style={isSplitScreen ? styles.grid : undefined}>
-                  {results.slice(0, limit).map((h) => {
-                    const g = guest(h);
-                    const best = getBestMonths(h);
-                    return (
-                      <Pressable key={h.id} style={[styles.card, isSplitScreen && styles.cardHalf]} onPress={() => open(h)}>
-                        {h.thumbnail ? <Image source={{ uri: h.thumbnail }} style={styles.cardImg} /> : <View style={styles.cardImg} />}
-                        <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-                          <Text style={styles.cardName} numberOfLines={2}>
-                            {h.name}
-                          </Text>
-                          <Text style={styles.cardMeta} numberOfLines={1}>
-                            {h.location}, {h.country}
-                          </Text>
-                          <Text style={styles.cardMeta} numberOfLines={1}>
-                            Best: {best.shortLabel}
-                            {h.priceRange ? ` · from ${h.priceRange}` : ''}
-                          </Text>
-                          {h.visitedByUs ? <Text style={styles.filmed}>▶ We stayed and filmed it</Text> : null}
-                        </View>
-                        <View style={styles.score}>
-                          <Text style={styles.scoreNum}>{g || '—'}</Text>
-                          <Text style={styles.scoreLbl}>guests</Text>
-                        </View>
-                      </Pressable>
-                    );
-                  })}
+                  {results.slice(0, limit).map((h) => renderCard(h))}
                 </View>
                 {results.length > limit ? (
                   <Pressable style={styles.more} onPress={() => setLimit(limit + SHOW)}>
@@ -332,8 +352,8 @@ export function TripHome() {
               </Pressable>
             </View>
             <View style={isSplitScreen ? styles.grid : undefined}>
-              {videos.slice(0, 1).map((v) => (
-                <View key={v.id} style={{ gap: 6, maxWidth: 640 }}>
+              {videos.slice(0, isSplitScreen ? 3 : 1).map((v) => (
+                <View key={v.id} style={isSplitScreen ? [styles.cardThird, { gap: 6 }] : { gap: 6, maxWidth: 640 }}>
                   <InlineVideo url={v.url} thumbnail={v.thumbnail || v.fallbackThumbnail} badge="The Uncharted Itinerary" />
                   <Text style={styles.cardName} numberOfLines={2}>
                     {v.title}
@@ -341,6 +361,25 @@ export function TripHome() {
                 </View>
               ))}
             </View>
+          </View>
+        ) : null}
+
+        {filmedStays.length ? (
+          <View style={styles.section}>
+            <View style={styles.rowBetween}>
+              <Text style={styles.eyebrow}>{t('Hotels we stayed at and filmed')}</Text>
+              <Pressable onPress={() => router.push(routes.watch() as never)} hitSlop={8}>
+                <Text style={styles.clear}>{t('All videos →')}</Text>
+              </Pressable>
+            </View>
+            <View style={isSplitScreen ? styles.grid : undefined}>{filmedStays.map((h) => renderCard(h, isTablet ? 3 : 2))}</View>
+          </View>
+        ) : null}
+
+        {monthPicks.length ? (
+          <View style={styles.section}>
+            <Text style={styles.eyebrow}>{t('Best for {m}', { m: monthName })}</Text>
+            <View style={isSplitScreen ? styles.grid : undefined}>{monthPicks.map((h) => renderCard(h, isTablet ? 3 : 2))}</View>
           </View>
         ) : null}
 
@@ -469,7 +508,7 @@ const styles = StyleSheet.create({
   askBtnText: { color: '#FFFFFF', fontWeight: '800', fontSize: 14 },
   example: { backgroundColor: 'rgba(255,255,255,0.16)', borderColor: 'rgba(255,255,255,0.3)', borderWidth: 1, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7 },
   exampleText: { color: '#FFFFFF', fontSize: 12.5, fontWeight: '600' },
-  body: { maxWidth: 900, width: '100%', alignSelf: 'center' },
+  body: { maxWidth: 1200, width: '100%', alignSelf: 'center' },
   section: { marginTop: 18, gap: 10 },
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   understood: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 },

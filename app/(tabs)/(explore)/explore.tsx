@@ -16,7 +16,7 @@ import {
 import { HotelDetailContent } from '../../../components/HotelDetailContent';
 import { StayOddsWordmark } from '../../../components/TabStack';
 import { RequestResortModal } from '../../../components/SupportModals';
-import { openExternalUrl } from '../../../lib/api';
+import { getHotelVideoUrl, openExternalUrl } from '../../../lib/api';
 import { BRAND } from '../../../lib/brand';
 import { getBrandCategories, getMonthShortName, getPartnerPrograms, isBestInMonth } from '../../../lib/insights';
 import { formatPersonalScore, useAdaptiveLayout } from '../../../lib/layout';
@@ -196,6 +196,21 @@ export function StayOddsHomeScreen() {
       >
         <View style={styles.cardHeroWrap}>
           <Image source={{ uri: h.thumbnail }} style={styles.cardHeroImg} resizeMode="cover" />
+          {/* our video review: a YouTube play button right on the photo */}
+          {h.videoId ? (
+            <Pressable
+              style={styles.playBtn}
+              onPress={() => {
+                const url = getHotelVideoUrl(h);
+                if (url) openExternalUrl(url);
+              }}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={`Watch our video of ${h.name}`}
+            >
+              <Ionicons name="play" size={24} color="#FFFFFF" style={{ marginLeft: 3 }} />
+            </Pressable>
+          ) : null}
 
           {/* Top overlay: tier pill + heart shortlist toggle + floating Two-Track ring */}
           <View style={styles.cardHeroTop}>
@@ -744,6 +759,23 @@ const styles = StyleSheet.create({
   regionText: { fontSize: 12, fontWeight: '700', color: Colors.inkSecondary },
   regionTextActive: { color: '#FFFFFF' },
 
+  playBtn: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    width: 56,
+    height: 56,
+    marginLeft: -28,
+    marginTop: -40,
+    borderRadius: 28,
+    backgroundColor: '#E62117',
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 5,
+    elevation: 5,
+  },
   card: {
     marginHorizontal: 14,
     backgroundColor: Colors.sandCard,

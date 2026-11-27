@@ -123,6 +123,8 @@ export function WorldMapScreen() {
   const bleed = useBleed();
   const { width: winW, height: winH } = useWindowDimensions();
   const compactLandscape = winW > winH && winH < 520;
+  // iPad: the hotel details sit in a panel under the map instead of floating over it
+  const docked = Math.min(winW, winH) >= 700;
   // keep the floating card above the iPhone tab bar; on the Duo the tabs sit in the side rail
   const railOnSide = insets.left > 40 || insets.right > 40;
   const cardBottom =
@@ -372,7 +374,7 @@ export function WorldMapScreen() {
             </View>
           </View>
 
-          {nativeMapAvailable && !cardOpen ? (
+          {nativeMapAvailable && (!cardOpen || docked) ? (
             <Pressable
               style={[styles.layerBtn, { right: 12 + bleed.r }]}
               onPress={() => setSatellite((v) => !v)}
@@ -408,9 +410,16 @@ export function WorldMapScreen() {
       </View>
 
       {/* Selected Hotel Preview Sheet */}
-      {cardOpen && selectedHotel && selectedOdds ? (
-        <View style={[styles.previewWrap, { bottom: cardBottom, left: 12 + bleed.l, right: 12 + bleed.r }]}>
-          <View style={styles.previewCard}>
+      {(cardOpen || docked) && selectedHotel && selectedOdds ? (
+        <View
+          style={
+            docked
+              ? [styles.dockedPanel, { paddingLeft: 14 + bleed.l, paddingRight: 14 + bleed.r, paddingBottom: insets.bottom + 12 }]
+              : [styles.previewWrap, { bottom: cardBottom, left: 12 + bleed.l, right: 12 + bleed.r }]
+          }
+        >
+          <View style={[styles.previewCard, docked && styles.previewCardDocked]}>
+            {docked ? null : (
             <Pressable
               onPress={() => setCardOpen(false)}
               style={styles.previewClose}
@@ -420,6 +429,7 @@ export function WorldMapScreen() {
             >
               <Ionicons name="close" size={16} color={Colors.inkSecondary} />
             </Pressable>
+            )}
             <View style={styles.previewTop}>
               <Image source={{ uri: selectedHotel.thumbnail }} style={styles.previewThumb} />
               <View style={{ flex: 1 }}>
@@ -725,6 +735,13 @@ const styles = StyleSheet.create({
   },
 
   // the card floats over the bottom of the map
+  dockedPanel: {
+    backgroundColor: Colors.bgWhite,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+    paddingTop: 12,
+  },
+  previewCardDocked: { shadowOpacity: 0, elevation: 0, borderWidth: 0, padding: 4 },
   previewWrap: {
     position: 'absolute',
     left: 12,

@@ -2,7 +2,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Sharing from 'expo-sharing';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Image, Platform, Pressable, RefreshControl, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Platform, Pressable, RefreshControl, ScrollView, Share, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import ViewShot from 'react-native-view-shot';
 import { openExternalUrl } from '../../../lib/api';
 import { useAdaptiveLayout } from '../../../lib/layout';
@@ -20,7 +20,7 @@ const fmt = (x: number) => String(Number(x.toFixed(1)));
 export function InsightsScreen() {
   const router = useRouter();
   const { hotels } = useStayOdds();
-  const { isSplitScreen, horizontalPadding } = useAdaptiveLayout();
+  const { isSplitScreen, horizontalPadding, width: winWidth } = useAdaptiveLayout();
   const [d, setD] = useState<SiteInsights | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -79,15 +79,17 @@ export function InsightsScreen() {
   const pr = d.price;
 
   const gridStyle = isSplitScreen ? styles.grid2 : undefined;
+  // iPad and wide screens: the panels sit two side by side
+  const twoCol = winWidth >= 1000;
 
   return (
     <ScrollView
       style={styles.screen}
-      contentContainerStyle={[styles.content, { paddingHorizontal: horizontalPadding }]}
+      contentContainerStyle={[styles.content, { paddingHorizontal: horizontalPadding }, twoCol && styles.contentTwoCol]}
       contentInsetAdjustmentBehavior="automatic"
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={Colors.accent} />}
     >
-      <View style={styles.header}>
+      <View style={[styles.header, { width: '100%' }]}>
         <Text style={styles.eyebrow}>StayOdds insights{d.updated ? ` · updated ${d.updated}` : ''}</Text>
         <Text style={styles.h1}>How guests really rate luxury hotels</Text>
         <Text style={styles.sub}>
@@ -396,8 +398,9 @@ function Panel({ eyebrow, title, sub, children }: { eyebrow: string; title: stri
       setBusy(false);
     }
   };
+  const { width: panelWinW } = useWindowDimensions();
   return (
-    <View style={styles.panelWrap}>
+    <View style={[styles.panelWrap, panelWinW >= 1000 && { width: '49%' }]}>
       <ViewShot ref={shotRef} options={{ format: 'png', quality: 1, result: 'tmpfile' }} style={styles.panel}>
         <View style={styles.shareBrand}>
           <Image source={require('../../../assets/images/stayodds-logo.png')} style={styles.shareLogo} />
@@ -477,6 +480,7 @@ function RangeRows({ rows, min }: { rows: { label: string; stat: RangeStat; logo
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.sand },
   content: { paddingTop: 16, paddingBottom: 40, gap: 16, maxWidth: 960, width: '100%', alignSelf: 'center' },
+  contentTwoCol: { maxWidth: 1400, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 24, backgroundColor: Colors.sand },
   header: { gap: 6 },
   eyebrow: { fontSize: 11.5, fontWeight: '800', letterSpacing: 1.4, textTransform: 'uppercase', color: Colors.accent },
