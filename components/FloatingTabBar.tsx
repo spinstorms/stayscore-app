@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -13,8 +14,9 @@ export type FloatingTab = { name: string; label: string; ion: keyof typeof Ionic
  * bottom when folded. Screens keep their content clear of it (useRailInsets / TabStack).
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function FloatingTabBar({ state, navigation, tabs, rail }: { state: any; navigation: any; tabs: FloatingTab[]; rail: boolean }) {
+export function FloatingTabBar({ state, tabs, rail }: { state: any; tabs: FloatingTab[]; rail: boolean }) {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const shown = tabs.filter((t) => rail || !t.wideOnly);
   return (
     <View
@@ -31,8 +33,7 @@ export function FloatingTabBar({ state, navigation, tabs, rail }: { state: any; 
           if (!route) return null;
           const focused = state.routes[state.index]?.name === t.name;
           const onPress = () => {
-            const e = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
-            if (!focused && !e.defaultPrevented) navigation.navigate(route.name, route.params);
+            if (!focused) router.navigate(TAB_HREF[t.name] as never);
           };
           return (
             <Pressable
@@ -54,6 +55,18 @@ export function FloatingTabBar({ state, navigation, tabs, rail }: { state: any; 
     </View>
   );
 }
+
+/** each tab's address (its group's first screen) */
+const TAB_HREF: Record<string, string> = {
+  '(trip)': '/',
+  '(explore)': '/explore',
+  '(map)': '/map',
+  '(compare)': '/compare',
+  '(holidays)': '/holidays',
+  '(insights)': '/insights',
+  '(watch)': '/watch',
+  '(deals)': '/deals',
+};
 
 const styles = StyleSheet.create({
   railWrap: { position: 'absolute', width: ANDROID_RAIL_PILL, justifyContent: 'center', zIndex: 20, elevation: 20 },
