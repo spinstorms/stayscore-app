@@ -291,6 +291,15 @@ APPLE = {"en-GB": "en", "en-US": "en", "es-ES": "es", "es-MX": "es", "pt-BR": "p
 GOOGLE = {"en-GB": "en", "en-US": "en", "es-ES": "es", "es-419": "es", "pt-BR": "pt-BR", "fr-FR": "fr",
           "de-DE": "de", "it-IT": "it", "ar": "ar", "ja-JP": "ja", "id": "id", "fa": "fa"}
 
+import re
+
+def for_apple(text):
+    # Apple doesn't allow other platforms' device names in the listing (guideline 2.3.10)
+    return re.sub(r"\s*(?:and|y|e|et|und|و|と|dan)\s*Pixel Fold", "", text)
+
+def for_google(text):
+    return re.sub(r"iPhone Duo\s*(?:\S+\s*)?Pixel Fold", "Pixel Fold", text)
+
 def check():
     for k, v in L.items():
         assert len(v["title"]) <= 30, (k, "title", len(v["title"]))
@@ -307,7 +316,7 @@ if __name__ == "__main__":
     for loc, k in APPLE.items():
         v = L[k]
         info[loc] = {
-            "title": v["title"], "subtitle": v["subtitle"], "description": v["description"],
+            "title": v["title"], "subtitle": v["subtitle"], "description": for_apple(v["description"]),
             "keywords": [x.strip() for x in v["keywords"].split(",")], "releaseNotes": v["notes"],
             "promoText": v["promo"], "marketingUrl": "https://stayodds.com/",
             "supportUrl": "https://uncharteditinerary.com/contact/",
@@ -336,6 +345,6 @@ if __name__ == "__main__":
         v = L[k]
         (d / "title.txt").write_text(v["title"] + "\n")
         (d / "short_description.txt").write_text(v["short"] + "\n")
-        (d / "full_description.txt").write_text(v["description"] + "\n")
+        (d / "full_description.txt").write_text(for_google(v["description"]) + "\n")
         (d / "release_notes.txt").write_text(v["notes"] + "\n")
     print("ok", len(info), "App Store locales,", len(GOOGLE), "Google Play locales")
