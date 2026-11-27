@@ -74,7 +74,7 @@ export default function TabsLayout() {
   const labelled = TABS.map((t) => ({ ...t, label: tr(t.label) }));
   return (
     <Tabs
-      tabBar={(props) => <FloatingTabBar {...props} tabs={labelled} rail={isSplitScreen} />}
+      tabBar={(props) => <FloatingTabBar state={props.state} navigation={props.navigation} tabs={labelled} rail={isSplitScreen} />}
       screenOptions={{
         headerShown: false,
         sceneStyle: { backgroundColor: Colors.bgCanvas },
