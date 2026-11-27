@@ -50,6 +50,35 @@ for (const [label, device] of targets) {
   }
   await ctx.close();
 }
+// Store screenshots at the exact sizes Apple and Google ask for
+const storeScreens = [
+  ['1-home', '/'],
+  ['2-search', '/?q=Maldives%20in%20March'],
+  ['3-explore', '/explore'],
+  ['4-hotel', '/hotel/the-ungasan-bali'],
+  ['5-compare', '/compare'],
+  ['6-insights', '/insights'],
+  ['7-watch', '/watch'],
+];
+const storeTargets = [
+  ['apple-iphone-6.9', { viewport: { width: 440, height: 956 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true }], // 1320x2868
+  ['apple-ipad-13', { viewport: { width: 1032, height: 1376 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true }], // 2064x2752
+  ['google-phone', { viewport: { width: 360, height: 640 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true }], // 1080x1920
+  ['google-tablet-7', { viewport: { width: 600, height: 960 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true }], // 1200x1920
+  ['google-tablet-10', { viewport: { width: 800, height: 1280 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true }], // 1600x2560
+];
+fs.mkdirSync('mockups/store', { recursive: true });
+for (const [label, device] of storeTargets) {
+  const ctx = await browser.newContext({ ...device });
+  for (const [name, path] of storeScreens) {
+    const page = await ctx.newPage();
+    await page.goto(BASE + path, { waitUntil: 'networkidle', timeout: 60000 }).catch(() => {});
+    await page.waitForTimeout(6000);
+    await page.screenshot({ path: `mockups/store/${label}__${name}.png` });
+    await page.close();
+  }
+  await ctx.close();
+}
 await browser.close();
 fs.writeFileSync('mockups/errors.txt', errors.join('\n') || 'No JavaScript errors.');
 console.log(errors.length ? errors.join('\n') : 'No JavaScript errors.');
