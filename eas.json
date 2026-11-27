@@ -25,11 +25,13 @@
       "android": {
         "buildType": "apk"
       },
-      "extends": "base"
+      "extends": "base",
+      "channel": "preview"
     },
     "production": {
       "autoIncrement": true,
-      "extends": "base"
+      "extends": "base",
+      "channel": "production"
     },
     "simulator": {
       "extends": "base",

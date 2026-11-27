@@ -9,6 +9,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { DotMap } from '../../../components/map/DotMap';
@@ -120,6 +121,8 @@ export function WorldMapScreen() {
   const insets = useSafeAreaInsets();
   // seamless rail: the panel and the map run under the rail; controls stay clear of it
   const bleed = useBleed();
+  const { width: winW, height: winH } = useWindowDimensions();
+  const compactLandscape = winW > winH && winH < 520;
   // keep the floating card above the iPhone tab bar; on the Duo the tabs sit in the side rail
   const railOnSide = insets.left > 40 || insets.right > 40;
   const cardBottom =
@@ -204,7 +207,7 @@ export function WorldMapScreen() {
   return (
     <View style={[styles.screen, bleed.root]}>
       {/* Top Coastal Navy Controls */}
-      <View style={[styles.headerPanel, { paddingLeft: 14 + bleed.l, paddingRight: 14 + bleed.r }]}>
+      <View style={[styles.headerPanel, { paddingLeft: 14 + bleed.l, paddingRight: 14 + bleed.r }, compactLandscape && { paddingTop: 4, paddingBottom: 6 }]}>
         <View style={styles.topRow}>
           <View style={styles.scopeRow}>
             {(
@@ -223,6 +226,24 @@ export function WorldMapScreen() {
               </Pressable>
             ))}
           </View>
+
+          {/* phone on its side: regions share the top row, so the map gets the height */}
+          {compactLandscape ? (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flex: 1, marginHorizontal: 8 }} contentContainerStyle={styles.regionStrip}>
+          {REGION_VIEWPORTS.map((rv) => {
+            const active = rv.id === viewportId;
+            return (
+              <Pressable
+                key={rv.id}
+                onPress={() => setViewportId(rv.id)}
+                style={[styles.regionPill, active && styles.regionPillActive]}
+              >
+                <Text style={[styles.regionText, active && styles.regionTextActive]}>{t(rv.label)}</Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+          ) : null}
 
           <Pressable
             style={[styles.webMapBtn, (filtersOpen || awards.length > 0) && styles.filtersBtnOn]}
@@ -300,7 +321,8 @@ export function WorldMapScreen() {
         </>
         ) : null}
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.regionStrip}>
+        {compactLandscape ? null : (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.regionStrip}>
           {REGION_VIEWPORTS.map((rv) => {
             const active = rv.id === viewportId;
             return (
@@ -314,6 +336,7 @@ export function WorldMapScreen() {
             );
           })}
         </ScrollView>
+        )}
       </View>
 
       {/* Interactive Coordinate Map Canvas (100% Expo Go & Web compatible) */}

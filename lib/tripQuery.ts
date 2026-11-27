@@ -11,6 +11,8 @@ export interface TripQuery {
   excludeCountries: string[];
   includeLocations: string[];
   search: string;
+  /** search is a place name: match it against where the hotel is only */
+  placeSearch?: boolean;
   brand: string | null;
   month: number;
   feature: string;
@@ -157,7 +159,10 @@ export function parseTripQuery(raw: string): TripQuery {
       if (r.region) p.region = r.region;
       if (r.excludeCountries) p.excludeCountries = r.excludeCountries;
       if (r.includeLocations) p.includeLocations = r.includeLocations;
-      if (r.search) p.search = r.search;
+      if (r.search) {
+        p.search = r.search;
+        p.placeSearch = true;
+      }
       p.chips.push(`📍 ${r.label}`);
       break;
     }
@@ -316,7 +321,10 @@ export function matchTrip(hotels: Hotel[], q: TripQuery): Hotel[] {
       const brands = getBrandCategories(h).allBrands.join(' ').toLowerCase();
       if (!brands.includes(q.brand.toLowerCase()) && !String(h.brand).toLowerCase().includes(q.brand.toLowerCase())) return false;
     }
-    if (search && !hotelText(h).toLowerCase().includes(search)) return false;
+    // a named place matches where the hotel is, not its wider region ("Maldives" must not pull in
+    // Mauritius just because both sit in "Maldives & Indian Ocean")
+    const haystack = q.placeSearch ? `${h.name} ${h.location} ${h.country}` : hotelText(h);
+    if (search && !haystack.toLowerCase().includes(search)) return false;
     return true;
   });
 }

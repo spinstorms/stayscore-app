@@ -1,0 +1,9 @@
+{
+ "ios": {
+  "CFBundleDisplayName": "StayOdds",
+  "NSLocationWhenInUseUsageDescription": "يمكن لتطبيق StayOdds إظهار موقعك على خريطة الفنادق لتجد فنادق فاخرة قريبة منك. يبقى موقعك على هاتفك."
+ },
+ "android": {
+  "app_name": "StayOdds"
+ }
+}

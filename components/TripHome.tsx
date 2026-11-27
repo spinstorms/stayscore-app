@@ -118,6 +118,7 @@ export function TripHome() {
   // on unfolded Android the rail floats over the photo, so text keeps clear of it
   const rail = useRailInsets();
   const insets = { ...safe, left: rail.left, right: rail.right };
+  const sideInset = Math.max(insets.left, insets.right);
   // the photo screen fills the whole first view, edge to edge: under the status bar, the
   // iPhone Duo rail and the tab bar. Only the text and buttons keep clear of them.
   // the real height of the screen area (measured: window sizes differ from the visible area on
@@ -199,9 +200,10 @@ export function TripHome() {
             {
               paddingTop: insets.top + 28,
               paddingBottom: insets.bottom + 28,
-              paddingLeft: insets.left + horizontalPadding,
-              paddingRight: insets.right + horizontalPadding,
-              maxWidth: 560 + insets.left + insets.right,
+              // same space both sides, so the text sits in the true middle of the screen
+              paddingLeft: sideInset + horizontalPadding,
+              paddingRight: sideInset + horizontalPadding,
+              maxWidth: 560 + sideInset * 2,
             },
           ]}
         >

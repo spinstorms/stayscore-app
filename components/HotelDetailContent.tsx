@@ -202,6 +202,20 @@ export function HotelDetailContent({ hotel, isSidePane = false, when }: Props) {
               </View>
               <Text style={styles.soVerdict}>{verdict}</Text>
             </View>
+            {/* the score comes first: point people to how it's worked out, before any prices */}
+            <Pressable
+              onPress={jumpToDetails}
+              style={({ pressed }) => [styles.detailsJump, pressed && { opacity: 0.8 }]}
+              accessibilityRole="button"
+              accessibilityLabel={t('Score explained below')}
+            >
+              <Ionicons name="arrow-down-circle" size={22} color={Colors.accent} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.detailsJumpTitle}>{t('Score explained below')}</Text>
+                <Text style={styles.detailsJumpSub}>{t('What guests and critics say, best months, room tips and rivals')}</Text>
+              </View>
+              <Ionicons name="chevron-down" size={18} color={Colors.inkMuted} />
+            </Pressable>
             {gap.left100 != null && gap.right100 != null ? (
               <View style={styles.gapRow}>
                 <View style={[styles.gapTile, { backgroundColor: '#FFF7F2' }]}>
@@ -431,19 +445,6 @@ export function HotelDetailContent({ hotel, isSidePane = false, when }: Props) {
             ) : null}
           </View>
 
-          <Pressable
-            onPress={jumpToDetails}
-            style={({ pressed }) => [styles.detailsJump, pressed && { opacity: 0.8 }]}
-            accessibilityRole="button"
-            accessibilityLabel={t('Full details below')}
-          >
-            <Ionicons name="arrow-down-circle" size={22} color={Colors.accent} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.detailsJumpTitle}>{t('Full details below')}</Text>
-              <Text style={styles.detailsJumpSub}>{t('What guests and critics say, best months, room tips and rivals')}</Text>
-            </View>
-            <Ionicons name="chevron-down" size={18} color={Colors.inkMuted} />
-          </Pressable>
 
           {/* Primary Actions (Mobile-Compliant Booking Routing) */}
           {videoUrl ? (
@@ -1297,7 +1298,7 @@ const styles = StyleSheet.create({
     paddingVertical: 11,
     paddingHorizontal: 12,
     marginTop: 12,
-    marginBottom: 12,
+    marginBottom: 2,
   },
   detailsJumpTitle: { fontSize: 14.5, fontWeight: '800', color: Colors.inkPrimary },
   detailsJumpSub: { fontSize: 12, color: Colors.inkSecondary, marginTop: 1 },

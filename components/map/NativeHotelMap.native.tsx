@@ -19,16 +19,30 @@ const googleKey = (Constants.expoConfig?.android as { config?: { googleMaps?: { 
 // read at run time leaves it out, so checking it here wrongly fell back to the dot map.
 export const nativeMapAvailable = IOS || process.env.EXPO_OS === 'android' || Boolean(googleKey);
 
-// round badges with the Sun & Key: square, so they never stretch
-const PIN = { maxWidth: 30, maxHeight: 30 };
+// Round badges with the Sun & Key (square, so they never stretch).
+// iPhone: 24pt badges from @2x/@3x files, so iOS draws them pin-sharp at their true size.
+// Android: the bitmap is drawn in pixels, so it keeps its own larger file.
+const PIN_ANDROID = { maxWidth: 30, maxHeight: 30 };
+const PIN_SRC = IOS
+  ? {
+      ours: require('../../assets/images/pins/pin-ours.png'),
+      global: require('../../assets/images/pins/pin-global.png'),
+      saved: require('../../assets/images/pins/pin-saved.png'),
+    }
+  : {
+      ours: require('../../assets/images/pins/pin-ours-android.png'),
+      global: require('../../assets/images/pins/pin-global-android.png'),
+      saved: require('../../assets/images/pins/pin-saved-android.png'),
+    };
+const PIN_OPTS = IOS ? undefined : PIN_ANDROID;
 
 export function NativeHotelMap({ hotels, selectedId, onSelect, colorFor, bounds, satellite, pinKind }: HotelMapProps) {
   const camera = useMemo(() => cameraFor(bounds), [bounds]);
   // StayOdds' own pins instead of the stock ones: orange with the key for our filmed stays,
   // lagoon teal for every other hotel, pink with a heart for saved ones
-  const pinOurs = useImage(require('../../assets/images/pins/pin-ours.png'), PIN);
-  const pinGlobal = useImage(require('../../assets/images/pins/pin-global.png'), PIN);
-  const pinSaved = useImage(require('../../assets/images/pins/pin-saved.png'), PIN);
+  const pinOurs = useImage(PIN_SRC.ours, PIN_OPTS);
+  const pinGlobal = useImage(PIN_SRC.global, PIN_OPTS);
+  const pinSaved = useImage(PIN_SRC.saved, PIN_OPTS);
   const iconFor = useCallback(
     (h: (typeof hotels)[number]) => {
       const k = pinKind ? pinKind(h) : 'global';

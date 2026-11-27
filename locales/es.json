@@ -1,0 +1,9 @@
+{
+ "ios": {
+  "CFBundleDisplayName": "StayOdds",
+  "NSLocationWhenInUseUsageDescription": "StayOdds puede mostrar dónde estás en el mapa de hoteles para que encuentres hoteles de lujo cerca. Tu ubicación no sale de tu teléfono."
+ },
+ "android": {
+  "app_name": "StayOdds"
+ }
+}

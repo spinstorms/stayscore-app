@@ -1,13 +1,26 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Tabs } from 'expo-router';
+import { Tabs, useSegments } from 'expo-router';
 import { NativeTabs } from 'expo-router/native-tabs';
 import React from 'react';
+import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAdaptiveLayout } from '../../lib/layout';
 import { Colors } from '../../lib/theme';
 import { t as tr } from '../../lib/i18n';
 
 const IOS = process.env.EXPO_OS === 'ios';
+
+/** each tab's base colour (Android): the rail and bar sit on it, so they blend into the screen */
+const ZONE_BG: Record<string, string> = {
+  '(trip)': Colors.navy,
+  '(explore)': Colors.sand,
+  '(map)': Colors.bgWhite,
+  '(compare)': Colors.sand,
+  '(insights)': Colors.sand,
+  '(holidays)': Colors.bgCanvas,
+  '(watch)': Colors.unchartedTint,
+  '(deals)': Colors.unchartedTint,
+};
 
 type IonName = keyof typeof Ionicons.glyphMap;
 // wideOnly: shown in the side rail when unfolded; on a phone they're one tap away from Home.
@@ -41,6 +54,7 @@ const TABS: { name: string; label: string; ion: IonName; ionOn: IonName; wideOnl
 export default function TabsLayout() {
   const { isSplitScreen } = useAdaptiveLayout();
   const insets = useSafeAreaInsets();
+  const segments = useSegments();
 
   if (IOS) {
     return (
@@ -69,36 +83,47 @@ export default function TabsLayout() {
     );
   }
 
+  // Seamless: the space around the floating rail / bar takes the colour of the screen it sits beside
+  const group = (segments as string[]).find((x) => x.startsWith('(') && x !== '(tabs)') ?? '(trip)';
+  const zoneBg = ZONE_BG[group] ?? Colors.bgCanvas;
+  const floating = {
+    backgroundColor: Colors.bgWhite,
+    borderTopWidth: 0,
+    borderRadius: 28,
+    elevation: 6,
+    shadowColor: '#0F2B33',
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+  };
   return (
+    <View style={{ flex: 1, backgroundColor: zoneBg }}>
     <Tabs
+      // the bar floats clear of the system navigation bar, so it adds no padding of its own
+      safeAreaInsets={{ top: insets.top, left: insets.left, right: insets.right, bottom: isSplitScreen ? insets.bottom : 0 }}
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: Colors.accent,
         tabBarInactiveTintColor: Colors.inkMuted,
-        // unfolded: a floating rail on the edge, like the iPhone Duo's, instead of a full-height strip
+        // unfolded: a floating rail on the edge, like the iPhone Duo's; folded: a floating bar
         tabBarStyle: isSplitScreen
           ? {
-              // floats over the screen, so each screen's colours run underneath it (seamless rail)
-              position: 'absolute',
-              top: 0,
-              bottom: 0,
-              left: 0,
-              width: 80,
-              backgroundColor: 'rgba(255,255,255,0.94)',
+              ...floating,
               borderRightWidth: 0,
               marginLeft: insets.left + 10,
               marginTop: insets.top + 10,
               marginBottom: insets.bottom + 10,
               marginRight: 6,
-              borderRadius: 28,
               paddingVertical: 8,
-              elevation: 6,
-              shadowColor: '#0F2B33',
-              shadowOpacity: 0.12,
-              shadowRadius: 12,
-              shadowOffset: { width: 0, height: 4 },
             }
-          : { backgroundColor: Colors.bgWhite, borderTopWidth: 1, borderTopColor: Colors.border },
+          : {
+              ...floating,
+              marginHorizontal: 12,
+              marginBottom: insets.bottom + 8,
+              height: 66,
+              paddingTop: 6,
+              paddingBottom: 8,
+            },
         sceneStyle: { backgroundColor: 'transparent' },
         tabBarLabelStyle: { fontSize: 11, fontWeight: '700' },
         tabBarPosition: isSplitScreen ? 'left' : 'bottom',
@@ -119,5 +144,6 @@ export default function TabsLayout() {
         />
       ))}
     </Tabs>
+    </View>
   );
 }

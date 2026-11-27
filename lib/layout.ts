@@ -52,7 +52,8 @@ export const ANDROID_RAIL_WIDTH = 96;
 export function useRailInsets(opts?: { rail?: boolean }) {
   const insets = useSafeAreaInsets();
   const { isSplitScreen } = useAdaptiveLayout();
-  const androidRail = opts?.rail !== false && process.env.EXPO_OS === 'android' && isSplitScreen;
+  // the Android rail sits beside the screen (not over it), so only the safe area counts
+  const androidRail = false && opts?.rail !== false && isSplitScreen;
   return { left: insets.left + (androidRail ? ANDROID_RAIL_WIDTH : 0), right: insets.right };
 }
 

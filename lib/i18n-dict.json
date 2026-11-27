@@ -1043,5 +1043,60 @@
   "ja": "StayOdds の詳細は下にあります",
   "id": "Detail lengkap StayOdds di bawah",
   "fa": "جزئیات کامل StayOdds در پایین"
+ },
+ "Score explained below": {
+  "es": "Puntuación explicada abajo",
+  "pt-BR": "Nota explicada abaixo",
+  "fr": "Note expliquée ci-dessous",
+  "de": "Bewertung unten erklärt",
+  "it": "Punteggio spiegato qui sotto",
+  "ar": "شرح التقييم بالأسفل",
+  "ja": "スコアの説明は下に",
+  "id": "Penjelasan skor di bawah",
+  "fa": "توضیح امتیاز در پایین"
+ },
+ "Add a 3rd hotel": {
+  "es": "Añadir un 3.er hotel",
+  "pt-BR": "Adicionar um 3º hotel",
+  "fr": "Ajouter un 3e hôtel",
+  "de": "3. Hotel hinzufügen",
+  "it": "Aggiungi un 3° hotel",
+  "ar": "أضف فندقًا ثالثًا",
+  "ja": "3軒目を追加",
+  "id": "Tambah hotel ke-3",
+  "fa": "افزودن هتل سوم"
+ },
+ "Back to 2 hotels": {
+  "es": "Volver a 2 hoteles",
+  "pt-BR": "Voltar para 2 hotéis",
+  "fr": "Revenir à 2 hôtels",
+  "de": "Zurück zu 2 Hotels",
+  "it": "Torna a 2 hotel",
+  "ar": "العودة إلى فندقين",
+  "ja": "2軒に戻す",
+  "id": "Kembali ke 2 hotel",
+  "fa": "بازگشت به ۲ هتل"
+ },
+ "Share this comparison": {
+  "es": "Compartir esta comparación",
+  "pt-BR": "Compartilhar esta comparação",
+  "fr": "Partager cette comparaison",
+  "de": "Diesen Vergleich teilen",
+  "it": "Condividi questo confronto",
+  "ar": "شارك هذه المقارنة",
+  "ja": "この比較を共有",
+  "id": "Bagikan perbandingan ini",
+  "fa": "اشتراک این مقایسه"
+ },
+ "Share this 3-hotel comparison": {
+  "es": "Compartir esta comparación de 3 hoteles",
+  "pt-BR": "Compartilhar esta comparação de 3 hotéis",
+  "fr": "Partager cette comparaison de 3 hôtels",
+  "de": "Diesen Vergleich von 3 Hotels teilen",
+  "it": "Condividi questo confronto tra 3 hotel",
+  "ar": "شارك مقارنة الفنادق الثلاثة",
+  "ja": "3軒の比較を共有",
+  "id": "Bagikan perbandingan 3 hotel ini",
+  "fa": "اشتراک مقایسه ۳ هتل"
  }
 }

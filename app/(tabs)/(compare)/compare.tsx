@@ -720,30 +720,27 @@ function CompareScreen() {
               style={[
                 styles.shareBannerBtn,
                 { flex: 1, marginBottom: 0, justifyContent: 'center' },
-                isThreeWay && { backgroundColor: 'rgba(124, 58, 237, 0.25)', borderColor: '#C084FC' },
+                isThreeWay && { backgroundColor: 'rgba(124, 58, 237, 0.10)', borderColor: '#C4B5FD' },
               ]}
               onPress={handleToggleThreeWay}
             >
               <Ionicons
                 name={isThreeWay ? 'remove-circle-outline' : 'add-circle-outline'}
                 size={15}
-                color={isThreeWay ? '#E9D5FF' : '#38BDF8'}
+                color={isThreeWay ? '#6D28D9' : Colors.accentDark}
               />
-              <Text style={[styles.shareBannerTxt, { color: isThreeWay ? '#E9D5FF' : '#BAE6FD' }]}>
-                {isThreeWay ? 'Back to 2 Hotels' : '+ Compare 3rd Hotel'}
+              <Text style={[styles.shareBannerTxt, { color: isThreeWay ? '#6D28D9' : Colors.accentDark }]} numberOfLines={1}>
+                {isThreeWay ? t('Back to 2 hotels') : t('Add a 3rd hotel')}
               </Text>
             </Pressable>
           </View>
 
           {hotelA && hotelB ? (
             <Pressable style={styles.shareBannerBtn} onPress={() => setShowShareModal(true)}>
-              <Ionicons name="sparkles-outline" size={15} color="#FF8B5E" />
-              <Text style={styles.shareBannerTxt}>
-                {isThreeWay
-                  ? 'Share 3-Hotel Branded Card (Clean Photos + QR)'
-                  : 'Share Branded VS Card (1:1 Feed & 9:16 Story + QR)'}
+              <Ionicons name="share-outline" size={16} color={Colors.accentDark} />
+              <Text style={styles.shareBannerTxt} numberOfLines={1}>
+                {isThreeWay ? t('Share this 3-hotel comparison') : t('Share this comparison')}
               </Text>
-              <Ionicons name="arrow-forward" size={14} color="#FF8B5E" />
             </Pressable>
           ) : null}
 
@@ -1052,7 +1049,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     marginBottom: 12,
   },
-  shareBannerTxt: { color: Colors.accentDark, fontSize: 12.5, fontWeight: '700' },
+  shareBannerTxt: { color: Colors.accentDark, fontSize: 13.5, fontWeight: '700', flexShrink: 1, textAlign: 'center' },
 
   selectorRow: { flexDirection: 'row', gap: 10 },
   selectorCol: { flexDirection: 'column' },
@@ -1196,13 +1193,14 @@ const styles = StyleSheet.create({
   },
   statusBoxHead: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
     alignItems: 'center',
     gap: 6,
     marginBottom: 4,
   },
   statusBoxTitle: { fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
-  statusBoxBadge: { fontSize: 10.5, fontWeight: '800' },
+  statusBoxBadge: { fontSize: 10.5, fontWeight: '800', flexShrink: 1 },
   statusBoxText: { fontSize: 12, color: Colors.inkPrimary, lineHeight: 17 },
   statusSourceLink: { fontSize: 11.5, fontWeight: '700', color: Colors.accent, textDecorationLine: 'underline' },
 

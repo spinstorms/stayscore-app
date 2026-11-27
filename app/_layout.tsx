@@ -50,9 +50,9 @@ function RootStack() {
           <Stack.Screen name="awards" options={{ title: t("Award Lists"), headerBackTitle: 'Back' }} />
           {/* iPhone: opened from the rail's shortcut group (Watch, Deals, Holiday dates) */}
           {/* the strip beside the rail is orange too, so the whole page reads as one Uncharted zone */}
-          <Stack.Screen name="videos" options={{ title: t("Episodes & Shorts"), headerBackTitle: 'Back', ...UNCHARTED_HEADER, contentStyle: { backgroundColor: Colors.unchartedTint, ...sidePadding, ...bottomPad } }} />
-          <Stack.Screen name="offers" options={{ title: t("Deals"), headerBackTitle: 'Back', ...UNCHARTED_HEADER, contentStyle: { backgroundColor: Colors.unchartedTint, ...sidePadding, ...bottomPad } }} />
-          <Stack.Screen name="holiday-dates" options={{ title: t("Holiday Dates"), headerBackTitle: 'Back' }} />
+          <Stack.Screen name="videos" options={{ title: t("Episodes & Shorts"), headerBackTitle: 'Back', ...UNCHARTED_HEADER, animation: 'none', contentStyle: { backgroundColor: Colors.unchartedTint, ...sidePadding, ...bottomPad } }} />
+          <Stack.Screen name="offers" options={{ title: t("Deals"), headerBackTitle: 'Back', ...UNCHARTED_HEADER, animation: 'none', contentStyle: { backgroundColor: Colors.unchartedTint, ...sidePadding, ...bottomPad } }} />
+          <Stack.Screen name="holiday-dates" options={{ title: t("Holiday Dates"), headerBackTitle: 'Back', animation: 'none' }} />
           <Stack.Screen
             name="hotel/[id]"
             options={{
