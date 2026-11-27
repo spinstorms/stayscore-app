@@ -35,30 +35,40 @@ function photoCreditFrom(src: unknown, thumb: string): { text: string; url: stri
   return { text, url: page.trim() };
 }
 
-/** One guest score from every real guest rating, weighted by review count (same rule as stayodds.com). */
-function combineGuestScores(rows?: Record<string, any>[] | null): Hotel['verifiedGuest'] {
-  if (!rows || !rows.length) return null;
-  const parts = rows.map((r) => {
-    const isTa = r.partner_source === 'tripadvisor';
-    const isGoogle = r.partner_source === 'google';
-    return {
-      name: isTa ? 'Tripadvisor' : isGoogle ? 'Google' : 'Verified booking guests',
-      rating: Number(r.rating),
-      scale: Number(r.scale || (isTa || isGoogle ? 5 : 10)),
-      normalized100: Number(r.normalized_100),
-      reviewCount: r.review_count != null ? Number(r.review_count) : null,
-      verifiedAt: r.verified_at as string | undefined,
-    };
-  });
+export type SavedRating = { r: number; n?: number | null; d?: string | null; u?: string | null };
+
+/**
+ * One guest score from every real guest rating, weighted by review count: exactly the website's
+ * combined_guest_score(). Booking guests out of 10; Tripadvisor and Google (saved copies) out of 5.
+ */
+function combineGuestScores(gs?: Record<string, any> | null, ta?: SavedRating | null, gg?: SavedRating | null): Hotel['verifiedGuest'] {
+  const parts: { name: string; rating: number; scale: number; normalized100: number; reviewCount: number | null; verifiedAt?: string; url?: string }[] = [];
+  if (gs && gs.normalized_100 != null) {
+    parts.push({
+      name: 'Verified booking guests',
+      rating: Number(gs.rating),
+      scale: Number(gs.scale || 10),
+      normalized100: Math.trunc(Number(gs.normalized_100)),
+      reviewCount: gs.review_count != null ? Number(gs.review_count) : null,
+      verifiedAt: gs.verified_at || undefined,
+    });
+  }
+  if (ta && ta.r != null && (ta.n || 0) >= 20) {
+    parts.push({ name: 'Tripadvisor', rating: Number(ta.r), scale: 5, normalized100: pyRound(Number(ta.r) * 20), reviewCount: Number(ta.n), verifiedAt: ta.d || undefined, url: ta.u || undefined });
+  }
+  if (gg && gg.r != null && (gg.n || 0) >= 20) {
+    parts.push({ name: 'Google', rating: Number(gg.r), scale: 5, normalized100: pyRound(Number(gg.r) * 20), reviewCount: Number(gg.n), verifiedAt: gg.d || undefined });
+  }
+  if (!parts.length) return null;
   const counts = parts.map((p) => p.reviewCount || 0);
   const total = counts.reduce((a, b) => a + b, 0);
   const n100 = total
-    ? Math.round(parts.reduce((a, p, i) => a + p.normalized100 * counts[i], 0) / total)
-    : Math.round(parts.reduce((a, p) => a + p.normalized100, 0) / parts.length);
+    ? pyRound(parts.reduce((a, p, i) => a + p.normalized100 * counts[i], 0) / total)
+    : pyRound(parts.reduce((a, p) => a + p.normalized100, 0) / parts.length);
   return {
     licensed: {
       sourceName: parts.length > 1 ? 'Guest Reviews' : parts[0].name,
-      rating: Math.round(n100) / 10,
+      rating: pyRound(n100) / 10,
       scale: 10,
       normalized100: n100,
       reviewCount: total || null,
@@ -67,6 +77,14 @@ function combineGuestScores(rows?: Record<string, any>[] | null): Hotel['verifie
       sources: parts,
     },
   } as Hotel['verifiedGuest'];
+}
+
+/** Python's round(): halves go to the even number, so the app and the website round the same way. */
+function pyRound(x: number): number {
+  const f = Math.floor(x);
+  const d = x - f;
+  if (Math.abs(d - 0.5) < 1e-9) return f % 2 === 0 ? f : f + 1;
+  return Math.round(x);
 }
 
 export interface StayOddsPayload {
@@ -92,6 +110,8 @@ export interface RawDirectory {
   videosRes: { videos?: VideoItem[]; shorts?: VideoItem[] };
   affRes: { curated?: AffiliateDeal[]; fromVideos?: AffiliateDeal[] };
   snapshotAt?: string;
+  /** saved Tripadvisor and Google ratings, the same copies stayodds.com uses */
+  savedRatings?: { tripadvisor?: Record<string, SavedRating>; google?: Record<string, SavedRating> };
 }
 
 /** Turns the raw tables into the app's hotel list. Pure and fast: also used for the bundled snapshot. */
@@ -102,13 +122,15 @@ export function buildPayload(raw: RawDirectory): StayOddsPayload {
   const fhMap = new Map(fhReviews.map((r) => [String(r.property_id), r]));
   // A guest rating needs at least 20 reviews; thinner ones are left off. A hotel can have several
   // (booking-platform guests out of 10, Tripadvisor out of 5): they are combined below, weighted by review count.
-  const guestMap = new Map<string, Record<string, any>[]>();
+  // Same rule as stayodds.com (build_stayodds_site.py): Tripadvisor and Google come from the saved
+  // rating files, not the database rows; one booking-guest row per hotel, with 20+ reviews.
+  const guestMap = new Map<string, Record<string, any>>();
   licensedScores
+    .filter((r) => r.partner_source !== 'tripadvisor' && r.partner_source !== 'google')
     .filter((r) => (r.review_count != null ? Number(r.review_count) >= 20 : r.partner_source !== 'nuitee_connect'))
-    .forEach((r) => {
-      const k = String(r.property_id);
-      guestMap.set(k, [...(guestMap.get(k) || []), r]);
-    });
+    .forEach((r) => guestMap.set(String(r.property_id), r));
+  const savedTa = raw.savedRatings?.tripadvisor || {};
+  const savedGoogle = raw.savedRatings?.google || {};
 
   const awardsMap = new Map<string, any[]>();
   awards.forEach((r) => {
@@ -235,7 +257,7 @@ export function buildPayload(raw: RawDirectory): StayOddsPayload {
       bookingUrl: mobileBooking,
       bookingLinks: links,
       shorts: Array.isArray(fh?.shorts) ? fh.shorts : [],
-      verifiedGuest: combineGuestScores(gs),
+      verifiedGuest: combineGuestScores(gs, savedTa[id], savedGoogle[id]),
       editorialRatings: edMap.get(id) || [],
       youtubeReviews: ytMap.get(id) || [],
       officialAwards: awardsMap.get(id) || [],

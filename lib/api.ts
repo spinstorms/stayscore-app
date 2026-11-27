@@ -1,13 +1,26 @@
+import savedTripadvisor from '../assets/data/tripadvisor.json';
+import savedGoogle from '../assets/data/google-ratings.json';
 import * as WebBrowser from 'expo-web-browser';
 import { Linking } from 'react-native';
 import { readBig, writeBig } from './bigStore';
 import { BRAND } from './brand';
-import { buildPayload, type RawDirectory, type StayOddsPayload } from './payload';
+import { buildPayload, type RawDirectory, type SavedRating, type StayOddsPayload } from './payload';
 import type { AffiliateDeal, Hotel, VideoItem } from './types';
 
 export { buildPayload, type RawDirectory, type StayOddsPayload } from './payload';
 
 export const LIVE_BASE_URL = BRAND.liveApiBaseUrl;
+
+/** Saved Tripadvisor and Google ratings: the same copies stayodds.com scores with, so the scores match */
+function withSavedRatings(raw: RawDirectory): RawDirectory {
+  return {
+    ...raw,
+    savedRatings: {
+      tripadvisor: (savedTripadvisor as { hotels: Record<string, SavedRating> }).hotels,
+      google: (savedGoogle as { hotels: Record<string, SavedRating> }).hotels,
+    },
+  };
+}
 const CACHE_KEY = 'stayodds_supabase_cache_v23';
 
 
@@ -133,7 +146,7 @@ export async function fetchStayOddsData(options?: { forceRefresh?: boolean }): P
 
 
 async function fetchStayOddsDataFromNetwork(): Promise<StayOddsPayload> {
-  const payload = buildPayload(await fetchRawDirectory());
+  const payload = buildPayload(withSavedRatings(await fetchRawDirectory()));
   // Never cache empty or failed responses
   if (payload.hotels.length > 0) {
     const envelope: CachedEnvelope = { cachedAt: Date.now(), data: payload };
@@ -177,7 +190,7 @@ export function loadBundledSnapshot(): StayOddsPayload | null {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const snap = require('../assets/data/snapshot.json') as Partial<StayOddsPayload> & Partial<RawDirectory>;
     if (Array.isArray(snap?.hotels) && snap.hotels.length) snapshotPayload = snap as StayOddsPayload;
-    else if (Array.isArray(snap?.props) && snap.props.length) snapshotPayload = buildPayload(snap as RawDirectory);
+    else if (Array.isArray(snap?.props) && snap.props.length) snapshotPayload = buildPayload(withSavedRatings(snap as RawDirectory));
     return snapshotPayload;
   } catch {
     return null;

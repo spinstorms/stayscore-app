@@ -93,10 +93,15 @@ async function main() {
         snapshotAt: new Date().toISOString(),
         props, facts, fhReviews, licensedScores, awards, editorial, ytReviews, bookingLinks, videosRes, affRes,
       };
+      // same saved Tripadvisor and Google ratings as stayodds.com, so the bundled scores match the website
+      const savedRatings = {
+        tripadvisor: JSON.parse(readFileSync(join(outDir, 'tripadvisor.json'), 'utf8')).hotels,
+        google: JSON.parse(readFileSync(join(outDir, 'google-ratings.json'), 'utf8')).hotels,
+      };
       let data = raw;
       try {
         const buildPayload = await loadBuildPayload();
-        data = buildPayload(raw);
+        data = buildPayload({ ...raw, savedRatings });
         console.log(`snapshot: prepared ${data.hotels.length} hotels`);
       } catch (e) {
         console.warn(`snapshot: could not prepare the hotel list here (${e.message}); bundling raw tables instead`);
