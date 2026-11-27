@@ -22,7 +22,7 @@ const SLIDES = [
 ];
 
 /** Full-screen photos that slowly cross-fade, built into the app so they show instantly. */
-function Slideshow() {
+function Slideshow({ captionInset }: { captionInset: { right: number; bottom: number } }) {
   const fades = useRef(SLIDES.map((_, i) => new Animated.Value(i === 0 ? 1 : 0))).current;
   const [i, setI] = useState(0);
   useEffect(() => {
@@ -44,7 +44,7 @@ function Slideshow() {
         <Animated.Image key={sl.place} source={sl.src} resizeMode="cover" style={[StyleSheet.absoluteFill, { opacity: fades[k] }]} />
       ))}
       <View style={styles.heroShade} />
-      <Text style={styles.place}>{SLIDES[i].place}</Text>
+      <Text style={[styles.place, captionInset]}>{SLIDES[i].place}</Text>
     </>
   );
 }
@@ -72,8 +72,9 @@ export function TripHome() {
   const ready = hotels.length > 0;
   const { height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  // the photo screen fills the first view; results and the rest sit below it
-  const heroHeight = Math.max(460, height - insets.top - (isSplitScreen ? 0 : 70));
+  // the photo screen fills the whole first view, edge to edge: under the status bar, the
+  // iPhone Duo rail and the tab bar. Only the text and buttons keep clear of them.
+  const heroHeight = Math.max(460, height);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const scrollRef = useRef<any>(null);
   const run = (t: string) => {
@@ -89,14 +90,25 @@ export function TripHome() {
     <ScrollView
       ref={scrollRef}
       style={styles.screen}
-      contentContainerStyle={{ paddingBottom: 40 }}
+      contentContainerStyle={{ paddingBottom: insets.bottom + 90 }}
       keyboardShouldPersistTaps="handled"
-      contentInsetAdjustmentBehavior="automatic"
+      contentInsetAdjustmentBehavior="never"
     >
       {/* Clean first screen: photos, one question, one button */}
       <View style={[styles.hero, { minHeight: heroHeight }]}>
-        <Slideshow />
-        <View style={[styles.heroInner, { paddingHorizontal: horizontalPadding }]}>
+        <Slideshow captionInset={{ right: insets.right + 16, bottom: insets.bottom + 14 }} />
+        <View
+          style={[
+            styles.heroInner,
+            {
+              paddingTop: insets.top + 28,
+              paddingBottom: insets.bottom + 28,
+              paddingLeft: insets.left + horizontalPadding,
+              paddingRight: insets.right + horizontalPadding,
+              maxWidth: 560 + insets.left + insets.right,
+            },
+          ]}
+        >
           <View style={styles.brandRow}>
             <Image source={require('../assets/images/stayodds-logo.png')} style={styles.logo} />
             <Text style={styles.wordmark}>
@@ -128,7 +140,7 @@ export function TripHome() {
         </View>
       </View>
 
-      <View style={[styles.body, { paddingHorizontal: horizontalPadding }]}>
+      <View style={[styles.body, { paddingLeft: insets.left + horizontalPadding, paddingRight: insets.right + horizontalPadding }]}>
         {query ? (
           <View style={styles.section}>
             <View style={styles.understood}>
@@ -234,8 +246,6 @@ const styles = StyleSheet.create({
   heroInner: { paddingVertical: 28, gap: 14, maxWidth: 560, width: '100%', alignSelf: 'center' },
   place: {
     position: 'absolute',
-    right: 16,
-    bottom: 14,
     color: 'rgba(255,255,255,0.85)',
     fontSize: 12,
     fontWeight: '700',

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024"><rect width="1024" height="1024" rx="230" fill="#F7F0E3"/><g transform="translate(512 512) scale(0.84) translate(-535 -540)">  <g id="mark">
+    <!-- key: bow ring behind the sun, shaft down to the right, teeth underneath -->
+    <g fill="#1B2A44" transform="rotate(45 452 452)">
+      <circle cx="452" cy="452" r="236"/>
+      <rect x="600" y="386" width="420" height="132" rx="14"/>
+      <rect x="770" y="510" width="66" height="96" rx="8"/>
+      <rect x="868" y="510" width="66" height="66" rx="8"/>
+      <rect x="950" y="510" width="72" height="116" rx="8"/>
+    </g>
+    <circle cx="404" cy="404" r="232" fill="#EE6A4C"/>
+  </g></g></svg>

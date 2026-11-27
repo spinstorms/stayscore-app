@@ -17,8 +17,9 @@ import { useAdaptiveLayout } from '../../../lib/layout';
 import { useStayOdds } from '../../../lib/store';
 import { Colors } from '../../../lib/theme';
 import type { VideoItem } from '../../../lib/types';
+import { lazyTab } from '../../../components/LazyTab';
 
-export default function WatchScreen() {
+function WatchScreen() {
   const { videos, shorts, refreshing, refresh } = useStayOdds();
   const { isSplitScreen, gridColumns, horizontalPadding } = useAdaptiveLayout();
 
@@ -379,3 +380,5 @@ const styles = StyleSheet.create({
   episodesGrid: { marginTop: 12, gap: 14 },
   episodesGridWide: { flexDirection: 'row', flexWrap: 'wrap' },
 });
+
+export default lazyTab(WatchScreen);

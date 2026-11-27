@@ -35,6 +35,7 @@ import { buildStayOddsPick } from '../../../lib/pick';
 import { useStayOdds } from '../../../lib/store';
 import { Colors } from '../../../lib/theme';
 import type { Hotel } from '../../../lib/types';
+import { lazyTab } from '../../../components/LazyTab';
 
 type PickerTarget = 'A' | 'B' | 'C' | null;
 
@@ -46,7 +47,7 @@ function matchesHotelQuery(h: Hotel, rawQuery: string): boolean {
   return q.split(/\s+/).every((tok) => hay.includes(tok));
 }
 
-export default function CompareScreen() {
+function CompareScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ a?: string; b?: string; c?: string }>();
   const {
@@ -1345,3 +1346,5 @@ const styles = StyleSheet.create({
   },
   pickerScoreText: { color: '#FFFFFF', fontSize: 12.5, fontWeight: '800' },
 });
+
+export default lazyTab(CompareScreen);

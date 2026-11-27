@@ -24,8 +24,9 @@ export function NativeHotelMap({ hotels, selectedId, onSelect, colorFor, bounds 
       hotels.map((h) => ({
         id: h.id,
         coordinates: { latitude: h.lat, longitude: h.lng },
-        title: h.name,
-        snippet: `${h.location}, ${h.country}`,
+        // no title on iPhone: a titled pin opens Apple's own place sheet over the app; the
+        // app's hotel card underneath shows the details instead
+        ...(IOS ? null : { title: h.name, snippet: `${h.location}, ${h.country}` }),
         tintColor: colorFor(h),
       })),
     [hotels, colorFor]

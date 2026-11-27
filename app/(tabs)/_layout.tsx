@@ -21,8 +21,9 @@ const TABS: { name: string; label: string; ion: IonName; ionOn: IonName; wideOnl
 ];
 
 /**
- * iOS: system tabs. iOS places them itself: bottom bar on iPhone, the side rail on iPhone Duo
- * folded, and a sidebar when it's open or on iPad.
+ * iOS: system tabs. iOS places them itself: the bottom bar on iPhone and the side rail on
+ * iPhone Duo, folded and open. No sidebar placement: on the open Duo it turned the rail into a
+ * pop-out sidebar that covered the screen.
  *
  * Android (and web): a compact bottom bar on a phone. Unfolded (600dp+ wide, e.g. Pixel Fold)
  * it becomes a Material navigation rail down the left edge, so the full height goes to content,
@@ -33,7 +34,7 @@ export default function TabsLayout() {
 
   if (IOS) {
     return (
-      <NativeTabs tintColor={Colors.accent} preferredPlacement="sidebar">
+      <NativeTabs tintColor={Colors.accent}>
         <NativeTabs.Trigger name="(trip)">
           <NativeTabs.Trigger.Icon sf={{ default: 'sparkles', selected: 'sparkles' }} md="auto_awesome" />
           <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>

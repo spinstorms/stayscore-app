@@ -31,11 +31,12 @@ import {
 import { useStayOdds } from '../../../lib/store';
 import { Colors } from '../../../lib/theme';
 import type { Hotel } from '../../../lib/types';
+import { lazyTab } from '../../../components/LazyTab';
 
 type Scope = 'all' | 'visited' | 'world' | 'saved';
 const IOS = process.env.EXPO_OS === 'ios';
 const stripEmoji = (s: string) => s.replace(/^[^A-Za-z0-9']+\s*/, '');
-export default function StayOddsHomeScreen() {
+function StayOddsHomeScreen() {
   const router = useRouter();
   const { isSplitScreen, isWideDesktop } = useAdaptiveLayout();
   const {
@@ -377,6 +378,9 @@ export default function StayOddsHomeScreen() {
           ))}
         </Stack.Toolbar.Menu>
         <Stack.Toolbar.Menu title="More" inline>
+          <Stack.Toolbar.MenuAction icon="trophy" onPress={() => router.push('/awards')}>
+            Award lists
+          </Stack.Toolbar.MenuAction>
           <Stack.Toolbar.MenuAction icon="plus.circle" onPress={() => setRequestOpen(true)}>
             Request a resort
           </Stack.Toolbar.MenuAction>
@@ -387,9 +391,8 @@ export default function StayOddsHomeScreen() {
           ) : null}
         </Stack.Toolbar.Menu>
       </Stack.Toolbar.Menu>
-      <Stack.Toolbar.Button icon="trophy" accessibilityLabel="Award lists" onPress={() => router.push('/awards')} />
-      <Stack.Toolbar.Button icon="gift" accessibilityLabel="Holiday dates" onPress={() => router.push('/holidays')} />
-      <Stack.Toolbar.Button icon="chart.bar" accessibilityLabel="Guest insights" onPress={() => router.push('/insights')} />
+      {/* One button only: the Duo rail also holds the tabs, and more buttons ran into them.
+          Holidays and Insights are tabs; award lists are in this menu. */}
     </Stack.Toolbar>
   ) : null;
 
@@ -856,3 +859,5 @@ const styles = StyleSheet.create({
   },
   taChipText: { fontSize: 10.5, fontWeight: '700', color: Colors.inkSecondary },
 });
+
+export default lazyTab(StayOddsHomeScreen);

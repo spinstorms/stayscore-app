@@ -7,12 +7,13 @@ import { ordinal } from '../../../lib/ranks';
 import { INSIGHTS_PAGE_URL, loadSiteInsights, SITE_URL, TIER_ORDER, type RangeStat, type SiteInsights } from '../../../lib/siteInsights';
 import { useStayOdds } from '../../../lib/store';
 import { Colors } from '../../../lib/theme';
+import { lazyTab } from '../../../components/LazyTab';
 
 const n = (x: number) => x.toLocaleString('en-GB');
 const fmt = (x: number) => String(Number(x.toFixed(1)));
 
 /** Same sections, order and wording as stayodds.com/insights/. */
-export default function InsightsScreen() {
+function InsightsScreen() {
   const router = useRouter();
   const { hotels } = useStayOdds();
   const { isSplitScreen, horizontalPadding } = useAdaptiveLayout();
@@ -484,3 +485,5 @@ const styles = StyleSheet.create({
   rrThick: { position: 'absolute', height: 8, backgroundColor: '#FFD4C2', borderRadius: 4 },
   rrDot: { position: 'absolute', width: 12, height: 12, marginLeft: -6, borderRadius: 6, backgroundColor: Colors.accent },
 });
+
+export default lazyTab(InsightsScreen);

@@ -18,10 +18,11 @@ import { useAdaptiveLayout } from '../../../lib/layout';
 import { useStayOdds } from '../../../lib/store';
 import { Colors } from '../../../lib/theme';
 import type { AffiliateDeal } from '../../../lib/types';
+import { lazyTab } from '../../../components/LazyTab';
 
 type DealSection = 'all' | 'promos' | 'gear';
 
-export default function DealsScreen() {
+function DealsScreen() {
   const { deals, refreshing, refresh } = useStayOdds();
   const { isSplitScreen, gridColumns, horizontalPadding } = useAdaptiveLayout();
 
@@ -395,3 +396,5 @@ const styles = StyleSheet.create({
   },
   disclosureText: { flex: 1, fontSize: 11.5, color: Colors.inkMuted, lineHeight: 17 },
 });
+
+export default lazyTab(DealsScreen);

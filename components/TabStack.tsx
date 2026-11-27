@@ -49,10 +49,12 @@ export function TabStack({
         contentStyle: {
           // navy behind the status bar so its light icons stay readable
           backgroundColor: compactChrome ? Colors.navy : Colors.bgCanvas,
-          ...sidePadding,
-          ...(compactChrome ? { paddingTop: insets.top } : null),
+          // the home screen draws edge to edge (its photo goes under the rail and bars) and
+          // keeps its own text clear of them
+          ...(hideHeader ? null : sidePadding),
+          ...(compactChrome && !hideHeader ? { paddingTop: insets.top } : null),
           // Android unfolded has no bottom tab bar, so keep content above the system navigation bar
-          ...(process.env.EXPO_OS === 'android' && isSplitScreen ? { paddingBottom: insets.bottom } : null),
+          ...(process.env.EXPO_OS === 'android' && isSplitScreen && !hideHeader ? { paddingBottom: insets.bottom } : null),
         },
       }}
     >

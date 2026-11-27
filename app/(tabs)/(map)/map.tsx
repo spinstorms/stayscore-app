@@ -28,6 +28,7 @@ import { computeStayOdds, getTonePalette, isVisitedProperty } from '../../../lib
 import { useStayOdds } from '../../../lib/store';
 import { Colors } from '../../../lib/theme';
 import type { Hotel } from '../../../lib/types';
+import { lazyTab } from '../../../components/LazyTab';
 
 type MapScope = 'all' | 'visited' | 'saved' | AwardListId;
 const AWARD_SCOPES = AWARD_LISTS.map((l) => l.id) as string[];
@@ -63,7 +64,7 @@ const REGION_VIEWPORTS: RegionViewport[] = [
   { id: 'egypt', label: 'Egypt', regionFilter: null, countryFilter: ['Egypt'], minLat: 23.5, maxLat: 31.5, minLng: 29.0, maxLng: 35.5 },
 ];
 
-export default function WorldMapScreen() {
+function WorldMapScreen() {
   const router = useRouter();
   const { hotels, shortlist, isShortlisted, toggleShortlist, pushToCompare, loading } = useStayOdds();
 
@@ -115,6 +116,8 @@ export default function WorldMapScreen() {
     const savedSet = new Set(shortlist);
     return hotels.filter((h) => {
       if (typeof h.lat !== 'number' || typeof h.lng !== 'number') return false;
+      // a few directory hotels have no real location yet (0, 0 sits in the sea off Africa)
+      if (Math.abs(h.lat) < 0.01 && Math.abs(h.lng) < 0.01) return false;
       if (scope === 'visited' && !isVisitedProperty(h)) return false;
       if (scope === 'saved' && !savedSet.has(h.id)) return false;
       if (AWARD_SCOPES.includes(scope) && !matchesAwardList(h, scope as AwardListId)) return false;
@@ -782,3 +785,5 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
+
+export default lazyTab(WorldMapScreen);

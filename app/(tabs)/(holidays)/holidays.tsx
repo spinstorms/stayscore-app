@@ -8,6 +8,7 @@ import { loadGuestRanks } from '../../../lib/ranks';
 import { useStayOdds } from '../../../lib/store';
 import { Colors } from '../../../lib/theme';
 import type { Hotel } from '../../../lib/types';
+import { lazyTab } from '../../../components/LazyTab';
 
 type Filter = 'top' | 'w50' | 'keys' | 'stars' | '';
 const FILTERS: [Filter, string][] = [
@@ -48,7 +49,7 @@ const byGuest = (a: Hotel, b: Hotel) =>
   (guest(b)[0] || 0) - (guest(a)[0] || 0) || guest(b)[1] - guest(a)[1] || a.name.localeCompare(b.name);
 
 /** The website's /holidays/ page: pick a holiday, and every hotel opens with those dates set. */
-export default function HolidaysScreen() {
+function HolidaysScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ when?: string }>();
   const { hotels } = useStayOdds();
@@ -259,3 +260,5 @@ const styles = StyleSheet.create({
   moreText: { fontWeight: '700', color: Colors.inkPrimary },
   note: { fontSize: 12.5, color: Colors.inkMuted, lineHeight: 18, marginTop: 18 },
 });
+
+export default lazyTab(HolidaysScreen);
