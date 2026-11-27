@@ -18,11 +18,34 @@ import { BRAND } from '../lib/brand';
 const guest = (h: Hotel) => h.verifiedGuest?.licensed?.normalized100 ?? 0;
 const SHOW = 24;
 
+// Sharp on any screen: a wide photo for landscape (2560px) and a tall crop for portrait phones,
+// foldables and iPads (1440 x 2560). Photos from Wikimedia Commons, credited on screen as their
+// licences ask.
 const SLIDES = [
-  { src: require('../assets/images/hero-maldives.jpg'), place: 'Maldives' },
-  { src: require('../assets/images/hero-bora-bora.jpg'), place: 'Bora Bora' },
-  { src: require('../assets/images/hero-seychelles.jpg'), place: 'Seychelles' },
-  { src: require('../assets/images/hero-bali.jpg'), place: 'Bali' },
+  {
+    wide: require('../assets/images/hero/maldives.jpg'),
+    tall: require('../assets/images/hero/maldives-tall.jpg'),
+    place: 'Maldives',
+    credit: 'Photo: dronepicr, CC BY 2.0',
+  },
+  {
+    wide: require('../assets/images/hero/bora-bora.jpg'),
+    tall: require('../assets/images/hero/bora-bora-tall.jpg'),
+    place: 'Bora Bora',
+    credit: 'Photo: The TerraMar Project, CC BY 2.0',
+  },
+  {
+    wide: require('../assets/images/hero/seychelles.jpg'),
+    tall: require('../assets/images/hero/seychelles-tall.jpg'),
+    place: 'Seychelles',
+    credit: 'Photo: Norbert Nagel, CC BY-SA 4.0',
+  },
+  {
+    wide: require('../assets/images/hero/bali.jpg'),
+    tall: require('../assets/images/hero/bali-tall.jpg'),
+    place: 'Bali',
+    credit: 'Photo: Vyacheslav Argenberg, CC BY 4.0',
+  },
 ];
 
 /** Full-screen photos that slowly cross-fade, built into the app so they show instantly. */
@@ -42,15 +65,25 @@ function Slideshow({ captionInset, height }: { captionInset: { right: number; bo
     }, 5500);
     return () => clearInterval(t);
   }, [fades]);
+  const { width } = useWindowDimensions();
+  const tall = height > width * 1.05;
   // sized from the measured photo screen: on Android a full-size picture inside a box that
   // only has a minimum height stopped short and left a dark gap under it
   return (
     <View style={[styles.slides, { height }]} pointerEvents="none">
       {SLIDES.map((sl, k) => (
-        <Animated.Image key={sl.place} source={sl.src} resizeMode="cover" style={[styles.slideImg, { height, opacity: fades[k] }]} />
+        <Animated.Image
+          key={sl.place}
+          source={tall ? sl.tall : sl.wide}
+          resizeMode="cover"
+          style={[styles.slideImg, { height, opacity: fades[k] }]}
+        />
       ))}
       <View style={styles.heroShade} />
-      <Text style={[styles.place, captionInset]}>{SLIDES[i].place}</Text>
+      <View style={[styles.placeBox, captionInset]}>
+        <Text style={styles.place}>{SLIDES[i].place}</Text>
+        <Text style={styles.credit}>{SLIDES[i].credit}</Text>
+      </View>
     </View>
   );
 }
@@ -306,8 +339,9 @@ const styles = StyleSheet.create({
   watchBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '800' },
   heroShade: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(7, 19, 35, 0.38)' },
   heroInner: { paddingVertical: 28, gap: 14, maxWidth: 560, width: '100%', alignSelf: 'center' },
+  placeBox: { position: 'absolute', alignItems: 'flex-end' },
+  credit: { color: 'rgba(255,255,255,0.7)', fontSize: 9.5, marginTop: 2 },
   place: {
-    position: 'absolute',
     color: 'rgba(255,255,255,0.85)',
     fontSize: 12,
     fontWeight: '700',
