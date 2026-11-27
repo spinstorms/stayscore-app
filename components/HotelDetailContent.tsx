@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { fetchLiveGoogleRating, getHotelVideoUrl, LiveGoogleRating, openExternalUrl } from '../lib/api';
 import { BRAND } from '../lib/brand';
@@ -86,6 +86,10 @@ export function HotelDetailContent({ hotel, isSidePane = false, when }: Props) {
   const router = useRouter();
   const { hotels, setCompareA, setCompareB, setCompareC, pushToCompare, toggleShortlist, isShortlisted } = useStayOdds();
   const [liveGoogle, setLiveGoogle] = useState<LiveGoogleRating | null>(null);
+  // "Full details below": jumps past the booking buttons to the StayOdds breakdown
+  const scrollRef = useRef<ScrollView>(null);
+  const [detailsY, setDetailsY] = useState(0);
+  const jumpToDetails = () => scrollRef.current?.scrollTo({ y: Math.max(0, detailsY - 8), animated: true });
   const [showExplainer, setShowExplainer] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const saved = isShortlisted(hotel.id);
@@ -164,6 +168,7 @@ export function HotelDetailContent({ hotel, isSidePane = false, when }: Props) {
   return (
     <>
     <ScrollView
+      ref={scrollRef}
       style={styles.scroll}
       contentContainerStyle={[styles.content, isSidePane && styles.contentSidePane]}
       showsVerticalScrollIndicator={false}
@@ -426,6 +431,20 @@ export function HotelDetailContent({ hotel, isSidePane = false, when }: Props) {
             ) : null}
           </View>
 
+          <Pressable
+            onPress={jumpToDetails}
+            style={({ pressed }) => [styles.detailsJump, pressed && { opacity: 0.8 }]}
+            accessibilityRole="button"
+            accessibilityLabel={t('Full details below')}
+          >
+            <Ionicons name="arrow-down-circle" size={22} color={Colors.accent} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.detailsJumpTitle}>{t('Full details below')}</Text>
+              <Text style={styles.detailsJumpSub}>{t('What guests and critics say, best months, room tips and rivals')}</Text>
+            </View>
+            <Ionicons name="chevron-down" size={18} color={Colors.inkMuted} />
+          </Pressable>
+
           {/* Primary Actions (Mobile-Compliant Booking Routing) */}
           {videoUrl ? (
             // Our video review plays right here
@@ -518,7 +537,10 @@ export function HotelDetailContent({ hotel, isSidePane = false, when }: Props) {
       </View>
 
       {/* RESTORED: Dual-Mode Consensus & Opinion Gap Card */}
-      <View style={[styles.sectionCard, styles.gapCard, { borderLeftColor: palette.ring }]}>
+      <View
+        onLayout={(e) => setDetailsY(e.nativeEvent.layout.y)}
+        style={[styles.sectionCard, styles.gapCard, { borderLeftColor: palette.ring }]}
+      >
         <View style={styles.gapHeader}>
           <View style={{ flex: 1 }}>
             <Text style={styles.sectionEyebrow}>OPINION GAP • HYPE VS. REALITY</Text>
@@ -1263,6 +1285,21 @@ const styles = StyleSheet.create({
   flagText: { fontSize: 11, fontWeight: '800', color: Colors.amber },
 
   sectionEyebrow: { fontSize: 10, fontWeight: '800', color: Colors.accent, letterSpacing: 0.8 },
+  detailsJump: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: Colors.sand,
+    borderColor: Colors.sandBorder,
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingVertical: 11,
+    paddingHorizontal: 12,
+    marginTop: 12,
+    marginBottom: 12,
+  },
+  detailsJumpTitle: { fontSize: 14.5, fontWeight: '800', color: Colors.inkPrimary },
+  detailsJumpSub: { fontSize: 12, color: Colors.inkSecondary, marginTop: 1 },
   sectionTitle: { fontSize: 16.5, fontWeight: '800', color: Colors.inkPrimary, marginTop: 2 },
   sectionSub: { fontSize: 12.5, color: Colors.inkSecondary, marginTop: 4, lineHeight: 18 },
 

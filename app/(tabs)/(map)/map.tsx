@@ -341,12 +341,12 @@ export function WorldMapScreen() {
               <Text style={styles.legendText}>{t("Other hotels")}</Text>
             </View>
             <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: '#F43F5E' }]} />
+              <View style={[styles.legendDot, { backgroundColor: '#E0485F' }]} />
               <Text style={styles.legendText}>{t("Saved")}</Text>
             </View>
           </View>
 
-          {nativeMapAvailable ? (
+          {nativeMapAvailable && !cardOpen ? (
             <Pressable
               style={styles.layerBtn}
               onPress={() => setSatellite((v) => !v)}
@@ -610,9 +610,10 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   layerBtn: {
+    // bottom-right, clear of Apple's own compass and 3D buttons in the top corner
     position: 'absolute',
-    top: 10,
-    right: 10,
+    bottom: 14,
+    right: 12,
     zIndex: 50,
     flexDirection: 'row',
     alignItems: 'center',

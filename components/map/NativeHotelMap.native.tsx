@@ -19,7 +19,8 @@ const googleKey = (Constants.expoConfig?.android as { config?: { googleMaps?: { 
 // read at run time leaves it out, so checking it here wrongly fell back to the dot map.
 export const nativeMapAvailable = IOS || process.env.EXPO_OS === 'android' || Boolean(googleKey);
 
-const PIN = { maxWidth: 36, maxHeight: 47 };
+// round badges with the Sun & Key: square, so they never stretch
+const PIN = { maxWidth: 30, maxHeight: 30 };
 
 export function NativeHotelMap({ hotels, selectedId, onSelect, colorFor, bounds, satellite, pinKind }: HotelMapProps) {
   const camera = useMemo(() => cameraFor(bounds), [bounds]);
@@ -60,7 +61,7 @@ export function NativeHotelMap({ hotels, selectedId, onSelect, colorFor, bounds,
         // StayOdds pins once their pictures are loaded (a moment after opening); the stock tinted
         // pins until then
         markers={iconsReady ? [] : markers.map(({ icon: _i, ...m }) => m)}
-        annotations={iconsReady ? markers.map(({ tintColor: _t, ...m }) => ({ ...m, anchor: { x: 0.5, y: 1 } })) : []}
+        annotations={iconsReady ? markers.map(({ tintColor: _t, ...m }) => ({ ...m, anchor: { x: 0.5, y: 0.5 } })) : []}
         onMarkerClick={(m) => m.id && onSelect(m.id)}
         onAnnotationClick={(m) => m.id && onSelect(m.id)}
         // map types are the strings expo-maps' enums hold: satellite photos with labels, or streets
@@ -76,7 +77,7 @@ export function NativeHotelMap({ hotels, selectedId, onSelect, colorFor, bounds,
       cameraPosition={camera}
       markers={markers.map(({ tintColor: _t, ...m }) => ({
         ...m,
-        anchor: { x: 0.5, y: 1 },
+        anchor: { x: 0.5, y: 0.5 },
         zIndex: m.id === selectedId ? 10 : 0,
       }))}
       onMarkerClick={(m) => m.id && onSelect(m.id)}
