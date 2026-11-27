@@ -76,10 +76,10 @@ export default function TabsLayout() {
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: Colors.accent,
-        tabBarInactiveTintColor: 'rgba(255,255,255,0.72)',
+        tabBarInactiveTintColor: Colors.inkMuted,
         tabBarStyle: isSplitScreen
-          ? { backgroundColor: Colors.navy, borderRightWidth: 0 }
-          : { backgroundColor: Colors.navy, borderTopWidth: 0 },
+          ? { backgroundColor: Colors.bgWhite, borderRightWidth: 1, borderRightColor: Colors.border }
+          : { backgroundColor: Colors.bgWhite, borderTopWidth: 1, borderTopColor: Colors.border },
         tabBarLabelStyle: { fontSize: 11, fontWeight: '700' },
         tabBarPosition: isSplitScreen ? 'left' : 'bottom',
         tabBarVariant: isSplitScreen ? 'material' : 'uikit',

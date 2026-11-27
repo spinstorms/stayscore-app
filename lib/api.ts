@@ -281,7 +281,7 @@ export async function openExternalUrl(url: string) {
       }
     }
     await WebBrowser.openBrowserAsync(url, {
-      toolbarColor: '#FF5D22',
+      toolbarColor: '#0B7A7A',
       controlsColor: '#FFFFFF',
       presentationStyle: WebBrowser.WebBrowserPresentationStyle.FULL_SCREEN,
     });

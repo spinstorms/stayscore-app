@@ -40,15 +40,14 @@ export function TabStack({
   return (
     <Stack
       screenOptions={{
-        headerStyle: { backgroundColor: Colors.navy },
-        headerTintColor: '#FFFFFF',
-        headerTitleStyle: { fontWeight: '700', color: '#FFFFFF' },
+        headerStyle: { backgroundColor: Colors.bgWhite },
+        headerTintColor: Colors.accent,
+        headerTitleStyle: { fontWeight: '700', color: Colors.inkPrimary },
         headerTitleAlign: 'left',
         headerShadowVisible: false,
         headerShown: !compactChrome,
         contentStyle: {
-          // navy behind the status bar so its light icons stay readable
-          backgroundColor: compactChrome ? Colors.navy : Colors.bgCanvas,
+          backgroundColor: Colors.bgCanvas,
           // the home screen draws edge to edge (its photo goes under the rail and bars) and
           // keeps its own text clear of them
           ...(hideHeader ? null : sidePadding),
@@ -68,6 +67,6 @@ export function TabStack({
 
 const styles = StyleSheet.create({
   brandRow: { flexDirection: 'row', alignItems: 'center' },
-  wordmark: { fontSize: 23, fontWeight: '900', color: '#FFFFFF', letterSpacing: -0.6 },
-  wordmarkDot: { color: Colors.accent, fontSize: 27, fontWeight: '900' },
+  wordmark: { fontSize: 23, fontWeight: '900', color: Colors.inkPrimary, letterSpacing: -0.6 },
+  wordmarkDot: { color: Colors.coral, fontSize: 27, fontWeight: '900' },
 });

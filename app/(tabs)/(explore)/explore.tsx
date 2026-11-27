@@ -404,18 +404,18 @@ function StayOddsHomeScreen() {
         </View>
       ) : null}
       <View style={styles.searchWrap}>
-        <Ionicons name="search" size={17} color="rgba(255,255,255,0.68)" />
+        <Ionicons name="search" size={17} color={Colors.inkSecondary} />
         <TextInput
           value={search}
           onChangeText={setSearch}
           placeholder={`Search ${BRAND.name}: Maldives, Bali, Four Seasons...`}
-          placeholderTextColor="rgba(255,255,255,0.58)"
+          placeholderTextColor={Colors.inkMuted}
           style={styles.searchInput}
           returnKeyType="search"
         />
         {search ? (
           <Pressable onPress={() => setSearch('')}>
-            <Ionicons name="close-circle" size={17} color="rgba(255,255,255,0.75)" />
+            <Ionicons name="close-circle" size={17} color={Colors.inkSecondary} />
           </Pressable>
         ) : null}
       </View>
@@ -449,7 +449,7 @@ function StayOddsHomeScreen() {
       {IOS ? (
         activeFilterLabels.length ? (
           <View style={styles.activeFilters}>
-            <Ionicons name="funnel" size={12} color="rgba(255,255,255,0.7)" />
+            <Ionicons name="funnel" size={12} color={Colors.inkSecondary} />
             <Text style={styles.activeFiltersText} numberOfLines={1}>
               {activeFilterLabels.join(' · ')}
             </Text>
@@ -464,21 +464,21 @@ function StayOddsHomeScreen() {
             onPress={() => setFiltersOpen((o) => !o)}
             style={[styles.quickLink, (filtersOpen || activeFilterLabels.length > 0) && styles.quickLinkOn]}
           >
-            <Ionicons name="options-outline" size={15} color="#FFFFFF" />
+            <Ionicons name="options-outline" size={15} color={Colors.inkPrimary} />
             <Text style={styles.quickLinkText} numberOfLines={1}>
               Filters{activeFilterLabels.length ? ` (${activeFilterLabels.length})` : ''}
             </Text>
           </Pressable>
           <Pressable onPress={() => router.push('/awards')} style={styles.quickLink} accessibilityLabel="Award lists">
-            <Ionicons name="trophy-outline" size={15} color="#FFFFFF" />
+            <Ionicons name="trophy-outline" size={15} color={Colors.inkPrimary} />
             <Text style={styles.quickLinkText} numberOfLines={1}>Awards</Text>
           </Pressable>
           <Pressable onPress={() => router.push('/holidays')} style={styles.quickLink} accessibilityLabel="Holidays">
-            <Ionicons name="gift-outline" size={15} color="#FFFFFF" />
+            <Ionicons name="gift-outline" size={15} color={Colors.inkPrimary} />
             <Text style={styles.quickLinkText} numberOfLines={1}>Holidays</Text>
           </Pressable>
           <Pressable onPress={() => router.push('/insights')} style={styles.quickLink} accessibilityLabel="Guest insights">
-            <Ionicons name="stats-chart-outline" size={15} color="#FFFFFF" />
+            <Ionicons name="stats-chart-outline" size={15} color={Colors.inkPrimary} />
             <Text style={styles.quickLinkText} numberOfLines={1}>Insights</Text>
           </Pressable>
         </View>
@@ -500,9 +500,9 @@ function StayOddsHomeScreen() {
         {IOS ? null : (
           <Pressable
             onPress={() => setRequestOpen(true)}
-            style={[styles.regionPill, { borderColor: Colors.accent, backgroundColor: 'rgba(255, 93, 34, 0.22)' }]}
+            style={[styles.regionPill, { borderColor: Colors.accent, backgroundColor: 'rgba(11, 122, 122, 0.22)' }]}
           >
-            <Text style={[styles.regionText, { color: '#FFFFFF', fontWeight: '700' }]}>+ Request Resort</Text>
+            <Text style={[styles.regionText, { color: Colors.inkPrimary, fontWeight: '700' }]}>+ Request Resort</Text>
           </Pressable>
         )}
       </ScrollView>
@@ -523,15 +523,15 @@ function StayOddsHomeScreen() {
               style={[
                 styles.regionPill,
                 {
-                  borderColor: isActive ? '#38BDF8' : 'rgba(255,255,255,0.14)',
-                  backgroundColor: isActive ? 'rgba(56, 189, 248, 0.22)' : 'rgba(255,255,255,0.06)',
+                  borderColor: isActive ? '#38BDF8' : Colors.border,
+                  backgroundColor: isActive ? 'rgba(56, 189, 248, 0.22)' : Colors.bgCanvas,
                 },
               ]}
             >
               <Text
                 style={[
                   styles.regionText,
-                  { color: isActive ? '#E0F2FE' : 'rgba(255,255,255,0.78)', fontSize: 11.5 },
+                  { color: isActive ? '#075985' : Colors.inkSecondary, fontSize: 11.5 },
                 ]}
               >
                 {f.label}
@@ -556,15 +556,15 @@ function StayOddsHomeScreen() {
               style={[
                 styles.regionPill,
                 {
-                  borderColor: isActive ? '#FBBF24' : 'rgba(255,255,255,0.12)',
-                  backgroundColor: isActive ? 'rgba(251, 191, 36, 0.22)' : 'rgba(255,255,255,0.05)',
+                  borderColor: isActive ? '#FBBF24' : Colors.border,
+                  backgroundColor: isActive ? 'rgba(251, 191, 36, 0.22)' : Colors.bgCanvas,
                 },
               ]}
             >
               <Text
                 style={[
                   styles.regionText,
-                  { color: isActive ? '#FEF3C7' : 'rgba(255,255,255,0.72)', fontSize: 11 },
+                  { color: isActive ? '#92400E' : Colors.inkSecondary, fontSize: 11 },
                 ]}
               >
                 {label}
@@ -660,7 +660,7 @@ const styles = StyleSheet.create({
 
   listContent: { paddingBottom: 34, gap: 14 },
   quickLinks: { flexDirection: 'row', gap: 6, marginBottom: 10 },
-  quickLinkOn: { backgroundColor: 'rgba(255, 93, 34, 0.22)', borderColor: Colors.accent },
+  quickLinkOn: { backgroundColor: 'rgba(11, 122, 122, 0.22)', borderColor: Colors.accent },
   activeFilters: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -669,9 +669,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 7,
     borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: Colors.bgCanvas,
   },
-  activeFiltersText: { flex: 1, color: 'rgba(255,255,255,0.85)', fontSize: 12.5, fontWeight: '600' },
+  activeFiltersText: { flex: 1, color: Colors.inkSecondary, fontSize: 12.5, fontWeight: '600' },
   activeFiltersClear: { color: '#FDBA74', fontSize: 12.5, fontWeight: '700' },
   quickLink: {
     flex: 1,
@@ -681,14 +681,14 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 9,
     borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: Colors.bgCanvas,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.18)',
+    borderColor: Colors.border,
   },
-  quickLinkText: { color: '#FFFFFF', fontWeight: '700', fontSize: 12 },
+  quickLinkText: { color: Colors.inkPrimary, fontWeight: '700', fontSize: 12 },
 
   navyHeaderPanel: {
-    backgroundColor: Colors.navy,
+    backgroundColor: Colors.bgWhite,
     paddingHorizontal: 14,
     paddingTop: 6,
     paddingBottom: 18,
@@ -701,38 +701,38 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    backgroundColor: Colors.bgCanvas,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderColor: Colors.border,
     paddingHorizontal: 13,
     paddingVertical: 10,
   },
-  searchInput: { flex: 1, fontSize: 14, color: '#FFFFFF' },
+  searchInput: { flex: 1, fontSize: 14, color: Colors.inkPrimary },
 
   scopeBar: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: Colors.bgCanvas,
     borderRadius: 999,
     padding: 3,
     gap: 4,
   },
   scopeBtn: { flex: 1, paddingVertical: 7, borderRadius: 999, alignItems: 'center' },
-  scopeBtnActive: { backgroundColor: '#FFFFFF' },
-  scopeText: { fontSize: 11.5, fontWeight: '700', color: 'rgba(255,255,255,0.75)' },
-  scopeTextActive: { color: Colors.navy },
+  scopeBtnActive: { backgroundColor: Colors.accent },
+  scopeText: { fontSize: 11.5, fontWeight: '700', color: Colors.inkSecondary },
+  scopeTextActive: { color: '#FFFFFF' },
 
   regionRow: { gap: 8, paddingVertical: 2 },
   regionPill: {
     paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: 999,
-    backgroundColor: 'rgba(255, 255, 255, 0.09)',
+    backgroundColor: Colors.bgCanvas,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.16)',
+    borderColor: Colors.border,
   },
   regionPillActive: { backgroundColor: Colors.accent, borderColor: Colors.accent },
-  regionText: { fontSize: 12, fontWeight: '700', color: 'rgba(255,255,255,0.88)' },
+  regionText: { fontSize: 12, fontWeight: '700', color: Colors.inkSecondary },
   regionTextActive: { color: '#FFFFFF' },
 
   card: {

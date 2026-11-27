@@ -287,18 +287,18 @@ function CompareScreen() {
                 : 'Tap to browse all hotels'}
             </Text>
           </View>
-          <Ionicons name="chevron-down" size={18} color="#94A3B8" />
+          <Ionicons name="chevron-down" size={18} color={Colors.inkMuted} />
         </Pressable>
 
         {/* Fast Inline Search Input inside Selector */}
         <View style={styles.inlineSearchWrap}>
-          <Ionicons name="search" size={14} color="#94A3B8" />
+          <Ionicons name="search" size={14} color={Colors.inkMuted} />
           <TextInput
             style={styles.inlineSearchInput}
             value={query}
             onChangeText={setQuery}
             placeholder={`Search Hotel ${side} (name, city, country, brand)...`}
-            placeholderTextColor="#7C8594"
+            placeholderTextColor={Colors.inkMuted}
             returnKeyType="search"
           />
           {hasQuery ? (
@@ -307,7 +307,7 @@ function CompareScreen() {
               hitSlop={8}
               accessibilityLabel={`Clear Hotel ${side} search`}
             >
-              <Ionicons name="close-circle" size={16} color="#94A3B8" />
+              <Ionicons name="close-circle" size={16} color={Colors.inkMuted} />
             </Pressable>
           ) : null}
         </View>
@@ -770,12 +770,12 @@ function CompareScreen() {
                   paddingHorizontal: 11,
                   paddingVertical: 6,
                   borderRadius: 999,
-                  backgroundColor: 'rgba(255,255,255,0.1)',
+                  backgroundColor: Colors.bgCanvas,
                   borderWidth: 1,
-                  borderColor: 'rgba(255,255,255,0.2)',
+                  borderColor: Colors.border,
                 }}
               >
-                <Text style={{ color: '#F8FAFC', fontSize: 11.5, fontWeight: '600' }}>{m.label}</Text>
+                <Text style={{ color: Colors.inkPrimary, fontSize: 11.5, fontWeight: '600' }}>{m.label}</Text>
               </Pressable>
             ))}
           </ScrollView>
@@ -1000,29 +1000,29 @@ function CompareScreen() {
 }
 
 const styles = StyleSheet.create({
-  pickBox: { marginTop: 4, marginBottom: 14, padding: 16, borderRadius: 16, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E2E8F0', borderTopWidth: 4, borderTopColor: '#FF5D22' },
-  pickEyebrow: { fontSize: 11.5, fontWeight: '800', letterSpacing: 0.6, color: '#FF5D22', marginBottom: 4 },
+  pickBox: { marginTop: 4, marginBottom: 14, padding: 16, borderRadius: 16, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E2E8F0', borderTopWidth: 4, borderTopColor: '#0B7A7A' },
+  pickEyebrow: { fontSize: 11.5, fontWeight: '800', letterSpacing: 0.6, color: '#0B7A7A', marginBottom: 4 },
   pickTitle: { fontSize: 18, fontWeight: '900', color: '#0F172A', marginBottom: 8 },
   pickLine: { fontSize: 13.5, lineHeight: 20, color: '#334155', marginBottom: 4 },
   pickConsider: { color: '#64748B' },
   pickFoot: { fontSize: 11.5, color: '#94A3B8', marginTop: 6 },
   screen: { flex: 1, backgroundColor: Colors.bgCanvas },
   arenaHeader: {
-    backgroundColor: Colors.charcoal,
+    backgroundColor: Colors.bgWhite,
     paddingTop: 18,
     paddingBottom: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#2E323A',
+    borderBottomColor: Colors.border,
   },
   arenaTitleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 12 },
   arenaEyebrow: { fontSize: 10.5, fontWeight: '800', color: Colors.accent, letterSpacing: 0.9 },
-  arenaTitle: { fontSize: 21, fontWeight: '800', color: '#FFFFFF', marginTop: 2 },
-  arenaSub: { fontSize: 12.5, color: '#C5C9D1', marginTop: 4, lineHeight: 18 },
+  arenaTitle: { fontSize: 21, fontWeight: '800', color: Colors.inkPrimary, marginTop: 2 },
+  arenaSub: { fontSize: 12.5, color: Colors.inkSecondary, marginTop: 4, lineHeight: 18 },
   shareCardBtn: {
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: '#1E293B',
+    backgroundColor: Colors.accent,
     borderWidth: 1,
     borderColor: Colors.accent,
     alignItems: 'center',
@@ -1041,49 +1041,49 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: 'rgba(255, 93, 34, 0.14)',
+    backgroundColor: 'rgba(11, 122, 122, 0.14)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 93, 34, 0.45)',
+    borderColor: 'rgba(11, 122, 122, 0.45)',
     borderRadius: 12,
     paddingVertical: 9,
     paddingHorizontal: 12,
     marginBottom: 12,
   },
-  shareBannerTxt: { color: '#FFD6C4', fontSize: 12.5, fontWeight: '700' },
+  shareBannerTxt: { color: Colors.accentDark, fontSize: 12.5, fontWeight: '700' },
 
   selectorRow: { flexDirection: 'row', gap: 10 },
   selectorCol: { flexDirection: 'column' },
   selectorCard: {
     flex: 1,
-    backgroundColor: Colors.charcoalCard,
+    backgroundColor: Colors.bgCanvas,
     borderRadius: 14,
     padding: 11,
     borderWidth: 1,
-    borderColor: '#373B44',
+    borderColor: Colors.border,
     gap: 8,
   },
   selectorTop: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   selectorTag: { fontSize: 10, fontWeight: '800', color: Colors.accent, letterSpacing: 0.7 },
-  selectorName: { fontSize: 15, fontWeight: '700', color: '#FFFFFF', marginTop: 2 },
-  selectorMeta: { fontSize: 11.5, color: '#A5AAB4', marginTop: 2 },
+  selectorName: { fontSize: 15, fontWeight: '700', color: Colors.inkPrimary, marginTop: 2 },
+  selectorMeta: { fontSize: 11.5, color: Colors.inkSecondary, marginTop: 2 },
 
   inlineSearchWrap: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 7,
-    backgroundColor: '#111827',
+    backgroundColor: Colors.bgWhite,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: Colors.border,
     paddingHorizontal: 10,
     paddingVertical: 7,
   },
-  inlineSearchInput: { flex: 1, color: '#FFFFFF', fontSize: 13, paddingVertical: 0 },
+  inlineSearchInput: { flex: 1, color: Colors.inkPrimary, fontSize: 13, paddingVertical: 0 },
   inlineResultsList: {
-    backgroundColor: '#0F172A',
+    backgroundColor: Colors.bgWhite,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: Colors.border,
     overflow: 'hidden',
   },
   inlineResultRow: {
@@ -1096,8 +1096,8 @@ const styles = StyleSheet.create({
     borderBottomColor: 'rgba(148,163,184,0.14)',
   },
   inlineResultRowActive: { backgroundColor: 'rgba(20,184,166,0.12)' },
-  inlineResultName: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
-  inlineResultSub: { color: '#94A3B8', fontSize: 11, marginTop: 1 },
+  inlineResultName: { color: Colors.inkPrimary, fontSize: 13, fontWeight: '700' },
+  inlineResultSub: { color: Colors.inkMuted, fontSize: 11, marginTop: 1 },
   inlineEmptyState: {
     backgroundColor: 'rgba(245, 158, 11, 0.12)',
     borderWidth: 1,
@@ -1114,7 +1114,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: Colors.navy,
+    backgroundColor: Colors.accent,
     borderRadius: 14,
     paddingVertical: 13,
     paddingHorizontal: 16,

@@ -11,7 +11,7 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <StayOddsProvider>
-        <StatusBar style="light" />
+        <StatusBar style="dark" />
         <RootStack />
       </StayOddsProvider>
     </SafeAreaProvider>
@@ -27,9 +27,9 @@ function RootStack() {
   return (
         <Stack
           screenOptions={{
-            headerStyle: { backgroundColor: Colors.navy },
-            headerTintColor: '#FFFFFF',
-            headerTitleStyle: { fontWeight: '700', color: '#FFFFFF' },
+            headerStyle: { backgroundColor: Colors.bgWhite },
+            headerTintColor: Colors.accent,
+            headerTitleStyle: { fontWeight: '700', color: Colors.inkPrimary },
             headerShadowVisible: false,
             contentStyle: { backgroundColor: Colors.bgCanvas, ...sidePadding, ...bottomPad },
           }}

@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useIsFocused, useLocalSearchParams, useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -55,6 +56,7 @@ function Slideshow({ captionInset }: { captionInset: { right: number; bottom: nu
  */
 export function TripHome() {
   const router = useRouter();
+  const focused = useIsFocused();
   const { hotels, deals, videos } = useStayOdds();
   const { isSplitScreen, horizontalPadding } = useAdaptiveLayout();
   const params = useLocalSearchParams<{ q?: string }>();
@@ -94,6 +96,8 @@ export function TripHome() {
       keyboardShouldPersistTaps="handled"
       contentInsetAdjustmentBehavior="never"
     >
+      {/* light status bar icons over the photos; the other screens are light, with dark icons */}
+      {focused ? <StatusBar style="light" /> : null}
       {/* Clean first screen: photos, one question, one button */}
       <View style={[styles.hero, { minHeight: heroHeight }]}>
         <Slideshow captionInset={{ right: insets.right + 16, bottom: insets.bottom + 14 }} />
@@ -112,7 +116,7 @@ export function TripHome() {
           <View style={styles.brandRow}>
             <Image source={require('../assets/images/stayodds-logo.png')} style={styles.logo} />
             <Text style={styles.wordmark}>
-              StayOdds<Text style={{ color: Colors.accent }}>.</Text>
+              StayOdds<Text style={{ color: Colors.coral }}>.</Text>
             </Text>
           </View>
           <Text style={styles.h1}>Where do you want to go?</Text>

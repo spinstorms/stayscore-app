@@ -1,26 +1,29 @@
 export const Colors = {
-  // Option 3: Coastal Deep Navy & Sunset Orange + Lagoon Teal
-  accent: '#FF5D22',
-  accentDark: '#E04812',
+  // Lagoon: white and soft sea-glass surfaces, deep sea-ink text, lagoon-teal actions,
+  // with the logo's coral kept for the brand mark
+  accent: '#0B7A7A',
+  accentDark: '#075E5E',
   accentInk: '#FFFFFF',
-  accentSoft: '#FFF3EE',
-  accentBorder: '#FFD4C2',
+  accentSoft: '#E6F2F2',
+  accentBorder: '#BFDCDC',
 
-  navy: '#0F172A',
-  navyDeep: '#071323',
-  navyCard: '#1E293B',
-  charcoal: '#0F172A',
-  charcoalCard: '#1E293B',
+  navy: '#0F2B33',
+  navyDeep: '#0A1F25',
+  navyCard: '#1A3A43',
+  charcoal: '#12333B',
+  charcoalCard: '#1A3A43',
+
+  coral: '#EE6A4C',
 
   bgWhite: '#FFFFFF',
-  bgCanvas: '#F1F5F9',
-  bgWarm: '#F8FAFC',
-  border: '#E2E8F0',
-  borderSoft: '#EDF2F7',
+  bgCanvas: '#F3F8F8',
+  bgWarm: '#F7FBFB',
+  border: '#DCE8E8',
+  borderSoft: '#E8F1F1',
 
-  inkPrimary: '#0F172A',
-  inkSecondary: '#475569',
-  inkMuted: '#64748B',
+  inkPrimary: '#0F2B33',
+  inkSecondary: '#3E5A63',
+  inkMuted: '#557078',
 
   teal: '#0D9488',
   tealSoft: '#CCFBF1',

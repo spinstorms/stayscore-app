@@ -202,16 +202,18 @@ function DealsScreen() {
         style={{
           marginHorizontal: horizontalPadding,
           marginTop: 18,
-          backgroundColor: Colors.navy,
+          backgroundColor: Colors.accentSoft,
+          borderWidth: 1,
+          borderColor: Colors.accentBorder,
           borderRadius: 16,
           padding: 16,
           gap: 10,
         }}
       >
-        <Text style={{ color: '#FFFFFF', fontSize: 15, fontWeight: '800' }}>
+        <Text style={{ color: Colors.inkPrimary, fontSize: 15, fontWeight: '800' }}>
           StayOdds. Community &amp; Support
         </Text>
-        <Text style={{ color: 'rgba(255,255,255,0.78)', fontSize: 12.5, lineHeight: 18 }}>
+        <Text style={{ color: Colors.inkSecondary, fontSize: 12.5, lineHeight: 18 }}>
           Missing a resort, spotted a renovation, or want to read how our scoring works?
         </Text>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
@@ -229,13 +231,15 @@ function DealsScreen() {
           <Pressable
             onPress={() => setFeedbackOpen(true)}
             style={{
-              backgroundColor: 'rgba(255,255,255,0.14)',
+              backgroundColor: Colors.bgWhite,
+              borderWidth: 1,
+              borderColor: Colors.accentBorder,
               paddingHorizontal: 13,
               paddingVertical: 9,
               borderRadius: 10,
             }}
           >
-            <Text style={{ color: '#FFFFFF', fontSize: 12.5, fontWeight: '700' }}>Send Feedback</Text>
+            <Text style={{ color: Colors.accentDark, fontSize: 12.5, fontWeight: '700' }}>Send Feedback</Text>
           </Pressable>
         </View>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 14, marginTop: 4 }}>
@@ -268,17 +272,17 @@ function DealsScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.bgCanvas },
   banner: {
-    backgroundColor: Colors.charcoal,
+    backgroundColor: Colors.bgWhite,
     paddingTop: 18,
     paddingBottom: 18,
   },
   bannerEyebrow: { fontSize: 10, fontWeight: '800', color: Colors.accent, letterSpacing: 0.9 },
-  bannerTitle: { fontSize: 20, fontWeight: '800', color: '#FFFFFF', marginTop: 2 },
-  bannerSub: { fontSize: 12.5, color: '#C5C9D1', marginTop: 4, lineHeight: 18 },
+  bannerTitle: { fontSize: 20, fontWeight: '800', color: Colors.inkPrimary, marginTop: 2 },
+  bannerSub: { fontSize: 12.5, color: Colors.inkSecondary, marginTop: 4, lineHeight: 18 },
 
   segmentWrap: {
     flexDirection: 'row',
-    backgroundColor: Colors.charcoalCard,
+    backgroundColor: Colors.bgCanvas,
     borderRadius: 12,
     padding: 4,
     marginTop: 14,
@@ -286,7 +290,7 @@ const styles = StyleSheet.create({
   },
   segBtn: { flex: 1, paddingVertical: 8, borderRadius: 9, alignItems: 'center' },
   segBtnActive: { backgroundColor: Colors.accent },
-  segText: { fontSize: 11.5, fontWeight: '700', color: '#B5BAC4' },
+  segText: { fontSize: 11.5, fontWeight: '700', color: Colors.inkSecondary },
   segTextActive: { color: '#FFFFFF' },
 
   searchBar: {
