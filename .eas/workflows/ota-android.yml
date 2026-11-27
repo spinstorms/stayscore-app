@@ -1,0 +1,16 @@
+name: Over-the-air update (Android preview + production)
+jobs:
+  update_preview:
+    name: Update preview channel
+    type: update
+    params:
+      channel: preview
+      platform: android
+      message: Guest scores match stayodds.com
+  update_production:
+    name: Update production channel
+    type: update
+    params:
+      channel: production
+      platform: android
+      message: Guest scores match stayodds.com
