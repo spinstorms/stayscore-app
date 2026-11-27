@@ -199,7 +199,7 @@ function WorldMapScreen() {
           </View>
 
           <Pressable style={styles.webMapBtn} onPress={openWebMap}>
-            <Ionicons name="globe-outline" size={14} color="#FFFFFF" />
+            <Ionicons name="globe-outline" size={14} color={Colors.accentDark} />
             <Text style={styles.webMapBtnText}>Street Map ↗</Text>
           </Pressable>
         </View>
@@ -534,7 +534,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(45, 212, 191, 0.5)',
   },
   webMapBtnText: {
-    color: '#CCFBF1',
+    color: Colors.accentDark,
     fontSize: 11.5,
     fontWeight: '700',
   },
