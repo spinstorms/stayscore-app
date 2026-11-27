@@ -22,6 +22,12 @@ import { ShareCardModal } from './ShareCardModal';
 import { InlineVideo } from './video/InlineVideo';
 import { WhenBox } from './WhenBox';
 import { t } from '../lib/i18n';
+import { getTripadvisor } from '../lib/tripadvisor';
+
+const formatTaDate = (d: string) => {
+  const x = new Date(d);
+  return Number.isNaN(x.getTime()) ? d : x.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+};
 
 interface Props {
   hotel: Hotel;
@@ -86,6 +92,7 @@ export function HotelDetailContent({ hotel, isSidePane = false, when }: Props) {
   const router = useRouter();
   const { hotels, setCompareA, setCompareB, setCompareC, pushToCompare, toggleShortlist, isShortlisted } = useStayOdds();
   const [liveGoogle, setLiveGoogle] = useState<LiveGoogleRating | null>(null);
+  const ta = getTripadvisor(hotel.id);
   // "Full details below": jumps past the booking buttons to the StayOdds breakdown
   const scrollRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
   const [detailsY, setDetailsY] = useState(0);
@@ -603,6 +610,24 @@ export function HotelDetailContent({ hotel, isSidePane = false, when }: Props) {
           >
             <Text style={styles.googleStripText}>Check live reviews on Google Maps ↗</Text>
             <Text style={styles.googleAttr}>Google Maps</Text>
+          </Pressable>
+        ) : null}
+
+        {/* Tripadvisor, saved from stayodds.com with the date it was checked (no live Tripadvisor calls) */}
+        {ta ? (
+          <Pressable style={styles.googleStrip} onPress={() => ta.u && openExternalUrl(ta.u)} disabled={!ta.u}>
+            <View style={{ flex: 1, paddingRight: 8 }}>
+              <Text style={styles.googleStripText}>
+                Tripadvisor: {ta.r.toFixed(1)} / 5{ta.n ? ` from ${ta.n.toLocaleString()} reviews` : ''}
+              </Text>
+              {ta.k || ta.a?.length ? (
+                <Text style={[styles.googleAttr, { marginTop: 2, fontWeight: '600' }]}>{[ta.k, ...(ta.a || [])].filter(Boolean).join(' · ')}</Text>
+              ) : null}
+              <Text style={[styles.googleAttr, { marginTop: 2, fontWeight: '500' }]}>
+                Source: Tripadvisor{ta.d ? ` · last checked ${formatTaDate(ta.d)}` : ''}
+              </Text>
+            </View>
+            {ta.u ? <Text style={styles.googleAttr}>Read reviews ↗</Text> : null}
           </Pressable>
         ) : null}
 

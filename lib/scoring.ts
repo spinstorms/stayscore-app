@@ -1,3 +1,4 @@
+import { getTripadvisor } from './tripadvisor';
 import { Colors } from './theme';
 import type { EditorialRating, Hotel, LinkedYoutubeReview, OfficialAward } from './types';
 
@@ -527,7 +528,10 @@ export function getTonePalette(tone: StayOddsResult['statusTone']) {
   };
 }
 
-export function getTripAdvisorUrl(hotel: Pick<Hotel, 'name' | 'location' | 'country'>): string {
+export function getTripAdvisorUrl(hotel: Pick<Hotel, 'name' | 'location' | 'country'> & { id?: string }): string {
+  // the hotel's own Tripadvisor page when we have it saved, otherwise a search
+  const saved = getTripadvisor(hotel.id);
+  if (saved?.u) return saved.u;
   const query = `${hotel.name || ''} ${hotel.location || hotel.country || ''}`.trim();
   return `https://www.tripadvisor.com/Search?q=${encodeURIComponent(query)}&ssrc=h`;
 }
