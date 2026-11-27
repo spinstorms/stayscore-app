@@ -35,6 +35,7 @@ import { lazyTab } from '../../../components/LazyTab';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { withRailShortcuts } from '../../../components/RailShortcuts';
 import { routes } from '../../../lib/nav';
+import { t } from '../../../lib/i18n';
 
 type Scope = 'all' | 'visited' | 'world' | 'saved';
 const IOS = process.env.EXPO_OS === 'ios';
@@ -355,7 +356,7 @@ export function StayOddsHomeScreen() {
             ? 'line.3.horizontal.decrease.circle.fill'
             : 'line.3.horizontal.decrease.circle'
         }
-        accessibilityLabel="Filters"
+        accessibilityLabel={t("Filters")}
       >
         <Stack.Toolbar.Menu title="Show" inline>
           {(['all', 'visited', 'world', 'saved'] as const).map((val) => (
@@ -387,7 +388,7 @@ export function StayOddsHomeScreen() {
         </Stack.Toolbar.Menu>
         <Stack.Toolbar.Menu title="More" inline>
           <Stack.Toolbar.MenuAction icon="trophy" onPress={() => router.push('/awards')}>
-            Award lists
+            {t("Award lists")}
           </Stack.Toolbar.MenuAction>
           <Stack.Toolbar.MenuAction icon="plus.circle" onPress={() => setRequestOpen(true)}>
             Request a resort
@@ -462,7 +463,7 @@ export function StayOddsHomeScreen() {
               {activeFilterLabels.join(' · ')}
             </Text>
             <Pressable onPress={clearFilters} hitSlop={8}>
-              <Text style={styles.activeFiltersClear}>Clear</Text>
+              <Text style={styles.activeFiltersClear}>{t("Clear")}</Text>
             </Pressable>
           </View>
         ) : null
@@ -474,20 +475,20 @@ export function StayOddsHomeScreen() {
           >
             <Ionicons name="options-outline" size={15} color={Colors.inkPrimary} />
             <Text style={styles.quickLinkText} numberOfLines={1}>
-              Filters{activeFilterLabels.length ? ` (${activeFilterLabels.length})` : ''}
+              {t('Filters')}{activeFilterLabels.length ? ` (${activeFilterLabels.length})` : ''}
             </Text>
           </Pressable>
-          <Pressable onPress={() => router.push('/awards')} style={styles.quickLink} accessibilityLabel="Award lists">
+          <Pressable onPress={() => router.push('/awards')} style={styles.quickLink} accessibilityLabel={t("Award lists")}>
             <Ionicons name="trophy-outline" size={15} color={Colors.inkPrimary} />
-            <Text style={styles.quickLinkText} numberOfLines={1}>Awards</Text>
+            <Text style={styles.quickLinkText} numberOfLines={1}>{t("Awards")}</Text>
           </Pressable>
-          <Pressable onPress={() => router.push(routes.holidays() as never)} style={styles.quickLink} accessibilityLabel="Holidays">
+          <Pressable onPress={() => router.push(routes.holidays() as never)} style={styles.quickLink} accessibilityLabel={t("Holidays")}>
             <Ionicons name="gift-outline" size={15} color={Colors.inkPrimary} />
-            <Text style={styles.quickLinkText} numberOfLines={1}>Holidays</Text>
+            <Text style={styles.quickLinkText} numberOfLines={1}>{t("Holidays")}</Text>
           </Pressable>
           <Pressable onPress={() => router.push(routes.insights() as never)} style={styles.quickLink} accessibilityLabel="Guest insights">
             <Ionicons name="stats-chart-outline" size={15} color={Colors.inkPrimary} />
-            <Text style={styles.quickLinkText} numberOfLines={1}>Insights</Text>
+            <Text style={styles.quickLinkText} numberOfLines={1}>{t("Insights")}</Text>
           </Pressable>
         </View>
       )}
@@ -501,7 +502,7 @@ export function StayOddsHomeScreen() {
               onPress={() => setRegion(r)}
               style={[styles.regionPill, isActive && styles.regionPillActive]}
             >
-              <Text style={[styles.regionText, isActive && styles.regionTextActive]}>{r}</Text>
+              <Text style={[styles.regionText, isActive && styles.regionTextActive]}>{r === 'All' ? t('All') : t(r)}</Text>
             </Pressable>
           );
         })}

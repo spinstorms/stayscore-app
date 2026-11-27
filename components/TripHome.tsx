@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useIsFocused, useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import { Animated, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getBestMonths } from '../lib/insights';
 import { InlineVideo } from './video/InlineVideo';
@@ -14,6 +14,7 @@ import type { Hotel } from '../lib/types';
 import { routes } from '../lib/nav';
 import { openExternalUrl } from '../lib/api';
 import { BRAND } from '../lib/brand';
+import { getLanguage, LANGUAGES, setLanguage, t, type Lang } from '../lib/i18n';
 
 const guest = (h: Hotel) => h.verifiedGuest?.licensed?.normalized100 ?? 0;
 const SHOW = 24;
@@ -95,6 +96,7 @@ function Slideshow({ captionInset, height }: { captionInset: { right: number; bo
 export function TripHome() {
   const router = useRouter();
   const focused = useIsFocused();
+  const [langOpen, setLangOpen] = useState(false);
   const { hotels, deals, videos } = useStayOdds();
   const { isSplitScreen, horizontalPadding } = useAdaptiveLayout();
   const params = useLocalSearchParams<{ q?: string }>();
@@ -142,6 +144,30 @@ export function TripHome() {
         if (h > 0 && Math.abs(h - viewH) > 1) setViewH(h);
       }}
     >
+      <Modal visible={langOpen} transparent animationType="slide" onRequestClose={() => setLangOpen(false)}>
+        <Pressable style={styles.sheetBackdrop} onPress={() => setLangOpen(false)} accessibilityLabel={t('Close')} />
+        <View style={[styles.sheet, { paddingBottom: insets.bottom + 16 }]}>
+          <Text style={styles.sheetTitle}>{t('Language')}</Text>
+          {LANGUAGES.map((l) => {
+            const on = l.code === getLanguage();
+            return (
+              <Pressable
+                key={l.code}
+                style={[styles.langRow, on && styles.langRowOn]}
+                accessibilityRole="button"
+                accessibilityState={{ selected: on }}
+                onPress={() => {
+                  setLangOpen(false);
+                  setLanguage(l.code as Lang);
+                }}
+              >
+                <Text style={[styles.langName, on && { fontWeight: '800' }]}>{l.name}</Text>
+                {on ? <Ionicons name="checkmark" size={18} color={Colors.accent} /> : null}
+              </Pressable>
+            );
+          })}
+        </View>
+      </Modal>
       {/* light status bar icons over the photos; the other screens are light, with dark icons */}
       {focused ? <StatusBar style="light" /> : null}
       {/* Clean first screen: photos, one question, one button */}
@@ -152,6 +178,16 @@ export function TripHome() {
           if (h > 0 && Math.abs(h - heroH) > 1) setHeroH(h);
         }}
       >
+        {/* language: follows the phone, or pick one here */}
+        <Pressable
+          style={[styles.langBtn, { top: insets.top + 10, right: insets.right + 14 }]}
+          onPress={() => setLangOpen(true)}
+          accessibilityRole="button"
+          accessibilityLabel={t('Language')}
+        >
+          <Ionicons name="globe-outline" size={16} color="#FFFFFF" />
+          <Text style={styles.langBtnText}>{getLanguage().split('-')[0].toUpperCase()}</Text>
+        </Pressable>
         <Slideshow height={Math.max(heroH, heroHeight)} captionInset={{ right: insets.right + 16, bottom: insets.bottom + 14 }} />
         <View
           style={[
@@ -171,12 +207,12 @@ export function TripHome() {
               StayOdds<Text style={{ color: Colors.coral }}>.</Text>
             </Text>
           </View>
-          <Text style={styles.h1}>Where do you want to go?</Text>
+          <Text style={styles.h1}>{t("Where do you want to go?")}</Text>
           <TextInput
             value={text}
             onChangeText={setText}
             onSubmitEditing={() => run(text)}
-            placeholder="e.g. sunny Caribbean in January"
+            placeholder={t("e.g. sunny Caribbean in January")}
             placeholderTextColor="#94A3B8"
             style={styles.askInput}
             returnKeyType="go"
@@ -188,13 +224,15 @@ export function TripHome() {
             onPress={() => (text.trim() && text.trim() !== query ? run(text) : run(nextSurprise(query)))}
           >
             <Ionicons name="sparkles" size={18} color="#FFFFFF" />
-            <Text style={styles.genBtnText}>{text.trim() && text.trim() !== query ? 'Find my hotels' : 'Surprise me'}</Text>
+            <Text style={styles.genBtnText}>{text.trim() && text.trim() !== query ? t('Find my hotels') : t('Surprise me')}</Text>
           </Pressable>
           <Text style={styles.tagline}>
-            Find the hotel that&apos;s right for your trip, not the one with the best advert.
+            {t("Find the hotel that's right for your trip, not the one with the best advert.")}
           </Text>
           <Text style={styles.lead}>
-            Real guest scores, critics and our own filmed stays for {ready ? hotels.length.toLocaleString('en-GB') : '1,300+'} luxury hotels.
+            {t('Real guest scores, critics and our own filmed stays for {n} luxury hotels.', {
+              n: ready ? hotels.length.toLocaleString(getLanguage()) : '1,300+',
+            })}
           </Text>
           <View style={styles.watchRow}>
             <Pressable
@@ -203,7 +241,7 @@ export function TripHome() {
               onPress={() => router.push(routes.watch() as never)}
             >
               <Ionicons name="play-circle" size={18} color="#FFFFFF" />
-              <Text style={styles.watchBtnText}>Watch our stays</Text>
+              <Text style={styles.watchBtnText}>{t("Watch our stays")}</Text>
             </Pressable>
             <Pressable
               style={[styles.watchBtn, styles.subBtn]}
@@ -212,7 +250,7 @@ export function TripHome() {
               onPress={() => openExternalUrl(`${BRAND.youtubeChannelUrl}?sub_confirmation=1`)}
             >
               <Ionicons name="logo-youtube" size={18} color="#FFFFFF" />
-              <Text style={styles.watchBtnText}>Subscribe</Text>
+              <Text style={styles.watchBtnText}>{t("Subscribe")}</Text>
             </Pressable>
           </View>
         </View>
@@ -222,18 +260,18 @@ export function TripHome() {
         {query ? (
           <View style={styles.section}>
             <View style={styles.understood}>
-              <Text style={styles.understoodLabel}>We understood:</Text>
+              <Text style={styles.understoodLabel}>{t("We understood:")}</Text>
               {parsed.chips.map((c) => (
                 <Text key={c} style={styles.chip}>
                   {c}
                 </Text>
               ))}
               <Pressable onPress={() => run('')} hitSlop={8}>
-                <Text style={styles.clear}>Clear</Text>
+                <Text style={styles.clear}>{t("Clear")}</Text>
               </Pressable>
             </View>
             {!ready ? (
-              <Text style={styles.sub}>Getting the latest hotels…</Text>
+              <Text style={styles.sub}>{t("Getting the latest hotels…")}</Text>
             ) : results.length ? (
               <>
                 <Text style={styles.h2}>
@@ -274,7 +312,7 @@ export function TripHome() {
                 ) : null}
               </>
             ) : (
-              <Text style={styles.sub}>No hotels match all of that. Try fewer details, e.g. just the place and month.</Text>
+              <Text style={styles.sub}>{t("No hotels match all of that. Try fewer details, e.g. just the place and month.")}</Text>
             )}
           </View>
         ) : null}
@@ -282,9 +320,9 @@ export function TripHome() {
         {videos.length ? (
           <View style={styles.section}>
             <View style={styles.rowBetween}>
-              <Text style={styles.eyebrow}>Watch our latest stay</Text>
+              <Text style={styles.eyebrow}>{t("Watch our latest stay")}</Text>
               <Pressable onPress={() => router.push(routes.watch() as never)} hitSlop={8}>
-                <Text style={styles.clear}>All videos →</Text>
+                <Text style={styles.clear}>{t("All videos →")}</Text>
               </Pressable>
             </View>
             <View style={isSplitScreen ? styles.grid : undefined}>
@@ -302,8 +340,8 @@ export function TripHome() {
 
         <Pressable style={styles.deals} onPress={() => router.push(routes.deals() as never)}>
           <View style={{ flex: 1, gap: 4 }}>
-            <Text style={styles.dealsEyebrow}>Book through us</Text>
-            <Text style={styles.dealsTitle}>Same price to you, and it keeps our reviews free.</Text>
+            <Text style={styles.dealsEyebrow}>{t("Book through us")}</Text>
+            <Text style={styles.dealsTitle}>{t("Same price to you, and it keeps our reviews free.")}</Text>
             <Text style={styles.dealsBody}>
               Every "Check prices" button uses our partner links. Plus {deals.length ? `${deals.length} ` : ''}travel perks and codes we use
               ourselves: cards, eSIMs and gear.
@@ -320,6 +358,43 @@ export function TripHome() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.bgCanvas },
   hero: { justifyContent: 'center', overflow: 'hidden', backgroundColor: Colors.navy },
+  langBtn: {
+    position: 'absolute',
+    zIndex: 5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    minHeight: 40,
+    paddingHorizontal: 14,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.6)',
+    backgroundColor: 'rgba(15,43,51,0.45)',
+  },
+  langBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '800' },
+  sheetBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)' },
+  sheet: {
+    backgroundColor: Colors.bgWhite,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 16,
+    paddingHorizontal: 14,
+    gap: 2,
+    width: '100%',
+    maxWidth: 560,
+    alignSelf: 'center',
+  },
+  sheetTitle: { fontSize: 15, fontWeight: '800', color: Colors.inkPrimary, marginLeft: 12, marginBottom: 6 },
+  langRow: {
+    minHeight: 46,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  langRowOn: { backgroundColor: Colors.accentSoft },
+  langName: { fontSize: 16, color: Colors.inkPrimary },
   slides: { position: 'absolute', top: 0, left: 0, right: 0 },
   slideImg: { position: 'absolute', top: 0, left: 0, right: 0, width: '100%' },
   tagline: { color: '#FFFFFF', fontSize: 16, lineHeight: 22, fontWeight: '700', textAlign: 'center' },

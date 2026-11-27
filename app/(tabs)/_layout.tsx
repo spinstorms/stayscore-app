@@ -5,6 +5,7 @@ import React from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAdaptiveLayout } from '../../lib/layout';
 import { Colors } from '../../lib/theme';
+import { t as tr } from '../../lib/i18n';
 
 const IOS = process.env.EXPO_OS === 'ios';
 
@@ -46,23 +47,23 @@ export default function TabsLayout() {
       <NativeTabs tintColor={Colors.accent}>
         <NativeTabs.Trigger name="(trip)">
           <NativeTabs.Trigger.Icon sf={{ default: 'sparkles', selected: 'sparkles' }} md="auto_awesome" />
-          <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
+          <NativeTabs.Trigger.Label>{tr("Home")}</NativeTabs.Trigger.Label>
         </NativeTabs.Trigger>
         <NativeTabs.Trigger name="(explore)">
           <NativeTabs.Trigger.Icon sf={{ default: 'magnifyingglass', selected: 'magnifyingglass' }} md="search" />
-          <NativeTabs.Trigger.Label>Explore</NativeTabs.Trigger.Label>
+          <NativeTabs.Trigger.Label>{tr("Explore")}</NativeTabs.Trigger.Label>
         </NativeTabs.Trigger>
         <NativeTabs.Trigger name="(map)">
           <NativeTabs.Trigger.Icon sf={{ default: 'map', selected: 'map.fill' }} md="map" />
-          <NativeTabs.Trigger.Label>Map</NativeTabs.Trigger.Label>
+          <NativeTabs.Trigger.Label>{tr("Map")}</NativeTabs.Trigger.Label>
         </NativeTabs.Trigger>
         <NativeTabs.Trigger name="(compare)">
           <NativeTabs.Trigger.Icon sf="arrow.left.arrow.right" md="compare_arrows" />
-          <NativeTabs.Trigger.Label>Compare</NativeTabs.Trigger.Label>
+          <NativeTabs.Trigger.Label>{tr("Compare")}</NativeTabs.Trigger.Label>
         </NativeTabs.Trigger>
         <NativeTabs.Trigger name="(insights)">
           <NativeTabs.Trigger.Icon sf="chart.bar" md="bar_chart" />
-          <NativeTabs.Trigger.Label>Insights</NativeTabs.Trigger.Label>
+          <NativeTabs.Trigger.Label>{tr("Insights")}</NativeTabs.Trigger.Label>
         </NativeTabs.Trigger>
       </NativeTabs>
     );
@@ -104,7 +105,7 @@ export default function TabsLayout() {
           key={t.name}
           name={t.name}
           options={{
-            title: t.label,
+            title: tr(t.label),
             // phone bottom bar: keep it to the essentials (the route still works from links)
             ...(t.wideOnly && !isSplitScreen ? { tabBarButton: () => null, tabBarItemStyle: { display: 'none' as const } } : null),
             tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? t.ionOn : t.ion} size={22} color={color as string} />,

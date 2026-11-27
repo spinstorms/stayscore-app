@@ -9,6 +9,7 @@ import { useStayOdds } from '../../../lib/store';
 import { Colors } from '../../../lib/theme';
 import type { Hotel } from '../../../lib/types';
 import { lazyTab } from '../../../components/LazyTab';
+import { t } from '../../../lib/i18n';
 
 type Filter = 'top' | 'w50' | 'keys' | 'stars' | '';
 const FILTERS: [Filter, string][] = [
@@ -132,8 +133,8 @@ export function HolidaysScreen() {
       contentContainerStyle={[styles.content, { paddingHorizontal: horizontalPadding }]}
       contentInsetAdjustmentBehavior="automatic"
     >
-      <Text style={styles.eyebrow}>Holiday dates</Text>
-      <Text style={styles.h1}>Where to stay this Christmas, New Year or Easter</Text>
+      <Text style={styles.eyebrow}>{t("Holiday dates")}</Text>
+      <Text style={styles.h1}>{t("Where to stay this Christmas, New Year or Easter")}</Text>
       <Text style={styles.sub}>Pick your holiday. Every hotel below then opens with those dates already chosen, ready to check prices.</Text>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
@@ -184,7 +185,7 @@ export function HolidaysScreen() {
 
       {filmedShown.length ? (
         <View style={styles.section}>
-          <Text style={styles.h2}>Stays we've filmed</Text>
+          <Text style={styles.h2}>{t("Stays we've filmed")}</Text>
           <Text style={styles.sub}>{filmedShown.length} hotels we checked into ourselves, best guest score first.</Text>
           <View style={isSplitScreen ? styles.grid : undefined}>
             {filmedShown.map((h) => (

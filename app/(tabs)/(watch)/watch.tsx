@@ -18,6 +18,7 @@ import { useStayOdds } from '../../../lib/store';
 import { Colors } from '../../../lib/theme';
 import type { VideoItem } from '../../../lib/types';
 import { lazyTab } from '../../../components/LazyTab';
+import { t } from '../../../lib/i18n';
 
 export function WatchScreen() {
   const { videos, shorts, refreshing, refresh } = useStayOdds();
@@ -115,7 +116,7 @@ export function WatchScreen() {
       {/* Channel Banner */}
       <View style={[styles.channelBanner, { paddingHorizontal: horizontalPadding }]}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.bannerEyebrow}>THE UNCHARTED ITINERARY ON YOUTUBE</Text>
+          <Text style={styles.bannerEyebrow}>{t("THE UNCHARTED ITINERARY ON YOUTUBE")}</Text>
           <Text style={styles.bannerTitle}>
             {videos.length} Full Reviews & {shorts.length} Travel Shorts
           </Text>
@@ -128,7 +129,7 @@ export function WatchScreen() {
           onPress={() => openExternalUrl('https://www.youtube.com/@TheUnchartedItinerary?sub_confirmation=1')}
         >
           <Ionicons name="logo-youtube" size={16} color="#FFFFFF" />
-          <Text style={styles.subBtnText}>Subscribe</Text>
+          <Text style={styles.subBtnText}>{t("Subscribe")}</Text>
         </Pressable>
       </View>
 
@@ -140,7 +141,7 @@ export function WatchScreen() {
             style={styles.searchInput}
             value={query}
             onChangeText={setQuery}
-            placeholder="Search episodes, hotels, destinations, or cameras..."
+            placeholder={t("Search episodes, hotels, destinations, or cameras...")}
             placeholderTextColor={Colors.inkMuted}
           />
           {query ? (
@@ -184,7 +185,7 @@ export function WatchScreen() {
               <Ionicons name="flash" size={16} color={Colors.accent} />
               <Text style={styles.sectionTitle}>Quick Resort Shorts ({shorts.length})</Text>
             </View>
-            <Text style={styles.sectionHint}>Swipe →</Text>
+            <Text style={styles.sectionHint}>{t("Swipe →")}</Text>
           </View>
           <FlatList
             horizontal

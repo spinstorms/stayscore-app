@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { BRAND } from '../lib/brand';
 import { Colors } from '../lib/theme';
+import { t } from '../lib/i18n';
 
 interface RequestResortModalProps {
   visible: boolean;
@@ -234,7 +235,7 @@ export function QuickFeedbackModal({ visible, onClose }: QuickFeedbackModalProps
               </View>
               <Text style={styles.successTitle}>Thanks for helping improve StayOdds!</Text>
               <Pressable style={styles.primaryBtn} onPress={resetAndClose}>
-                <Text style={styles.primaryBtnText}>Close</Text>
+                <Text style={styles.primaryBtnText}>{t("Close")}</Text>
               </Pressable>
             </View>
           ) : (
@@ -279,7 +280,7 @@ export function QuickFeedbackModal({ visible, onClose }: QuickFeedbackModalProps
                 {submitting ? (
                   <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
-                  <Text style={styles.primaryBtnText}>Send Feedback</Text>
+                  <Text style={styles.primaryBtnText}>{t("Send Feedback")}</Text>
                 )}
               </Pressable>
             </View>

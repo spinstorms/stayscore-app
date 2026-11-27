@@ -6,13 +6,17 @@ import { BRAND } from '../lib/brand';
 import { useSideInsetStyle } from '../lib/layout';
 import { StayOddsProvider } from '../lib/store';
 import { Colors } from '../lib/theme';
+import { useLanguage } from '../lib/i18n';
+import { t } from '../lib/i18n';
 
 export default function RootLayout() {
+  // the whole app redraws in the new language when it changes
+  const lang = useLanguage();
   return (
     <SafeAreaProvider>
       <StayOddsProvider>
         <StatusBar style="dark" />
-        <RootStack />
+        <RootStack key={lang} />
       </StayOddsProvider>
     </SafeAreaProvider>
   );
@@ -43,11 +47,11 @@ function RootStack() {
         >
           {/* The tabs pad their own screens, so the system tab bar / rail itself stays at the edge. */}
           <Stack.Screen name="(tabs)" options={{ headerShown: false, contentStyle: { backgroundColor: Colors.bgCanvas } }} />
-          <Stack.Screen name="awards" options={{ title: 'Award Lists', headerBackTitle: 'Back' }} />
+          <Stack.Screen name="awards" options={{ title: t("Award Lists"), headerBackTitle: 'Back' }} />
           {/* iPhone: opened from the rail's shortcut group (Watch, Deals, Holiday dates) */}
-          <Stack.Screen name="videos" options={{ title: 'Episodes & Shorts', headerBackTitle: 'Back', ...UNCHARTED_HEADER }} />
-          <Stack.Screen name="offers" options={{ title: 'Deals', headerBackTitle: 'Back', ...UNCHARTED_HEADER }} />
-          <Stack.Screen name="holiday-dates" options={{ title: 'Holiday Dates', headerBackTitle: 'Back' }} />
+          <Stack.Screen name="videos" options={{ title: t("Episodes & Shorts"), headerBackTitle: 'Back', ...UNCHARTED_HEADER }} />
+          <Stack.Screen name="offers" options={{ title: t("Deals"), headerBackTitle: 'Back', ...UNCHARTED_HEADER }} />
+          <Stack.Screen name="holiday-dates" options={{ title: t("Holiday Dates"), headerBackTitle: 'Back' }} />
           <Stack.Screen
             name="hotel/[id]"
             options={{

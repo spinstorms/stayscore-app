@@ -21,6 +21,7 @@ import type { Hotel } from '../lib/types';
 import { ShareCardModal } from './ShareCardModal';
 import { InlineVideo } from './video/InlineVideo';
 import { WhenBox } from './WhenBox';
+import { t } from '../lib/i18n';
 
 interface Props {
   hotel: Hotel;
@@ -204,7 +205,7 @@ export function HotelDetailContent({ hotel, isSidePane = false, when }: Props) {
                 </View>
                 <View style={[styles.gapTile, { backgroundColor: '#F1F5F9' }]}>
                   <Text style={styles.gapBig}>{gap.right100}</Text>
-                  <Text style={styles.gapLbl}>Guests</Text>
+                  <Text style={styles.gapLbl}>{t("Guests")}</Text>
                 </View>
                 <View style={[styles.gapTile, { backgroundColor: '#FFF1E8' }]}>
                   <Text style={[styles.gapBig, { color: '#C2410C' }]}>
@@ -231,12 +232,12 @@ export function HotelDetailContent({ hotel, isSidePane = false, when }: Props) {
           <View style={styles.factGrid}>
             {hotel.priceRange ? (
               <View style={styles.soFactTile}>
-                <Text style={styles.factKicker}>PRICE</Text>
+                <Text style={styles.factKicker}>{t("PRICE")}</Text>
                 <Text style={styles.soFactValue}>From {hotel.priceRange}</Text>
               </View>
             ) : null}
             <View style={styles.soFactTile}>
-              <Text style={styles.factKicker}>BEST MONTHS</Text>
+              <Text style={styles.factKicker}>{t("BEST MONTHS")}</Text>
               <Text style={styles.soFactValue}>{bestMonths.shortLabel}</Text>
               <Text style={styles.factNote} numberOfLines={2}>{bestMonths.note}</Text>
             </View>
@@ -284,13 +285,13 @@ export function HotelDetailContent({ hotel, isSidePane = false, when }: Props) {
 
           {hotel.standout ? (
             <View style={[styles.loveCard, { borderTopColor: '#16A34A' }]}>
-              <Text style={styles.loveTitle}>Why guests love it</Text>
+              <Text style={styles.loveTitle}>{t("Why guests love it")}</Text>
               <Text style={styles.loveText}>{hotel.standout}</Text>
             </View>
           ) : null}
           {hotel.watchOut ? (
             <View style={[styles.loveCard, { borderTopColor: '#F59E0B' }]}>
-              <Text style={styles.loveTitle}>Know before you book</Text>
+              <Text style={styles.loveTitle}>{t("Know before you book")}</Text>
               <Text style={styles.loveText}>{hotel.watchOut}</Text>
             </View>
           ) : null}
@@ -328,7 +329,7 @@ export function HotelDetailContent({ hotel, isSidePane = false, when }: Props) {
 
           {ranks?.area ? (
             <View style={styles.rankBox}>
-              <Text style={styles.rankHeading}>How guests rank it</Text>
+              <Text style={styles.rankHeading}>{t("How guests rank it")}</Text>
               <Text style={styles.rankSub}>
                 Against other StayOdds hotels nearby, and against hotels at a similar price. Left is the best-rated.
               </Text>
@@ -445,7 +446,7 @@ export function HotelDetailContent({ hotel, isSidePane = false, when }: Props) {
               }}
             >
               <Ionicons name="git-compare-outline" size={15} color={Colors.accentDark} />
-              <Text style={styles.btnCompareText}>Compare VS</Text>
+              <Text style={styles.btnCompareText}>{t("Compare VS")}</Text>
             </Pressable>
 
             <Pressable
@@ -703,13 +704,13 @@ export function HotelDetailContent({ hotel, isSidePane = false, when }: Props) {
 
         {hotel.standout ? (
           <>
-            <Text style={[styles.noteHead, { color: Colors.teal, marginTop: 12 }]}>Standout Strengths</Text>
+            <Text style={[styles.noteHead, { color: Colors.teal, marginTop: 12 }]}>{t("Standout Strengths")}</Text>
             <Text style={styles.noteText}>{hotel.standout}</Text>
           </>
         ) : null}
         {hotel.watchOut ? (
           <>
-            <Text style={[styles.noteHead, { color: Colors.amber, marginTop: 10 }]}>Watch-Outs Before Booking</Text>
+            <Text style={[styles.noteHead, { color: Colors.amber, marginTop: 10 }]}>{t("Watch-Outs Before Booking")}</Text>
             <Text style={styles.noteText}>{hotel.watchOut}</Text>
           </>
         ) : null}
@@ -724,7 +725,7 @@ export function HotelDetailContent({ hotel, isSidePane = false, when }: Props) {
         <View style={styles.weightGrid}>
           <View style={styles.weightBox}>
             <Text style={styles.weightPct}>{o.weights.firstHand}%</Text>
-            <Text style={styles.weightLbl}>My Stay</Text>
+            <Text style={styles.weightLbl}>{t("My Stay")}</Text>
             <Text style={styles.weightVal}>
               {o.ours100 != null
                 ? o.personalScoreLabel
@@ -735,7 +736,7 @@ export function HotelDetailContent({ hotel, isSidePane = false, when }: Props) {
           </View>
           <View style={styles.weightBox}>
             <Text style={styles.weightPct}>{o.weights.critics}%</Text>
-            <Text style={styles.weightLbl}>Published Critics</Text>
+            <Text style={styles.weightLbl}>{t("Published Critics")}</Text>
             <Text style={styles.weightVal}>
               {o.critic100 != null
                 ? `${o.critic100}%`

@@ -37,6 +37,7 @@ import { Colors } from '../../../lib/theme';
 import type { Hotel } from '../../../lib/types';
 import { lazyTab } from '../../../components/LazyTab';
 import { withRailShortcuts } from '../../../components/RailShortcuts';
+import { t } from '../../../lib/i18n';
 
 type PickerTarget = 'A' | 'B' | 'C' | null;
 
@@ -583,7 +584,7 @@ function CompareScreen() {
               </>
             ) : null}
             <View style={styles.metricRow}>
-              <Text style={styles.metricLabel}>Best Dry Months</Text>
+              <Text style={styles.metricLabel}>{t("Best Dry Months")}</Text>
               <Text style={styles.metricVal}>☀ {bestMonths.shortLabel}</Text>
             </View>
             {hotel.priceRange ? (
@@ -616,7 +617,7 @@ function CompareScreen() {
             ) : null}
             {hotel.watchOut ? (
               <>
-                <Text style={[styles.noteTitle, { marginTop: 8, color: Colors.amber }]}>Watch-Out</Text>
+                <Text style={[styles.noteTitle, { marginTop: 8, color: Colors.amber }]}>{t("Watch-Out")}</Text>
                 <Text style={styles.noteBody}>{hotel.watchOut}</Text>
               </>
             ) : null}
@@ -629,13 +630,13 @@ function CompareScreen() {
                 onPress={() => openExternalUrl(hotel.bookingUrl)}
               >
                 <Ionicons name="bed-outline" size={15} color={Colors.accentInk} />
-                <Text style={styles.btnPrimaryText}>Check Live Rates</Text>
+                <Text style={styles.btnPrimaryText}>{t("Check Live Rates")}</Text>
               </Pressable>
             ) : null}
             {videoUrl ? (
               <Pressable style={styles.btnDark} onPress={() => openExternalUrl(videoUrl)}>
                 <Ionicons name="logo-youtube" size={15} color="#FFFFFF" />
-                <Text style={styles.btnDarkText}>Watch</Text>
+                <Text style={styles.btnDarkText}>{t("Watch")}</Text>
               </Pressable>
             ) : null}
           </View>
@@ -644,7 +645,7 @@ function CompareScreen() {
             style={styles.btnOutline}
             onPress={() => router.push({ pathname: '/hotel/[id]', params: { id: hotel.id } })}
           >
-            <Text style={styles.btnOutlineText}>Open Full Breakdown</Text>
+            <Text style={styles.btnOutlineText}>{t("Open Full Breakdown")}</Text>
             <Ionicons name="arrow-forward" size={14} color={Colors.accent} />
           </Pressable>
 
@@ -861,7 +862,7 @@ function CompareScreen() {
                 }}
               >
                 <Ionicons name="sparkles" size={16} color="#FFFFFF" />
-                <Text style={styles.genBtnText}>Generate insights for these hotels</Text>
+                <Text style={styles.genBtnText}>{t("Generate insights for these hotels")}</Text>
               </Pressable>
             )}
           </View>
@@ -882,7 +883,7 @@ function CompareScreen() {
           </View>
         ) : (
           <View style={styles.emptyBox}>
-            <Text style={styles.emptyText}>Loading luxury stays...</Text>
+            <Text style={styles.emptyText}>{t("Loading luxury stays...")}</Text>
           </View>
         )}
       </ScrollView>
@@ -923,7 +924,7 @@ function CompareScreen() {
               style={styles.modalInput}
               value={pickerQuery}
               onChangeText={setPickerQuery}
-              placeholder="Search hotel, city, country, or brand..."
+              placeholder={t("Search hotel, city, country, or brand...")}
               placeholderTextColor={Colors.inkMuted}
               autoFocus
             />

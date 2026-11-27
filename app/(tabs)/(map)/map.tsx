@@ -31,6 +31,7 @@ import type { Hotel } from '../../../lib/types';
 import { lazyTab } from '../../../components/LazyTab';
 import { withRailShortcuts } from '../../../components/RailShortcuts';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { t } from '../../../lib/i18n';
 
 type MapScope = 'all' | 'visited' | 'saved' | AwardListId;
 const AWARD_SCOPES = AWARD_LISTS.map((l) => l.id) as string[];
@@ -192,7 +193,7 @@ export function WorldMapScreen() {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color={Colors.accent} />
-        <Text style={styles.loadingText}>Plotting luxury stays worldwide…</Text>
+        <Text style={styles.loadingText}>{t("Plotting luxury stays worldwide…")}</Text>
       </View>
     );
   }
@@ -233,7 +234,7 @@ export function WorldMapScreen() {
 
         {filtersOpen ? (
         <>
-        <Text style={styles.awardRowLabel}>Awards (pick one or more)</Text>
+        <Text style={styles.awardRowLabel}>{t("Awards (pick one or more)")}</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.regionStrip}>
           {AWARD_SCOPES.includes(scope)
             ? AWARD_LISTS.filter((l) => l.id === scope).map((l) => (
@@ -265,13 +266,13 @@ export function WorldMapScreen() {
           })}
           {awards.length ? (
             <Pressable onPress={() => setAwards([])} style={styles.awardClear}>
-              <Text style={styles.awardClearText}>Clear</Text>
+              <Text style={styles.awardClearText}>{t("Clear")}</Text>
             </Pressable>
           ) : null}
         </ScrollView>
         {awards.length > 1 ? (
           <View style={styles.matchRow}>
-            <Text style={styles.matchText}>Show hotels with</Text>
+            <Text style={styles.matchText}>{t("Show hotels with")}</Text>
             {(['all', 'any'] as const).map((m) => (
               <Pressable
                 key={m}
@@ -291,7 +292,7 @@ export function WorldMapScreen() {
           </View>
         ) : null}
         <Pressable onPress={openWebMap} hitSlop={6}>
-          <Text style={styles.awardClearText}>Open the full map on stayodds.com ↗</Text>
+          <Text style={styles.awardClearText}>{t("Open the full map on stayodds.com ↗")}</Text>
         </Pressable>
         </>
         ) : null}
@@ -305,7 +306,7 @@ export function WorldMapScreen() {
                 onPress={() => setViewportId(rv.id)}
                 style={[styles.regionPill, active && styles.regionPillActive]}
               >
-                <Text style={[styles.regionText, active && styles.regionTextActive]}>{rv.label}</Text>
+                <Text style={[styles.regionText, active && styles.regionTextActive]}>{t(rv.label)}</Text>
               </Pressable>
             );
           })}
@@ -333,15 +334,15 @@ export function WorldMapScreen() {
           <View style={styles.legendRow} pointerEvents="none">
             <View style={styles.legendItem}>
               <View style={[styles.legendDot, { backgroundColor: Colors.uncharted }]} />
-              <Text style={styles.legendText}>Our stays</Text>
+              <Text style={styles.legendText}>{t("Our stays")}</Text>
             </View>
             <View style={styles.legendItem}>
               <View style={[styles.legendDot, { backgroundColor: Colors.accent }]} />
-              <Text style={styles.legendText}>Other hotels</Text>
+              <Text style={styles.legendText}>{t("Other hotels")}</Text>
             </View>
             <View style={styles.legendItem}>
               <View style={[styles.legendDot, { backgroundColor: '#F43F5E' }]} />
-              <Text style={styles.legendText}>Saved</Text>
+              <Text style={styles.legendText}>{t("Saved")}</Text>
             </View>
           </View>
 
@@ -353,7 +354,7 @@ export function WorldMapScreen() {
               accessibilityLabel={satellite ? 'Show street map' : 'Show satellite view'}
             >
               <Ionicons name={satellite ? 'map-outline' : 'earth'} size={16} color={Colors.inkPrimary} />
-              <Text style={styles.layerBtnText}>{satellite ? 'Map' : 'Satellite'}</Text>
+              <Text style={styles.layerBtnText}>{satellite ? t('Map') : t('Satellite')}</Text>
             </Pressable>
           ) : null}
 
@@ -438,7 +439,7 @@ export function WorldMapScreen() {
                   router.push({ pathname: '/hotel/[id]', params: { id: selectedHotel.id } })
                 }
               >
-                <Text style={styles.btnPrimaryText}>Full Breakdown →</Text>
+                <Text style={styles.btnPrimaryText}>{t("Full Breakdown →")}</Text>
               </Pressable>
 
               <Pressable
@@ -447,7 +448,7 @@ export function WorldMapScreen() {
                 onPress={() => openInMaps(selectedHotel)}
               >
                 <Ionicons name="navigate-outline" size={14} color={Colors.accentDark} />
-                <Text style={styles.btnOutlineText}>Maps</Text>
+                <Text style={styles.btnOutlineText}>{t("Maps")}</Text>
               </Pressable>
 
               <Pressable

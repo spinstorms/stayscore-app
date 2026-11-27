@@ -19,6 +19,7 @@ import { useStayOdds } from '../../../lib/store';
 import { Colors } from '../../../lib/theme';
 import type { AffiliateDeal } from '../../../lib/types';
 import { lazyTab } from '../../../components/LazyTab';
+import { t } from '../../../lib/i18n';
 
 type DealSection = 'all' | 'promos' | 'gear';
 
@@ -74,8 +75,8 @@ export function DealsScreen() {
     >
       {/* Header Banner */}
       <View style={[styles.banner, { paddingHorizontal: horizontalPadding }]}>
-        <Text style={styles.bannerEyebrow}>PERSONALLY CURATED PERKS &amp; FILMING KIT</Text>
-        <Text style={styles.bannerTitle}>Our Active Discount Codes &amp; Gear</Text>
+        <Text style={styles.bannerEyebrow}>{t("PERSONALLY CURATED PERKS & FILMING KIT")}</Text>
+        <Text style={styles.bannerTitle}>{t("Our Active Discount Codes & Gear")}</Text>
         <Text style={styles.bannerSub}>
           Tap any code to copy instantly — our hand-picked travel eSIM discounts, points offers, and filming kit.
         </Text>
@@ -169,7 +170,7 @@ export function DealsScreen() {
                   onPress={() => handleCopyCode(deal)}
                 >
                   <View>
-                    <Text style={styles.codeLabel}>PROMO CODE</Text>
+                    <Text style={styles.codeLabel}>{t("PROMO CODE")}</Text>
                     <Text style={styles.codeValue}>{deal.promoCode}</Text>
                   </View>
                   <View style={[styles.copyPill, isCopied && styles.copyPillCopied]}>
@@ -239,7 +240,7 @@ export function DealsScreen() {
               borderRadius: 10,
             }}
           >
-            <Text style={{ color: Colors.accentDark, fontSize: 12.5, fontWeight: '700' }}>Send Feedback</Text>
+            <Text style={{ color: Colors.accentDark, fontSize: 12.5, fontWeight: '700' }}>{t("Send Feedback")}</Text>
           </Pressable>
         </View>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 14, marginTop: 4 }}>

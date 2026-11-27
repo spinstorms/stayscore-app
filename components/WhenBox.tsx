@@ -17,6 +17,7 @@ import {
 import { openExternalUrl } from '../lib/api';
 import { Colors } from '../lib/theme';
 import { routes } from '../lib/nav';
+import { t } from '../lib/i18n';
 
 /**
  * "When are you going?" box from the website's hotel pages: quick dates (weekend, Christmas,
@@ -66,7 +67,7 @@ export function WhenBox({ bookingUrl, priceFrom, when }: { bookingUrl?: string; 
   return (
     <View style={styles.box}>
       <View style={styles.head}>
-        <Text style={styles.title}>When are you going?</Text>
+        <Text style={styles.title}>{t("When are you going?")}</Text>
         {label ? <Text style={styles.picked}>{label}</Text> : null}
       </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quickRow}>
@@ -89,7 +90,7 @@ export function WhenBox({ bookingUrl, priceFrom, when }: { bookingUrl?: string; 
         })}
       </ScrollView>
       <View style={styles.adultsRow}>
-        <Text style={styles.adultsLabel}>Adults</Text>
+        <Text style={styles.adultsLabel}>{t("Adults")}</Text>
         <Pressable
           accessibilityLabel="Fewer adults"
           hitSlop={8}
@@ -108,7 +109,7 @@ export function WhenBox({ bookingUrl, priceFrom, when }: { bookingUrl?: string; 
           <Ionicons name="add" size={16} color={Colors.navy} />
         </Pressable>
         <Pressable style={styles.holidaysLink} onPress={() => router.push(routes.holidays() as never)}>
-          <Text style={styles.holidaysLinkText}>Holiday ideas →</Text>
+          <Text style={styles.holidaysLinkText}>{t("Holiday ideas →")}</Text>
         </Pressable>
       </View>
       {bookingUrl ? (
