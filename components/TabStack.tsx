@@ -16,7 +16,7 @@ export const TONES: Record<Tone, { header: string; tint: string; title: string; 
 export function StayOddsWordmark() {
   return (
     <View style={styles.brandRow}>
-      <Image source={require('../assets/images/stayodds-logo.png')} style={styles.brandLogo} accessibilityIgnoresInvertColors />
+      <Image source={require('../assets/images/stayodds-logo-white.png')} style={styles.brandLogo} accessibilityIgnoresInvertColors />
       <Text style={styles.wordmark}>
         StayOdds<Text style={styles.wordmarkDot}>.</Text>
       </Text>

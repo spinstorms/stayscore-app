@@ -404,7 +404,7 @@ function Panel({ eyebrow, title, sub, children }: { eyebrow: string; title: stri
     <View style={[styles.panelWrap, panelWinW >= 1000 && { width: '49%' }]}>
       <ViewShot ref={shotRef} options={{ format: 'png', quality: 1, result: 'tmpfile' }} style={styles.panel}>
         <View style={styles.shareBrand}>
-          <Image source={require('../../../assets/images/stayodds-logo.png')} style={styles.shareLogo} />
+          <Image source={require('../../../assets/images/stayodds-logo-white.png')} style={styles.shareLogo} />
           <Text style={styles.shareBrandText}>
             StayOdds<Text style={{ color: Colors.coral }}>.</Text>
           </Text>

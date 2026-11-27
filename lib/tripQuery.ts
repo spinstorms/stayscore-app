@@ -24,25 +24,25 @@ export interface TripQuery {
 }
 
 const MONTHS: { m: number; label: string; re: RegExp }[] = [
-  { m: 1, label: 'Jan', re: /\b(jan|january)\b/i },
-  { m: 2, label: 'Feb', re: /\b(feb|february)\b/i },
-  { m: 3, label: 'Mar', re: /\b(mar|march)\b/i },
-  { m: 4, label: 'Apr', re: /\b(apr|april)\b/i },
+  { m: 1, label: 'Jan', re: /\b(?:(jan|january))\b/i },
+  { m: 2, label: 'Feb', re: /\b(?:(feb|february))\b/i },
+  { m: 3, label: 'Mar', re: /\b(?:(mar|march))\b/i },
+  { m: 4, label: 'Apr', re: /\b(?:(apr|april))\b/i },
   { m: 5, label: 'May', re: /\bmay\b/i },
-  { m: 6, label: 'Jun', re: /\b(jun|june)\b/i },
-  { m: 7, label: 'Jul', re: /\b(jul|july)\b/i },
-  { m: 8, label: 'Aug', re: /\b(aug|august)\b/i },
-  { m: 9, label: 'Sep', re: /\b(sep|sept|september)\b/i },
-  { m: 10, label: 'Oct', re: /\b(oct|october)\b/i },
-  { m: 11, label: 'Nov', re: /\b(nov|november)\b/i },
-  { m: 12, label: 'Dec', re: /\b(dec|december)\b/i },
+  { m: 6, label: 'Jun', re: /\b(?:(jun|june))\b/i },
+  { m: 7, label: 'Jul', re: /\b(?:(jul|july))\b/i },
+  { m: 8, label: 'Aug', re: /\b(?:(aug|august))\b/i },
+  { m: 9, label: 'Sep', re: /\b(?:(sep|sept|september))\b/i },
+  { m: 10, label: 'Oct', re: /\b(?:(oct|october))\b/i },
+  { m: 11, label: 'Nov', re: /\b(?:(nov|november))\b/i },
+  { m: 12, label: 'Dec', re: /\b(?:(dec|december))\b/i },
 ];
 
 const PLACES: { re: RegExp; region?: string; excludeCountries?: string[]; includeLocations?: string[]; search?: string; label: string }[] = [
   { re: /\bcaribbean\b/i, region: 'Caribbean & Mexico', excludeCountries: ['mexico'], label: 'Caribbean Islands' },
-  { re: /\bmexico|riviera maya|cancun|cancún|los cabos|cabo|tulum|punta mita\b/i, region: 'Caribbean & Mexico', search: 'Mexico', label: 'Mexico' },
+  { re: /\b(?:mexico|riviera maya|cancun|cancún|los cabos|cabo|tulum|punta mita)\b/i, region: 'Caribbean & Mexico', search: 'Mexico', label: 'Mexico' },
   {
-    re: /\bcanary islands|canaries\b/i,
+    re: /\b(?:canary islands|canaries)\b/i,
     region: 'Europe',
     includeLocations: ['tenerife', 'gran canaria', 'lanzarote', 'fuerteventura', 'la palma', 'la gomera'],
     label: 'Canary Islands',
@@ -54,25 +54,33 @@ const PLACES: { re: RegExp; region?: string; excludeCountries?: string[]; includ
   { re: /\bmaldives\b/i, region: 'Maldives & Indian Ocean', search: 'Maldives', label: 'Maldives' },
   { re: /\bseychelles\b/i, region: 'Maldives & Indian Ocean', search: 'Seychelles', label: 'Seychelles' },
   { re: /\bmauritius\b/i, region: 'Maldives & Indian Ocean', search: 'Mauritius', label: 'Mauritius' },
-  { re: /\bbora bora|french polynesia|tahiti\b/i, region: 'Australia & Pacific', search: 'French Polynesia', label: 'Bora Bora & French Polynesia' },
+  { re: /\b(?:bora bora|french polynesia|tahiti)\b/i, region: 'Australia & Pacific', search: 'French Polynesia', label: 'Bora Bora & French Polynesia' },
+  { re: /\b(?:sri lanka|galle|yala|tangalle)\b/i, search: 'Sri Lanka', label: 'Sri Lanka' },
+  { re: /\b(?:india|rajasthan|udaipur|jaipur|goa)\b/i, region: 'Asia', search: 'India', label: 'India' },
+  { re: /\b(?:vietnam|hoi an|phu quoc)\b/i, region: 'Asia', search: 'Vietnam', label: 'Vietnam' },
+  { re: /\bfiji\b/i, region: 'Australia & Pacific', search: 'Fiji', label: 'Fiji' },
+  { re: /\b(?:hawaii|maui|kauai|oahu)\b/i, region: 'Americas', search: 'Hawaii', label: 'Hawaii' },
+  { re: /\bcosta rica\b/i, search: 'Costa Rica', label: 'Costa Rica' },
+  { re: /\b(?:portugal|algarve|lisbon|comporta)\b/i, region: 'Europe', search: 'Portugal', label: 'Portugal' },
   { re: /\bbali\b/i, region: 'Asia', search: 'Bali', label: 'Bali' },
-  { re: /\bindonesia|lombok\b/i, region: 'Asia', search: 'Indonesia', label: 'Indonesia' },
-  { re: /\bjapan|tokyo|kyoto|niseko\b/i, region: 'Asia', search: 'Japan', label: 'Japan' },
-  { re: /\bthailand|phuket|bangkok|koh samui\b/i, region: 'Asia', search: 'Thailand', label: 'Thailand' },
-  { re: /\bdubai|abu dhabi|uae|oman|qatar|doha|middle east\b/i, region: 'Middle East', label: 'Middle East' },
-  { re: /\bgreece|santorini|mykonos|athens|crete\b/i, region: 'Europe', search: 'Greece', label: 'Greece' },
-  { re: /\bitaly|amalfi|como|tuscany|rome|milan|venice|florence|sicily\b/i, region: 'Europe', search: 'Italy', label: 'Italy' },
-  { re: /\bfrance|paris|riviera|provence|courchevel\b/i, region: 'Europe', search: 'France', label: 'France' },
-  { re: /\bspain|mallorca|ibiza|marbella|madrid|barcelona\b/i, region: 'Europe', search: 'Spain', label: 'Spain' },
-  { re: /\bswitzerland|st\.?\s*moritz|zermatt|gstaad|andermatt|alps\b/i, region: 'Europe', search: 'Switzerland', label: 'Switzerland' },
-  { re: /\bunited kingdom|\buk\b|london|scotland|cotswolds\b/i, region: 'Europe', search: 'United Kingdom', label: 'United Kingdom' },
-  { re: /\bturkey|bodrum|istanbul\b/i, region: 'Europe', search: 'Turkey', label: 'Turkey' },
-  { re: /\begypt|red sea|cairo\b/i, region: 'Middle East', search: 'Egypt', label: 'Egypt' },
-  { re: /\bafrica|south africa|kenya|tanzania|botswana|morocco|marrakech\b/i, region: 'Africa', label: 'Africa' },
-  { re: /\baustralia|new zealand|fiji|pacific\b/i, region: 'Australia & Pacific', label: 'Australia & Pacific' },
+  { re: /\b(?:indonesia|lombok)\b/i, region: 'Asia', search: 'Indonesia', label: 'Indonesia' },
+  { re: /\b(?:japan|tokyo|kyoto|niseko)\b/i, region: 'Asia', search: 'Japan', label: 'Japan' },
+  { re: /\b(?:thailand|phuket|bangkok|koh samui)\b/i, region: 'Asia', search: 'Thailand', label: 'Thailand' },
+  { re: /\b(?:dubai|abu dhabi|uae|oman|qatar|doha|middle east)\b/i, region: 'Middle East', label: 'Middle East' },
+  { re: /\b(?:greece|santorini|mykonos|athens|crete)\b/i, region: 'Europe', search: 'Greece', label: 'Greece' },
+  { re: /\b(?:italy|amalfi|como|tuscany|rome|milan|venice|florence|sicily)\b/i, region: 'Europe', search: 'Italy', label: 'Italy' },
+  { re: /\b(?:france|paris|riviera|provence|courchevel)\b/i, region: 'Europe', search: 'France', label: 'France' },
+  { re: /\b(?:spain|mallorca|ibiza|marbella|madrid|barcelona)\b/i, region: 'Europe', search: 'Spain', label: 'Spain' },
+  { re: /\b(?:switzerland|st\.?\s*moritz|zermatt|gstaad|andermatt)\b/i, region: 'Europe', search: 'Switzerland', label: 'Switzerland' },
+  { re: /\b(?:alps|alpine)\b/i, region: 'Europe', label: 'The Alps' },
+  { re: /\b(?:united kingdom|\buk\b|london|scotland|cotswolds)\b/i, region: 'Europe', search: 'United Kingdom', label: 'United Kingdom' },
+  { re: /\b(?:turkey|bodrum|istanbul)\b/i, region: 'Europe', search: 'Turkey', label: 'Turkey' },
+  { re: /\b(?:egypt|red sea|cairo)\b/i, region: 'Middle East', search: 'Egypt', label: 'Egypt' },
+  { re: /\b(?:africa|south africa|kenya|tanzania|botswana|morocco|marrakech)\b/i, region: 'Africa', label: 'Africa' },
+  { re: /\b(?:australia|new zealand|fiji|pacific)\b/i, region: 'Australia & Pacific', label: 'Australia & Pacific' },
   { re: /\beurope\b/i, region: 'Europe', label: 'Europe' },
   { re: /\basia\b/i, region: 'Asia', label: 'Asia' },
-  { re: /\bamericas|usa|united states|california|new york|hawaii|costa rica\b/i, region: 'Americas', label: 'Americas' },
+  { re: /\b(?:americas|usa|united states|california|new york|hawaii|costa rica)\b/i, region: 'Americas', label: 'Americas' },
   { re: /\bindian ocean\b/i, region: 'Maldives & Indian Ocean', label: 'Maldives & Indian Ocean' },
 ];
 
@@ -86,9 +94,9 @@ const BRANDS: { re: RegExp; brand: string }[] = [
   { re: /\bone\s*&\s*only\b/i, brand: 'One&Only' },
   { re: /\bst\.?\s*regis\b/i, brand: 'St. Regis' },
   { re: /\britz[- ]?carlton\b/i, brand: 'The Ritz-Carlton' },
-  { re: /\bmarriott|bonvoy\b/i, brand: 'Marriott Bonvoy' },
+  { re: /\b(?:marriott|bonvoy)\b/i, brand: 'Marriott Bonvoy' },
   { re: /\bhyatt\b/i, brand: 'World of Hyatt' },
-  { re: /\bhilton|waldorf|conrad\b/i, brand: 'Hilton Honors' },
+  { re: /\b(?:hilton|waldorf|conrad)\b/i, brand: 'Hilton Honors' },
   { re: /\bsoneva\b/i, brand: 'Soneva' },
   { re: /\bcapella\b/i, brand: 'Capella' },
 ];
@@ -178,10 +186,10 @@ export function parseTripQuery(raw: string): TripQuery {
   } else if (/\bsummer\b/i.test(text)) {
     p.month = 7;
     p.chips.push('☀️ Summer (Jul)');
-  } else if (/\bspring|easter\b/i.test(text)) {
+  } else if (/\b(?:spring|easter)\b/i.test(text)) {
     p.month = 4;
     p.chips.push('☀️ Spring (Apr)');
-  } else if (/\bautumn|fall\b/i.test(text)) {
+  } else if (/\b(?:autumn|fall)\b/i.test(text)) {
     p.month = 10;
     p.chips.push('☀️ Autumn (Oct)');
   }
@@ -194,13 +202,13 @@ export function parseTripQuery(raw: string): TripQuery {
       if (cap < 500) p.maxGbp = cap;
     } else p.maxGbp = cap;
     p.chips.push(`£ Under £${cap}/night`);
-  } else if (/\b(cheap|budget|affordable|great value|good value|value)\b/i.test(text)) {
+  } else if (/\b(?:(cheap|budget|affordable|great value|good value|value))\b/i.test(text)) {
     p.priceTier = 'under500';
     p.sortBy = 'price_asc';
     p.chips.push('£ Under £500/night');
   }
 
-  if (/\btop\s*50|50\s*best\b/i.test(text)) {
+  if (/\b(?:top\s*50|50\s*best)\b/i.test(text)) {
     p.feature = '50best_50';
     p.chips.push("🏆 World's 50 Best (#1–50)");
   } else if (/\btop\s*100\b/i.test(text)) {
@@ -215,13 +223,16 @@ export function parseTripQuery(raw: string): TripQuery {
   } else if (/\bforbes\b/i.test(text)) {
     p.feature = 'forbes';
     p.chips.push('⭐ Forbes star-rated');
-  } else if (/\badults[- ]?only|honeymoon|romantic|couples\b/i.test(text)) {
+  } else if (/\b(?:adults[- ]?only)\b/i.test(text)) {
     p.feature = 'adults';
     p.chips.push('🥂 Adults-only');
-  } else if (/\bfamily|families|kids|children\b/i.test(text)) {
+  } else if (/\b(?:honeymoon|romantic|couples)\b/i.test(text)) {
+    // most romantic hotels aren't adults-only, so this doesn't narrow the list
+    p.chips.push('💞 Honeymoon');
+  } else if (/\b(?:family|families|kids|children)\b/i.test(text)) {
     p.feature = 'family';
     p.chips.push('👨‍👩‍👧 Family & kids');
-  } else if (/\bpoints|bonvoy|hyatt points|hilton points\b/i.test(text)) {
+  } else if (/\b(?:points|bonvoy|hyatt points|hilton points)\b/i.test(text)) {
     p.feature = 'points';
     p.chips.push('★ Points brands');
   }
@@ -229,28 +240,28 @@ export function parseTripQuery(raw: string): TripQuery {
   if (/\ball[- ]?inclusive\b/i.test(text)) {
     p.style = 'allinclusive';
     p.chips.push('🍽️ All-inclusive');
-  } else if (/\boverwater|water villa\b/i.test(text)) {
+  } else if (/\b(?:overwater|water villa)\b/i.test(text)) {
     p.style = 'overwater';
     p.chips.push('🏝️ Overwater villas');
-  } else if (/\bsnorkel|house reef|diving|reef\b/i.test(text)) {
+  } else if (/\b(?:snorkel|house reef|diving|reef)\b/i.test(text)) {
     p.style = 'snorkel';
     p.chips.push('🤿 Snorkelling & reef');
-  } else if (/\bsafari|wildlife|jungle|nature\b/i.test(text)) {
+  } else if (/\b(?:safari|wildlife|jungle|nature)\b/i.test(text)) {
     p.style = 'safari';
     p.chips.push('🦁 Safari & nature');
-  } else if (/\bski|mountain|alps|alpine|snow\b/i.test(text)) {
+  } else if (/\b(?:ski|mountain|alps|alpine|snow)\b/i.test(text)) {
     p.style = 'mountain';
     p.chips.push('🏔️ Mountain & ski');
-  } else if (/\bspa|wellness|onsen|retreat\b/i.test(text)) {
+  } else if (/\b(?:spa|wellness|onsen|retreat)\b/i.test(text)) {
     p.style = 'wellness';
     p.chips.push('💆 Spa & wellness');
-  } else if (/\bcity|urban|shopping\b/i.test(text)) {
+  } else if (/\b(?:city|urban|shopping)\b/i.test(text)) {
     p.style = 'city';
     p.chips.push('🏙️ City breaks');
-  } else if (/\bculture|heritage|palace|historic\b/i.test(text)) {
+  } else if (/\b(?:culture|heritage|palace|historic)\b/i.test(text)) {
     p.style = 'culture';
     p.chips.push('🏛️ Culture & heritage');
-  } else if (/\bbeach|island|sunny|sunshine|tropical\b/i.test(text)) {
+  } else if (/\b(?:beach|island|sunny|sunshine|tropical)\b/i.test(text)) {
     p.style = 'beach';
     p.chips.push('🏖️ Beach resorts');
   }
@@ -263,7 +274,7 @@ export function parseTripQuery(raw: string): TripQuery {
 
   if (!p.chips.length) {
     const cleaned = text
-      .replace(/\b(i want to|i would like to|stay in|looking for|find me|show me|hotels?|resorts?|in|the|a|an|with|for)\b/gi, ' ')
+      .replace(/\b(?:(i want to|i would like to|stay in|looking for|find me|show me|hotels?|resorts?|in|the|a|an|with|for))\b/gi, ' ')
       .replace(/\s+/g, ' ')
       .trim();
     p.search = cleaned || text;
@@ -272,20 +283,25 @@ export function parseTripQuery(raw: string): TripQuery {
   return p;
 }
 
+// whole words only: "spa" mustn't match Spain, "ski" mustn't match skin, "city" mustn't match simplicity
 const STYLE_WORDS: Record<string, RegExp> = {
-  allinclusive: /all[- ]?inclusive/i,
-  overwater: /overwater|water villa|over-water/i,
-  snorkel: /snorkel|house reef|reef|diving/i,
-  safari: /safari|wildlife|jungle|game drive|nature/i,
-  mountain: /ski|mountain|alpine|alps|slope|chalet/i,
-  wellness: /spa|wellness|onsen|retreat|thermal/i,
-  city: /city|downtown|urban|shopping/i,
-  culture: /palace|heritage|historic|culture|museum/i,
-  beach: /beach|island|reef|lagoon|seafront|ocean/i,
+  allinclusive: /\ball[- ]?inclusive\b/i,
+  overwater: /\b(?:overwater|over-water|water villas?)\b/i,
+  snorkel: /\b(?:snorkel\w*|house reef|reefs?|diving)\b/i,
+  safari: /\b(?:safari|wildlife|jungle|game drives?|nature reserve)\b/i,
+  mountain: /\b(?:ski|skiing|ski-in|mountains?|alpine|alps|slopes?|chalets?)\b/i,
+  wellness: /\b(?:spa|wellness|onsen|retreat|thermal)\b/i,
+  city: /\b(?:city|downtown|urban|shopping)\b/i,
+  culture: /\b(?:palace|heritage|historic|culture|museums?)\b/i,
+  beach: /\b(?:beach|beachfront|island|reef|lagoon|seafront|oceanfront)\b/i,
 };
 
+const factValues = (h: Hotel) =>
+  Object.values(h.keyFacts || {})
+    .filter((v) => typeof v === 'string')
+    .join(' ');
 const hotelText = (h: Hotel) =>
-  [h.name, h.location, h.country, h.region, h.brand, h.verdict, h.standout, h.watchOut, JSON.stringify(h.keyFacts || {})]
+  [h.name, h.location, h.country, h.region, h.brand, h.verdict, h.standout, h.watchOut, factValues(h)]
     .filter(Boolean)
     .join(' ');
 
