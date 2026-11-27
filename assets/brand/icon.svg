@@ -1,11 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024"><rect width="1024" height="1024" fill="#F7F0E3"/><g transform="translate(512 512) scale(0.86) translate(-535 -540)">  <g id="mark">
-    <!-- key: bow ring behind the sun, shaft down to the right, teeth underneath -->
-    <g fill="#1B2A44" transform="rotate(45 452 452)">
-      <circle cx="452" cy="452" r="236"/>
-      <rect x="600" y="386" width="420" height="132" rx="14"/>
-      <rect x="770" y="510" width="66" height="96" rx="8"/>
-      <rect x="868" y="510" width="66" height="66" rx="8"/>
-      <rect x="950" y="510" width="72" height="116" rx="8"/>
-    </g>
-    <circle cx="404" cy="404" r="232" fill="#EE6A4C"/>
-  </g></g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 1.5 316 316"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F8F2E2"/><stop offset="1" stop-color="#E1D9C2"/></linearGradient></defs><rect x="0" y="0" width="316" height="319" fill="url(#g)"/><g id="mark"><circle cx="124.39" cy="119.41" r="65.10" fill="#1B2A42"/><polygon points="142,183 154,195 161,196 169,191 181,203 181,215 183,217 200,217 202,219 203,237 221,238 223,240 223,263 225,265 258,264 259,235 194,170 198,163 198,155 185,142 150,150" fill="#1B2A42"/><circle cx="117.90" cy="112.05" r="58.60" fill="#EC7A59"/></g></svg>

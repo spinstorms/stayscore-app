@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import { NativeTabs } from 'expo-router/native-tabs';
 import React from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAdaptiveLayout } from '../../lib/layout';
 import { Colors } from '../../lib/theme';
 
@@ -21,6 +22,10 @@ const TABS: { name: string; label: string; ion: IonName; ionOn: IonName; wideOnl
 ];
 
 /**
+ * iOS: five system tabs, the most iPhone and the Duo rail show without a "More" button (the
+ * tabs behind "More" froze): Home, Explore (with the map inside), Compare, Watch & Deals and
+ * Plan (Holidays + Insights). Each screen adds its own buttons to the rail above the tabs.
+ *
  * iOS: system tabs. iOS places them itself: the bottom bar on iPhone and the side rail on
  * iPhone Duo, folded and open. No sidebar placement: on the open Duo it turned the rail into a
  * pop-out sidebar that covered the screen.
@@ -31,6 +36,7 @@ const TABS: { name: string; label: string; ion: IonName; ionOn: IonName; wideOnl
  */
 export default function TabsLayout() {
   const { isSplitScreen } = useAdaptiveLayout();
+  const insets = useSafeAreaInsets();
 
   if (IOS) {
     return (
@@ -43,29 +49,17 @@ export default function TabsLayout() {
           <NativeTabs.Trigger.Icon sf={{ default: 'magnifyingglass', selected: 'magnifyingglass' }} md="search" />
           <NativeTabs.Trigger.Label>Explore</NativeTabs.Trigger.Label>
         </NativeTabs.Trigger>
-        <NativeTabs.Trigger name="(map)">
-          <NativeTabs.Trigger.Icon sf={{ default: 'map', selected: 'map.fill' }} md="map" />
-          <NativeTabs.Trigger.Label>Map</NativeTabs.Trigger.Label>
-        </NativeTabs.Trigger>
         <NativeTabs.Trigger name="(compare)">
           <NativeTabs.Trigger.Icon sf="arrow.left.arrow.right" md="compare_arrows" />
           <NativeTabs.Trigger.Label>Compare</NativeTabs.Trigger.Label>
-        </NativeTabs.Trigger>
-        <NativeTabs.Trigger name="(holidays)">
-          <NativeTabs.Trigger.Icon sf={{ default: 'gift', selected: 'gift.fill' }} md="redeem" />
-          <NativeTabs.Trigger.Label>Holidays</NativeTabs.Trigger.Label>
-        </NativeTabs.Trigger>
-        <NativeTabs.Trigger name="(insights)">
-          <NativeTabs.Trigger.Icon sf="chart.bar" md="bar_chart" />
-          <NativeTabs.Trigger.Label>Insights</NativeTabs.Trigger.Label>
         </NativeTabs.Trigger>
         <NativeTabs.Trigger name="(watch)">
           <NativeTabs.Trigger.Icon sf={{ default: 'play.circle', selected: 'play.circle.fill' }} md="play_circle" />
           <NativeTabs.Trigger.Label>Watch</NativeTabs.Trigger.Label>
         </NativeTabs.Trigger>
-        <NativeTabs.Trigger name="(deals)">
-          <NativeTabs.Trigger.Icon sf={{ default: 'tag', selected: 'tag.fill' }} md="sell" />
-          <NativeTabs.Trigger.Label>Deals</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger name="(plan)">
+          <NativeTabs.Trigger.Icon sf={{ default: 'calendar', selected: 'calendar' }} md="event" />
+          <NativeTabs.Trigger.Label>Plan</NativeTabs.Trigger.Label>
         </NativeTabs.Trigger>
       </NativeTabs>
     );
@@ -77,9 +71,25 @@ export default function TabsLayout() {
         headerShown: false,
         tabBarActiveTintColor: Colors.accent,
         tabBarInactiveTintColor: Colors.inkMuted,
+        // unfolded: a floating rail on the edge, like the iPhone Duo's, instead of a full-height strip
         tabBarStyle: isSplitScreen
-          ? { backgroundColor: Colors.bgWhite, borderRightWidth: 1, borderRightColor: Colors.border }
+          ? {
+              backgroundColor: Colors.bgWhite,
+              borderRightWidth: 0,
+              marginLeft: insets.left + 10,
+              marginTop: insets.top + 10,
+              marginBottom: insets.bottom + 10,
+              marginRight: 6,
+              borderRadius: 28,
+              paddingVertical: 8,
+              elevation: 6,
+              shadowColor: '#0F2B33',
+              shadowOpacity: 0.12,
+              shadowRadius: 12,
+              shadowOffset: { width: 0, height: 4 },
+            }
           : { backgroundColor: Colors.bgWhite, borderTopWidth: 1, borderTopColor: Colors.border },
+        sceneStyle: { backgroundColor: Colors.bgCanvas },
         tabBarLabelStyle: { fontSize: 11, fontWeight: '700' },
         tabBarPosition: isSplitScreen ? 'left' : 'bottom',
         tabBarVariant: isSplitScreen ? 'material' : 'uikit',
@@ -98,6 +108,8 @@ export default function TabsLayout() {
           }}
         />
       ))}
+      {/* iPhone only: Holidays + Insights together; Android has them as their own rail tabs */}
+      <Tabs.Screen name="(plan)" options={{ href: null }} />
     </Tabs>
   );
 }

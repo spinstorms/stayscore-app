@@ -29,6 +29,7 @@ import { useStayOdds } from '../../../lib/store';
 import { Colors } from '../../../lib/theme';
 import type { Hotel } from '../../../lib/types';
 import { lazyTab } from '../../../components/LazyTab';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type MapScope = 'all' | 'visited' | 'saved' | AwardListId;
 const AWARD_SCOPES = AWARD_LISTS.map((l) => l.id) as string[];
@@ -64,7 +65,7 @@ const REGION_VIEWPORTS: RegionViewport[] = [
   { id: 'egypt', label: 'Egypt', regionFilter: null, countryFilter: ['Egypt'], minLat: 23.5, maxLat: 31.5, minLng: 29.0, maxLng: 35.5 },
 ];
 
-function WorldMapScreen() {
+export function WorldMapScreen() {
   const router = useRouter();
   const { hotels, shortlist, isShortlisted, toggleShortlist, pushToCompare, loading } = useStayOdds();
 
@@ -104,7 +105,20 @@ function WorldMapScreen() {
   }, []);
   const toggleAward = (id: AwardFilterId) =>
     setAwards((a) => (a.includes(id) ? a.filter((x) => x !== id) : [...a, id]));
-  const [selectedId, setSelectedId] = useState<string>('taaktana-labuan-bajo');
+  const [selectedId, setSelectedIdRaw] = useState<string>('taaktana-labuan-bajo');
+  // map first: the hotel card shows once a pin is tapped, and closes to give the map the screen
+  const [cardOpen, setCardOpen] = useState(false);
+  const setSelectedId = (id: string) => {
+    setSelectedIdRaw(id);
+    setCardOpen(true);
+  };
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [satellite, setSatellite] = useState(true);
+  const insets = useSafeAreaInsets();
+  // keep the floating card above the iPhone tab bar; on the Duo the tabs sit in the side rail
+  const railOnSide = insets.left > 40 || insets.right > 40;
+  const cardBottom =
+    process.env.EXPO_OS === 'ios' ? insets.bottom + (railOnSide ? 12 : 58) : 12;
 
   const viewport = useMemo(
     () => REGION_VIEWPORTS.find((v) => v.id === viewportId) || REGION_VIEWPORTS[0],
@@ -198,12 +212,19 @@ function WorldMapScreen() {
             ))}
           </View>
 
-          <Pressable style={styles.webMapBtn} onPress={openWebMap}>
-            <Ionicons name="globe-outline" size={14} color={Colors.accentDark} />
-            <Text style={styles.webMapBtnText}>Street Map ↗</Text>
+          <Pressable
+            style={[styles.webMapBtn, (filtersOpen || awards.length > 0) && styles.filtersBtnOn]}
+            onPress={() => setFiltersOpen((v) => !v)}
+            accessibilityRole="button"
+            accessibilityState={{ expanded: filtersOpen }}
+          >
+            <Ionicons name="options-outline" size={14} color={Colors.accentDark} />
+            <Text style={styles.webMapBtnText}>Awards{awards.length ? ` (${awards.length})` : ''}</Text>
           </Pressable>
         </View>
 
+        {filtersOpen ? (
+        <>
         <Text style={styles.awardRowLabel}>Awards (pick one or more)</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.regionStrip}>
           {AWARD_SCOPES.includes(scope)
@@ -261,6 +282,11 @@ function WorldMapScreen() {
             </Text>
           </View>
         ) : null}
+        <Pressable onPress={openWebMap} hitSlop={6}>
+          <Text style={styles.awardClearText}>Open the full map on stayodds.com ↗</Text>
+        </Pressable>
+        </>
+        ) : null}
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.regionStrip}>
           {REGION_VIEWPORTS.map((rv) => {
@@ -311,6 +337,18 @@ function WorldMapScreen() {
             </View>
           </View>
 
+          {nativeMapAvailable ? (
+            <Pressable
+              style={styles.layerBtn}
+              onPress={() => setSatellite((v) => !v)}
+              accessibilityRole="button"
+              accessibilityLabel={satellite ? 'Show street map' : 'Show satellite view'}
+            >
+              <Ionicons name={satellite ? 'map-outline' : 'earth'} size={16} color={Colors.inkPrimary} />
+              <Text style={styles.layerBtnText}>{satellite ? 'Map' : 'Satellite'}</Text>
+            </Pressable>
+          ) : null}
+
           {/* The phone's own map (Apple Maps / Google Maps), or the light dot map */}
           {nativeMapAvailable ? (
             <NativeHotelMap
@@ -319,6 +357,7 @@ function WorldMapScreen() {
               onSelect={setSelectedId}
               colorFor={colorFor}
               bounds={viewport}
+              satellite={satellite}
             />
           ) : (
             <DotMap
@@ -333,9 +372,18 @@ function WorldMapScreen() {
       </View>
 
       {/* Selected Hotel Preview Sheet */}
-      {selectedHotel && selectedOdds ? (
-        <View style={styles.previewWrap}>
+      {cardOpen && selectedHotel && selectedOdds ? (
+        <View style={[styles.previewWrap, { bottom: cardBottom }]}>
           <View style={styles.previewCard}>
+            <Pressable
+              onPress={() => setCardOpen(false)}
+              style={styles.previewClose}
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel="Close hotel card"
+            >
+              <Ionicons name="close" size={16} color={Colors.inkSecondary} />
+            </Pressable>
             <View style={styles.previewTop}>
               <Image source={{ uri: selectedHotel.thumbnail }} style={styles.previewThumb} />
               <View style={{ flex: 1 }}>
@@ -423,32 +471,8 @@ function WorldMapScreen() {
             </View>
           </View>
 
-          {/* Quick Horizontal Switcher for Pins in This Region */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.nearbyRow}
-          >
-            {visibleHotels.slice(0, 20).map((h) => {
-              const active = h.id === selectedHotel.id;
-              return (
-                <Pressable
-                  key={h.id}
-                  onPress={() => setSelectedId(h.id)}
-                  style={[styles.nearbyChip, active && styles.nearbyChipActive]}
-                >
-                  <Text
-                    style={[styles.nearbyChipText, active && styles.nearbyChipTextActive]}
-                    numberOfLines={1}
-                  >
-                    {h.name}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
         </View>
-      ) : (
+      ) : visibleHotels.length ? null : (
         <View style={styles.emptyPreview}>
           <Text style={styles.emptyTitle}>
             {scope === 'saved'
@@ -564,19 +588,48 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 
+  // the map takes every bit of the screen the controls don't
   mapContainer: {
     flex: 1,
-    padding: 12,
-    minHeight: 220,
+    minHeight: 260,
   },
   mapCanvas: {
     flex: 1,
-    backgroundColor: '#071B30',
-    borderRadius: 18,
+    backgroundColor: '#0B3A44',
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#1E3A5F',
     position: 'relative',
+  },
+  layerBtn: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    zIndex: 50,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    minHeight: 40,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 4,
+  },
+  layerBtnText: { color: Colors.inkPrimary, fontSize: 13, fontWeight: '700' },
+  filtersBtnOn: { borderColor: Colors.accent, backgroundColor: Colors.accentSoft },
+  previewClose: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    zIndex: 5,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.bgCanvas,
   },
   gridLineH: {
     position: 'absolute',
@@ -634,9 +687,12 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
 
+  // the card floats over the bottom of the map
   previewWrap: {
-    paddingHorizontal: 12,
-    paddingBottom: 12,
+    position: 'absolute',
+    left: 12,
+    right: 12,
+    bottom: 12,
     gap: 8,
   },
   previewCard: {
@@ -648,6 +704,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   previewTop: {
+    paddingRight: 30,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,

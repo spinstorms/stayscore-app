@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -32,11 +32,13 @@ import { useStayOdds } from '../../../lib/store';
 import { Colors } from '../../../lib/theme';
 import type { Hotel } from '../../../lib/types';
 import { lazyTab } from '../../../components/LazyTab';
+import { WorldMapScreen } from '../(map)/map';
+import { routes } from '../../../lib/nav';
 
 type Scope = 'all' | 'visited' | 'world' | 'saved';
 const IOS = process.env.EXPO_OS === 'ios';
 const stripEmoji = (s: string) => s.replace(/^[^A-Za-z0-9']+\s*/, '');
-function StayOddsHomeScreen() {
+export function StayOddsHomeScreen({ onShowMap, active = true }: { onShowMap?: () => void; active?: boolean } = {}) {
   const router = useRouter();
   const { isSplitScreen, isWideDesktop } = useAdaptiveLayout();
   const {
@@ -339,8 +341,9 @@ function StayOddsHomeScreen() {
   // iOS: filters and destinations live in the native header. On iPhone Duo the system moves
   // these icon buttons into the side rail, so the folded front screen keeps just search,
   // regions and the hotels.
-  const iosToolbar = IOS ? (
+  const iosToolbar = IOS && active ? (
     <Stack.Toolbar placement="right">
+      {onShowMap ? <Stack.Toolbar.Button icon="map" accessibilityLabel="Show the map" onPress={onShowMap} /> : null}
       <Stack.Toolbar.Menu
         icon={
           activeFilterLabels.length
@@ -473,11 +476,11 @@ function StayOddsHomeScreen() {
             <Ionicons name="trophy-outline" size={15} color={Colors.inkPrimary} />
             <Text style={styles.quickLinkText} numberOfLines={1}>Awards</Text>
           </Pressable>
-          <Pressable onPress={() => router.push('/holidays')} style={styles.quickLink} accessibilityLabel="Holidays">
+          <Pressable onPress={() => router.push(routes.holidays() as never)} style={styles.quickLink} accessibilityLabel="Holidays">
             <Ionicons name="gift-outline" size={15} color={Colors.inkPrimary} />
             <Text style={styles.quickLinkText} numberOfLines={1}>Holidays</Text>
           </Pressable>
-          <Pressable onPress={() => router.push('/insights')} style={styles.quickLink} accessibilityLabel="Guest insights">
+          <Pressable onPress={() => router.push(routes.insights() as never)} style={styles.quickLink} accessibilityLabel="Guest insights">
             <Ionicons name="stats-chart-outline" size={15} color={Colors.inkPrimary} />
             <Text style={styles.quickLinkText} numberOfLines={1}>Insights</Text>
           </Pressable>
@@ -860,4 +863,37 @@ const styles = StyleSheet.create({
   taChipText: { fontSize: 10.5, fontWeight: '700', color: Colors.inkSecondary },
 });
 
-export default lazyTab(StayOddsHomeScreen);
+/**
+ * iPhone and Duo: the map lives inside Explore (a List/Map button in the rail), so the rail
+ * keeps five tabs and nothing hides behind "More". Android keeps a separate Map tab.
+ */
+function ExploreWithMap() {
+  const params = useLocalSearchParams<{ view?: string }>();
+  const [mode, setMode] = useState<'list' | 'map'>(params.view === 'map' ? 'map' : 'list');
+  const [mapOpened, setMapOpened] = useState(mode === 'map');
+  React.useEffect(() => {
+    if (params.view === 'map' || params.view === 'list') setMode(params.view);
+  }, [params.view]);
+  React.useEffect(() => {
+    if (mode === 'map') setMapOpened(true);
+  }, [mode]);
+  return (
+    <View style={{ flex: 1 }} collapsable={false}>
+      {mode === 'map' ? (
+        <Stack.Toolbar placement="right">
+          <Stack.Toolbar.Button icon="list.bullet" accessibilityLabel="Show the list" onPress={() => setMode('list')} />
+        </Stack.Toolbar>
+      ) : null}
+      <View style={{ flex: 1, display: mode === 'list' ? 'flex' : 'none' }} collapsable={false}>
+        <StayOddsHomeScreen active={mode === 'list'} onShowMap={() => setMode('map')} />
+      </View>
+      {mapOpened ? (
+        <View style={{ flex: 1, display: mode === 'map' ? 'flex' : 'none' }}>
+          <WorldMapScreen />
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+export default lazyTab(IOS ? ExploreWithMap : StayOddsHomeScreen);

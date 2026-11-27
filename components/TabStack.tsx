@@ -1,6 +1,6 @@
 import { Stack } from 'expo-router';
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAdaptiveLayout, useSideInsetStyle } from '../lib/layout';
 import { Colors } from '../lib/theme';
@@ -8,6 +8,7 @@ import { Colors } from '../lib/theme';
 export function StayOddsWordmark() {
   return (
     <View style={styles.brandRow}>
+      <Image source={require('../assets/images/stayodds-logo.png')} style={styles.brandLogo} accessibilityIgnoresInvertColors />
       <Text style={styles.wordmark}>
         StayOdds<Text style={styles.wordmarkDot}>.</Text>
       </Text>
@@ -66,6 +67,7 @@ export function TabStack({
 }
 
 const styles = StyleSheet.create({
+  brandLogo: { width: 26, height: 26, borderRadius: 7, marginRight: 7 },
   brandRow: { flexDirection: 'row', alignItems: 'center' },
   wordmark: { fontSize: 23, fontWeight: '900', color: Colors.inkPrimary, letterSpacing: -0.6 },
   wordmarkDot: { color: Colors.coral, fontSize: 27, fontWeight: '900' },

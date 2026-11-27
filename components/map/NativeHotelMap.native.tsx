@@ -1,5 +1,5 @@
 import Constants from 'expo-constants';
-import { AppleMaps, GoogleMaps } from 'expo-maps';
+import { AppleMaps, AppleMapsMapType, GoogleMaps, GoogleMapsMapType } from 'expo-maps';
 import React, { useMemo } from 'react';
 import { Platform, StyleSheet } from 'react-native';
 import { cameraFor, type HotelMapProps } from './types';
@@ -14,9 +14,11 @@ const googleKey = (Constants.expoConfig?.android as { config?: { googleMaps?: { 
  * Google Maps key is in app.json (android.config.googleMaps.apiKey). Without a key Android
  * falls back to the built-in dot map.
  */
-export const nativeMapAvailable = IOS || Boolean(googleKey);
+// The key in app.json is built into the Android app, but the copy of the config the app can
+// read at run time leaves it out, so checking it here wrongly fell back to the dot map.
+export const nativeMapAvailable = IOS || process.env.EXPO_OS === 'android' || Boolean(googleKey);
 
-export function NativeHotelMap({ hotels, selectedId, onSelect, colorFor, bounds }: HotelMapProps) {
+export function NativeHotelMap({ hotels, selectedId, onSelect, colorFor, bounds, satellite }: HotelMapProps) {
   const camera = useMemo(() => cameraFor(bounds), [bounds]);
   // Markers only change with the hotel list (not on every selection), so the map stays smooth.
   const markers = useMemo(
@@ -40,6 +42,7 @@ export function NativeHotelMap({ hotels, selectedId, onSelect, colorFor, bounds 
         cameraPosition={camera}
         markers={markers}
         onMarkerClick={(m) => m.id && onSelect(m.id)}
+        properties={{ mapType: satellite ? AppleMapsMapType.HYBRID : AppleMapsMapType.STANDARD }}
         uiSettings={{ compassEnabled: true, scaleBarEnabled: true }}
       />
     );
@@ -51,7 +54,15 @@ export function NativeHotelMap({ hotels, selectedId, onSelect, colorFor, bounds 
       cameraPosition={camera}
       markers={markers.map(({ tintColor: _t, ...m }) => ({ ...m, zIndex: m.id === selectedId ? 10 : 0 }))}
       onMarkerClick={(m) => m.id && onSelect(m.id)}
-      uiSettings={{ compassEnabled: true, mapToolbarEnabled: false, zoomControlsEnabled: false }}
+      properties={{ mapType: satellite ? GoogleMapsMapType.HYBRID : GoogleMapsMapType.NORMAL }}
+      uiSettings={{
+        compassEnabled: true,
+        mapToolbarEnabled: false,
+        zoomControlsEnabled: false,
+        zoomGesturesEnabled: true,
+        scrollGesturesEnabled: true,
+        rotationGesturesEnabled: true,
+      }}
     />
   );
 }

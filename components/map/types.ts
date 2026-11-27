@@ -7,6 +7,8 @@ export interface HotelMapProps {
   colorFor: (h: Hotel) => string;
   /** bounds of the chosen region, used for the starting camera */
   bounds: { minLat: number; maxLat: number; minLng: number; maxLng: number };
+  /** satellite photos (with place names) instead of the street map */
+  satellite?: boolean;
 }
 
 export function cameraFor(b: HotelMapProps['bounds']) {

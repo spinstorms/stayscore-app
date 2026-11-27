@@ -49,7 +49,7 @@ const byGuest = (a: Hotel, b: Hotel) =>
   (guest(b)[0] || 0) - (guest(a)[0] || 0) || guest(b)[1] - guest(a)[1] || a.name.localeCompare(b.name);
 
 /** The website's /holidays/ page: pick a holiday, and every hotel opens with those dates set. */
-function HolidaysScreen() {
+export function HolidaysScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ when?: string }>();
   const { hotels } = useStayOdds();

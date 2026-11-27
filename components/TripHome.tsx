@@ -11,6 +11,9 @@ import { useStayOdds } from '../lib/store';
 import { Colors } from '../lib/theme';
 import { matchTrip, parseTripQuery, sortTripResults, TRIP_EXAMPLES } from '../lib/tripQuery';
 import type { Hotel } from '../lib/types';
+import { routes } from '../lib/nav';
+import { openExternalUrl } from '../lib/api';
+import { BRAND } from '../lib/brand';
 
 const guest = (h: Hotel) => h.verifiedGuest?.licensed?.normalized100 ?? 0;
 const SHOW = 24;
@@ -23,7 +26,7 @@ const SLIDES = [
 ];
 
 /** Full-screen photos that slowly cross-fade, built into the app so they show instantly. */
-function Slideshow({ captionInset }: { captionInset: { right: number; bottom: number } }) {
+function Slideshow({ captionInset, height }: { captionInset: { right: number; bottom: number }; height: number }) {
   const fades = useRef(SLIDES.map((_, i) => new Animated.Value(i === 0 ? 1 : 0))).current;
   const [i, setI] = useState(0);
   useEffect(() => {
@@ -39,14 +42,16 @@ function Slideshow({ captionInset }: { captionInset: { right: number; bottom: nu
     }, 5500);
     return () => clearInterval(t);
   }, [fades]);
+  // sized from the measured photo screen: on Android a full-size picture inside a box that
+  // only has a minimum height stopped short and left a dark gap under it
   return (
-    <>
+    <View style={[styles.slides, { height }]} pointerEvents="none">
       {SLIDES.map((sl, k) => (
-        <Animated.Image key={sl.place} source={sl.src} resizeMode="cover" style={[StyleSheet.absoluteFill, { opacity: fades[k] }]} />
+        <Animated.Image key={sl.place} source={sl.src} resizeMode="cover" style={[styles.slideImg, { height, opacity: fades[k] }]} />
       ))}
       <View style={styles.heroShade} />
       <Text style={[styles.place, captionInset]}>{SLIDES[i].place}</Text>
-    </>
+    </View>
   );
 }
 
@@ -76,7 +81,11 @@ export function TripHome() {
   const insets = useSafeAreaInsets();
   // the photo screen fills the whole first view, edge to edge: under the status bar, the
   // iPhone Duo rail and the tab bar. Only the text and buttons keep clear of them.
-  const heroHeight = Math.max(460, height);
+  // the real height of the screen area (measured: window sizes differ from the visible area on
+  // Android, tall iPhones and iPad), so the photo screen is exactly one screen tall
+  const [viewH, setViewH] = useState(height);
+  const heroHeight = Math.max(460, viewH);
+  const [heroH, setHeroH] = useState(heroHeight);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const scrollRef = useRef<any>(null);
   const run = (t: string) => {
@@ -95,12 +104,22 @@ export function TripHome() {
       contentContainerStyle={{ paddingBottom: insets.bottom + 90 }}
       keyboardShouldPersistTaps="handled"
       contentInsetAdjustmentBehavior="never"
+      onLayout={(e) => {
+        const h = Math.round(e.nativeEvent.layout.height);
+        if (h > 0 && Math.abs(h - viewH) > 1) setViewH(h);
+      }}
     >
       {/* light status bar icons over the photos; the other screens are light, with dark icons */}
       {focused ? <StatusBar style="light" /> : null}
       {/* Clean first screen: photos, one question, one button */}
-      <View style={[styles.hero, { minHeight: heroHeight }]}>
-        <Slideshow captionInset={{ right: insets.right + 16, bottom: insets.bottom + 14 }} />
+      <View
+        style={[styles.hero, { minHeight: heroHeight }]}
+        onLayout={(e) => {
+          const h = Math.round(e.nativeEvent.layout.height);
+          if (h > 0 && Math.abs(h - heroH) > 1) setHeroH(h);
+        }}
+      >
+        <Slideshow height={Math.max(heroH, heroHeight)} captionInset={{ right: insets.right + 16, bottom: insets.bottom + 14 }} />
         <View
           style={[
             styles.heroInner,
@@ -138,9 +157,31 @@ export function TripHome() {
             <Ionicons name="sparkles" size={18} color="#FFFFFF" />
             <Text style={styles.genBtnText}>{text.trim() ? 'Find my hotels' : 'Surprise me'}</Text>
           </Pressable>
+          <Text style={styles.tagline}>
+            Find the hotel that&apos;s right for your trip, not the one with the best advert.
+          </Text>
           <Text style={styles.lead}>
             Real guest scores, critics and our own filmed stays for {ready ? hotels.length.toLocaleString('en-GB') : '1,300+'} luxury hotels.
           </Text>
+          <View style={styles.watchRow}>
+            <Pressable
+              style={styles.watchBtn}
+              accessibilityRole="button"
+              onPress={() => router.push(routes.watch() as never)}
+            >
+              <Ionicons name="play-circle" size={18} color="#FFFFFF" />
+              <Text style={styles.watchBtnText}>Watch our stays</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.watchBtn, styles.subBtn]}
+              accessibilityRole="button"
+              accessibilityLabel="Subscribe on YouTube"
+              onPress={() => openExternalUrl(`${BRAND.youtubeChannelUrl}?sub_confirmation=1`)}
+            >
+              <Ionicons name="logo-youtube" size={18} color="#FFFFFF" />
+              <Text style={styles.watchBtnText}>Subscribe</Text>
+            </Pressable>
+          </View>
         </View>
       </View>
 
@@ -209,7 +250,7 @@ export function TripHome() {
           <View style={styles.section}>
             <View style={styles.rowBetween}>
               <Text style={styles.eyebrow}>Watch our latest stay</Text>
-              <Pressable onPress={() => router.push('/watch')} hitSlop={8}>
+              <Pressable onPress={() => router.push(routes.watch() as never)} hitSlop={8}>
                 <Text style={styles.clear}>All videos →</Text>
               </Pressable>
             </View>
@@ -226,7 +267,7 @@ export function TripHome() {
           </View>
         ) : null}
 
-        <Pressable style={styles.deals} onPress={() => router.push('/deals')}>
+        <Pressable style={styles.deals} onPress={() => router.push(routes.deals() as never)}>
           <View style={{ flex: 1, gap: 4 }}>
             <Text style={styles.dealsEyebrow}>Book through us</Text>
             <Text style={styles.dealsTitle}>Same price to you, and it keeps our reviews free.</Text>
@@ -246,6 +287,23 @@ export function TripHome() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.bgCanvas },
   hero: { justifyContent: 'center', overflow: 'hidden', backgroundColor: Colors.navy },
+  slides: { position: 'absolute', top: 0, left: 0, right: 0 },
+  slideImg: { position: 'absolute', top: 0, left: 0, right: 0, width: '100%' },
+  tagline: { color: '#FFFFFF', fontSize: 16, lineHeight: 22, fontWeight: '700', textAlign: 'center' },
+  watchRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 10, marginTop: 4 },
+  watchBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    minHeight: 44,
+    paddingHorizontal: 16,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.16)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.45)',
+  },
+  subBtn: { backgroundColor: '#DC2626', borderColor: '#DC2626' },
+  watchBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '800' },
   heroShade: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(7, 19, 35, 0.38)' },
   heroInner: { paddingVertical: 28, gap: 14, maxWidth: 560, width: '100%', alignSelf: 'center' },
   place: {

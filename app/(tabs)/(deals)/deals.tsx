@@ -22,7 +22,7 @@ import { lazyTab } from '../../../components/LazyTab';
 
 type DealSection = 'all' | 'promos' | 'gear';
 
-function DealsScreen() {
+export function DealsScreen() {
   const { deals, refreshing, refresh } = useStayOdds();
   const { isSplitScreen, gridColumns, horizontalPadding } = useAdaptiveLayout();
 

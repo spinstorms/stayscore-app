@@ -16,6 +16,7 @@ import {
 } from '../lib/dates';
 import { openExternalUrl } from '../lib/api';
 import { Colors } from '../lib/theme';
+import { routes } from '../lib/nav';
 
 /**
  * "When are you going?" box from the website's hotel pages: quick dates (weekend, Christmas,
@@ -106,7 +107,7 @@ export function WhenBox({ bookingUrl, priceFrom, when }: { bookingUrl?: string; 
         >
           <Ionicons name="add" size={16} color={Colors.navy} />
         </Pressable>
-        <Pressable style={styles.holidaysLink} onPress={() => router.push('/holidays')}>
+        <Pressable style={styles.holidaysLink} onPress={() => router.push(routes.holidays() as never)}>
           <Text style={styles.holidaysLinkText}>Holiday ideas →</Text>
         </Pressable>
       </View>

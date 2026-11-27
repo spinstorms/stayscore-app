@@ -15,6 +15,7 @@ import {
 import { useStayOdds } from '../lib/store';
 import { Colors } from '../lib/theme';
 import type { Hotel } from '../lib/types';
+import { routes } from '../lib/nav';
 
 export default function AwardListsScreen() {
   const router = useRouter();
@@ -62,7 +63,7 @@ export default function AwardListsScreen() {
       <Text style={styles.note}>{def.note(rows.length)}</Text>
       <Pressable
         style={styles.mapBtn}
-        onPress={() => router.push({ pathname: '/map', params: { scope: active } })}
+        onPress={() => router.push(routes.map(active) as never)}
       >
         <Ionicons name="map-outline" size={16} color="#FFFFFF" />
         <Text style={styles.mapBtnText}>Show these hotels on the map</Text>

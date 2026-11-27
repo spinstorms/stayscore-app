@@ -1,6 +1,9 @@
 import { useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Image, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import * as Sharing from 'expo-sharing';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Image, Platform, Pressable, RefreshControl, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
+import ViewShot from 'react-native-view-shot';
 import { openExternalUrl } from '../../../lib/api';
 import { useAdaptiveLayout } from '../../../lib/layout';
 import { ordinal } from '../../../lib/ranks';
@@ -13,7 +16,7 @@ const n = (x: number) => x.toLocaleString('en-GB');
 const fmt = (x: number) => String(Number(x.toFixed(1)));
 
 /** Same sections, order and wording as stayodds.com/insights/. */
-function InsightsScreen() {
+export function InsightsScreen() {
   const router = useRouter();
   const { hotels } = useStayOdds();
   const { isSplitScreen, horizontalPadding } = useAdaptiveLayout();
@@ -367,12 +370,59 @@ function InsightsScreen() {
 }
 
 function Panel({ eyebrow, title, sub, children }: { eyebrow: string; title: string; sub: string; children: React.ReactNode }) {
+  const shotRef = useRef<React.ComponentRef<typeof ViewShot>>(null);
+  const [busy, setBusy] = useState(false);
+  // Share this insight as a picture, like Compare's share card: the panel with the StayOdds
+  // logo on top and the link underneath, then the phone's own share sheet.
+  const share = async () => {
+    if (busy) return;
+    setBusy(true);
+    const message = `${title} | StayOdds guest insights ${INSIGHTS_PAGE_URL}`;
+    try {
+      if (Platform.OS === 'web') {
+        await Share.share({ title, message, url: INSIGHTS_PAGE_URL });
+        return;
+      }
+      const uri = await shotRef.current?.capture?.();
+      if (uri && (await Sharing.isAvailableAsync())) {
+        await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: title, UTI: 'public.png' });
+      } else {
+        await Share.share({ title, message, url: INSIGHTS_PAGE_URL });
+      }
+    } catch {
+      await Share.share({ title, message, url: INSIGHTS_PAGE_URL }).catch(() => {});
+    } finally {
+      setBusy(false);
+    }
+  };
   return (
-    <View style={styles.panel}>
-      <Text style={styles.eyebrow}>{eyebrow}</Text>
-      <Text style={styles.h2}>{title}</Text>
-      <Text style={styles.sub}>{sub}</Text>
-      <View style={{ gap: 10 }}>{children}</View>
+    <View style={styles.panelWrap}>
+      <ViewShot ref={shotRef} options={{ format: 'png', quality: 1, result: 'tmpfile' }} style={styles.panel}>
+        <View style={styles.shareBrand}>
+          <Image source={require('../../../assets/images/stayodds-logo.png')} style={styles.shareLogo} />
+          <Text style={styles.shareBrandText}>
+            StayOdds<Text style={{ color: Colors.coral }}>.</Text>
+          </Text>
+        </View>
+        <Text style={[styles.eyebrow, { paddingRight: 44 }]}>{eyebrow}</Text>
+        <Text style={styles.h2}>{title}</Text>
+        <Text style={styles.sub}>{sub}</Text>
+        <View style={{ gap: 10 }}>{children}</View>
+        <Text style={styles.shareFoot}>stayodds.com/insights · real guest scores, not adverts</Text>
+      </ViewShot>
+      <Pressable
+        onPress={share}
+        style={styles.shareBtn}
+        hitSlop={6}
+        accessibilityRole="button"
+        accessibilityLabel={`Share: ${title}`}
+      >
+        {busy ? (
+          <ActivityIndicator size="small" color={Colors.accent} />
+        ) : (
+          <Ionicons name="share-outline" size={18} color={Colors.accentDark} />
+        )}
+      </Pressable>
     </View>
   );
 }
@@ -433,6 +483,24 @@ const styles = StyleSheet.create({
   h2: { fontSize: 19, fontWeight: '800', color: Colors.inkPrimary, lineHeight: 24 },
   sub: { fontSize: 14, color: Colors.inkSecondary, lineHeight: 20 },
   panel: { backgroundColor: '#FFFFFF', borderRadius: 18, borderWidth: 1, borderColor: Colors.border, padding: 18, gap: 6 },
+  panelWrap: { position: 'relative' },
+  shareBtn: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.accentSoft,
+    borderWidth: 1,
+    borderColor: Colors.accentBorder,
+  },
+  shareBrand: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 6 },
+  shareLogo: { width: 22, height: 22, borderRadius: 6 },
+  shareBrandText: { fontSize: 14, fontWeight: '900', color: Colors.inkPrimary, letterSpacing: -0.3 },
+  shareFoot: { marginTop: 8, fontSize: 11, fontWeight: '600', color: Colors.inkMuted },
   note: { borderTopWidth: 1, borderTopColor: Colors.border, paddingTop: 12, marginTop: 4, fontSize: 14, color: Colors.inkSecondary, lineHeight: 20 },
   body: { fontSize: 14, color: Colors.inkPrimary, lineHeight: 20 },
   small: { fontSize: 12.5, color: Colors.inkSecondary, lineHeight: 18 },
