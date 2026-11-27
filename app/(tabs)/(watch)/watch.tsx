@@ -222,11 +222,12 @@ export function WatchScreen() {
 }
 
 const styles = StyleSheet.create({
-  shortTitleBelow: { fontSize: 12.5, fontWeight: '700', color: Colors.inkPrimary, marginTop: 6 },
+  shortTitleBelow: { fontSize: 12.5, fontWeight: '700', color: '#FFFFFF', marginTop: 6 },
   // The Uncharted Itinerary zone: the channel's orange, as on stayodds.com
-  screen: { flex: 1, backgroundColor: Colors.unchartedTint },
+  // the whole page in the channel's orange, with white cards (option A)
+  screen: { flex: 1, backgroundColor: Colors.uncharted },
   channelBanner: {
-    backgroundColor: Colors.uncharted,
+    backgroundColor: '#E8501A',
     paddingVertical: 18,
     flexDirection: 'row',
     alignItems: 'center',
@@ -352,7 +353,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 10,
   },
-  sectionTitle: { fontSize: 16, fontWeight: '800', color: Colors.inkPrimary },
+  sectionTitle: { fontSize: 16, fontWeight: '800', color: '#FFFFFF' },
   sectionHint: { fontSize: 12, fontWeight: '700', color: Colors.accent },
 
   shortCard: { width: 150 },

@@ -275,9 +275,10 @@ export function DealsScreen() {
 
 const styles = StyleSheet.create({
   // The Uncharted Itinerary zone: the channel's orange, as on stayodds.com
-  screen: { flex: 1, backgroundColor: Colors.unchartedTint },
+  // the whole page in the channel's orange, with white cards (option A)
+  screen: { flex: 1, backgroundColor: Colors.uncharted },
   banner: {
-    backgroundColor: Colors.uncharted,
+    backgroundColor: '#E8501A',
     paddingTop: 18,
     paddingBottom: 18,
   },
