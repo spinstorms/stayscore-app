@@ -2,5 +2,5 @@ import React from 'react';
 import { TabStack } from '../../../components/TabStack';
 
 export default function Layout() {
-  return <TabStack screen="watch" title="Episodes & Shorts" />;
+  return <TabStack screen="watch" title="Episodes & Shorts" tone="uncharted" />;
 }

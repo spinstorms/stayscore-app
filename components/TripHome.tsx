@@ -9,7 +9,7 @@ import { InlineVideo } from './video/InlineVideo';
 import { useAdaptiveLayout } from '../lib/layout';
 import { useStayOdds } from '../lib/store';
 import { Colors } from '../lib/theme';
-import { matchTrip, parseTripQuery, sortTripResults, TRIP_EXAMPLES } from '../lib/tripQuery';
+import { matchTrip, nextSurprise, parseTripQuery, sortTripResults } from '../lib/tripQuery';
 import type { Hotel } from '../lib/types';
 import { routes } from '../lib/nav';
 import { openExternalUrl } from '../lib/api';
@@ -152,10 +152,10 @@ export function TripHome() {
           <Pressable
             style={styles.genBtn}
             accessibilityRole="button"
-            onPress={() => run(text.trim() ? text : TRIP_EXAMPLES[Math.floor(Math.random() * TRIP_EXAMPLES.length)])}
+            onPress={() => (text.trim() && text.trim() !== query ? run(text) : run(nextSurprise(query)))}
           >
             <Ionicons name="sparkles" size={18} color="#FFFFFF" />
-            <Text style={styles.genBtnText}>{text.trim() ? 'Find my hotels' : 'Surprise me'}</Text>
+            <Text style={styles.genBtnText}>{text.trim() && text.trim() !== query ? 'Find my hotels' : 'Surprise me'}</Text>
           </Pressable>
           <Text style={styles.tagline}>
             Find the hotel that&apos;s right for your trip, not the one with the best advert.

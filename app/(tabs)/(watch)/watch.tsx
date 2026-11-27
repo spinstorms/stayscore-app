@@ -219,17 +219,18 @@ export function WatchScreen() {
 
 const styles = StyleSheet.create({
   shortTitleBelow: { fontSize: 12.5, fontWeight: '700', color: Colors.inkPrimary, marginTop: 6 },
-  screen: { flex: 1, backgroundColor: Colors.bgCanvas },
+  // The Uncharted Itinerary zone: the channel's orange, as on stayodds.com
+  screen: { flex: 1, backgroundColor: Colors.unchartedTint },
   channelBanner: {
-    backgroundColor: Colors.bgWhite,
+    backgroundColor: Colors.uncharted,
     paddingVertical: 18,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
   },
-  bannerEyebrow: { fontSize: 10, fontWeight: '800', color: Colors.accent, letterSpacing: 0.9 },
-  bannerTitle: { fontSize: 19, fontWeight: '800', color: Colors.inkPrimary, marginTop: 2 },
-  bannerSub: { fontSize: 12, color: Colors.inkSecondary, marginTop: 4, lineHeight: 17 },
+  bannerEyebrow: { fontSize: 10, fontWeight: '800', color: 'rgba(255,255,255,0.85)', letterSpacing: 0.9 },
+  bannerTitle: { fontSize: 19, fontWeight: '800', color: '#FFFFFF', marginTop: 2 },
+  bannerSub: { fontSize: 12, color: 'rgba(255,255,255,0.92)', marginTop: 4, lineHeight: 17 },
   subBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -262,7 +263,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
   },
-  filterPillActive: { backgroundColor: Colors.accent, borderColor: Colors.accent },
+  filterPillActive: { backgroundColor: Colors.uncharted, borderColor: Colors.uncharted },
   filterPillText: { fontSize: 12.5, fontWeight: '700', color: Colors.inkSecondary },
   filterPillTextActive: { color: '#FFFFFF' },
 

@@ -18,6 +18,13 @@ export default function RootLayout() {
   );
 }
 
+// The Uncharted Itinerary's pages (videos, deals) in the channel's orange
+const UNCHARTED_HEADER = {
+  headerStyle: { backgroundColor: Colors.uncharted },
+  headerTintColor: '#FFFFFF',
+  headerTitleStyle: { fontWeight: '700' as const, color: '#FFFFFF' },
+};
+
 function RootStack() {
   // Pushed screens (hotel breakdown, award lists) keep their content clear of the iPhone Duo rail.
   const sidePadding = useSideInsetStyle();
@@ -38,8 +45,8 @@ function RootStack() {
           <Stack.Screen name="(tabs)" options={{ headerShown: false, contentStyle: { backgroundColor: Colors.bgCanvas } }} />
           <Stack.Screen name="awards" options={{ title: 'Award Lists', headerBackTitle: 'Back' }} />
           {/* iPhone: opened from the rail's shortcut group (Watch, Deals, Holiday dates) */}
-          <Stack.Screen name="videos" options={{ title: 'Episodes & Shorts', headerBackTitle: 'Back' }} />
-          <Stack.Screen name="offers" options={{ title: 'Deals', headerBackTitle: 'Back' }} />
+          <Stack.Screen name="videos" options={{ title: 'Episodes & Shorts', headerBackTitle: 'Back', ...UNCHARTED_HEADER }} />
+          <Stack.Screen name="offers" options={{ title: 'Deals', headerBackTitle: 'Back', ...UNCHARTED_HEADER }} />
           <Stack.Screen name="holiday-dates" options={{ title: 'Holiday Dates', headerBackTitle: 'Back' }} />
           <Stack.Screen
             name="hotel/[id]"

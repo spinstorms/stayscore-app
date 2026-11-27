@@ -98,7 +98,41 @@ export const TRIP_EXAMPLES = [
   'MICHELIN Key hotels in Japan',
   'Family beach resort at Easter',
   'Ski chalet in the Alps',
+  'Bali jungle retreat in May',
+  'Seychelles honeymoon in October',
+  'Thailand beach resort in February',
+  'Amalfi Coast in September',
+  'Dubai winter sun in December',
+  'Mauritius family holiday in August',
+  'Safari lodge in Kenya in July',
+  'Four Seasons in the Maldives',
+  'City break in Paris in April',
+  'Lake Como in June',
+  'Sri Lanka beach hotel in March',
+  'Mexico adults-only in November',
 ];
+
+let deck: string[] = [];
+/**
+ * "Surprise me": a different trip every tap. Works through a shuffled deck, so nothing repeats
+ * until every idea has had a turn, and never gives the trip already on screen.
+ */
+export function nextSurprise(current?: string) {
+  if (!deck.length) {
+    deck = [...TRIP_EXAMPLES];
+    for (let i = deck.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [deck[i], deck[j]] = [deck[j], deck[i]];
+    }
+  }
+  let pick = deck.pop() as string;
+  if (pick === current && deck.length) {
+    const other = deck.pop() as string;
+    deck.unshift(pick);
+    pick = other;
+  }
+  return pick;
+}
 
 export function parseTripQuery(raw: string): TripQuery {
   const text = String(raw || '').trim();

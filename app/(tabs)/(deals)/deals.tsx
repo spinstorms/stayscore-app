@@ -270,27 +270,28 @@ export function DealsScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.bgCanvas },
+  // The Uncharted Itinerary zone: the channel's orange, as on stayodds.com
+  screen: { flex: 1, backgroundColor: Colors.unchartedTint },
   banner: {
-    backgroundColor: Colors.bgWhite,
+    backgroundColor: Colors.uncharted,
     paddingTop: 18,
     paddingBottom: 18,
   },
-  bannerEyebrow: { fontSize: 10, fontWeight: '800', color: Colors.accent, letterSpacing: 0.9 },
-  bannerTitle: { fontSize: 20, fontWeight: '800', color: Colors.inkPrimary, marginTop: 2 },
-  bannerSub: { fontSize: 12.5, color: Colors.inkSecondary, marginTop: 4, lineHeight: 18 },
+  bannerEyebrow: { fontSize: 10, fontWeight: '800', color: 'rgba(255,255,255,0.85)', letterSpacing: 0.9 },
+  bannerTitle: { fontSize: 20, fontWeight: '800', color: '#FFFFFF', marginTop: 2 },
+  bannerSub: { fontSize: 12.5, color: 'rgba(255,255,255,0.92)', marginTop: 4, lineHeight: 18 },
 
   segmentWrap: {
     flexDirection: 'row',
-    backgroundColor: Colors.bgCanvas,
+    backgroundColor: 'rgba(255,255,255,0.22)',
     borderRadius: 12,
     padding: 4,
     marginTop: 14,
     gap: 4,
   },
   segBtn: { flex: 1, paddingVertical: 8, borderRadius: 9, alignItems: 'center' },
-  segBtnActive: { backgroundColor: Colors.accent },
-  segText: { fontSize: 11.5, fontWeight: '700', color: Colors.inkSecondary },
+  segBtnActive: { backgroundColor: Colors.unchartedDark },
+  segText: { fontSize: 11.5, fontWeight: '700', color: '#FFFFFF' },
   segTextActive: { color: '#FFFFFF' },
 
   searchBar: {

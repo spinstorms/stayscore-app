@@ -157,7 +157,14 @@ export function WorldMapScreen() {
 
   const savedKey = shortlist.join(',');
   const colorFor = useCallback(
-    (h: Hotel) => (shortlist.includes(h.id) ? '#F43F5E' : isVisitedProperty(h) ? Colors.accent : '#14B8A6'),
+    // our filmed stays in The Uncharted Itinerary's orange, other hotels in lagoon teal
+    (h: Hotel) => (shortlist.includes(h.id) ? '#F43F5E' : isVisitedProperty(h) ? Colors.uncharted : Colors.accent),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [savedKey]
+  );
+
+  const pinKind = useCallback(
+    (h: Hotel) => (shortlist.includes(h.id) ? 'saved' : isVisitedProperty(h) ? 'ours' : 'global') as 'saved' | 'ours' | 'global',
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [savedKey]
   );
@@ -325,12 +332,12 @@ export function WorldMapScreen() {
 
           <View style={styles.legendRow} pointerEvents="none">
             <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: Colors.accent }]} />
-              <Text style={styles.legendText}>First-Hand</Text>
+              <View style={[styles.legendDot, { backgroundColor: Colors.uncharted }]} />
+              <Text style={styles.legendText}>Our stays</Text>
             </View>
             <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: '#14B8A6' }]} />
-              <Text style={styles.legendText}>Global</Text>
+              <View style={[styles.legendDot, { backgroundColor: Colors.accent }]} />
+              <Text style={styles.legendText}>Other hotels</Text>
             </View>
             <View style={styles.legendItem}>
               <View style={[styles.legendDot, { backgroundColor: '#F43F5E' }]} />
@@ -359,6 +366,7 @@ export function WorldMapScreen() {
               colorFor={colorFor}
               bounds={viewport}
               satellite={satellite}
+              pinKind={pinKind}
             />
           ) : (
             <DotMap

@@ -9,7 +9,11 @@ export interface HotelMapProps {
   bounds: { minLat: number; maxLat: number; minLng: number; maxLng: number };
   /** satellite photos (with place names) instead of the street map */
   satellite?: boolean;
+  /** which StayOdds pin to draw: our filmed stays (orange key), every other hotel, or saved */
+  pinKind?: (h: Hotel) => PinKind;
 }
+
+export type PinKind = 'ours' | 'global' | 'saved';
 
 export function cameraFor(b: HotelMapProps['bounds']) {
   const lat = (b.minLat + b.maxLat) / 2;

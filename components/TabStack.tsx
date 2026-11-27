@@ -5,6 +5,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAdaptiveLayout, useSideInsetStyle } from '../lib/layout';
 import { Colors } from '../lib/theme';
 
+type Tone = 'default' | 'uncharted' | 'sand';
+/** Colour zones, as on stayodds.com: hotels in sea-glass, the channel in orange, choosing in sand */
+export const TONES: Record<Tone, { header: string; tint: string; title: string; bg: string }> = {
+  default: { header: Colors.bgWhite, tint: Colors.accent, title: Colors.inkPrimary, bg: Colors.bgCanvas },
+  uncharted: { header: Colors.uncharted, tint: '#FFFFFF', title: '#FFFFFF', bg: Colors.unchartedTint },
+  sand: { header: Colors.sand, tint: Colors.accentDark, title: Colors.inkPrimary, bg: Colors.sand },
+};
+
 export function StayOddsWordmark() {
   return (
     <View style={styles.brandRow}>
@@ -25,13 +33,17 @@ export function TabStack({
   title,
   wordmark,
   hideHeader,
+  tone,
 }: {
   screen: string;
   title: string;
   wordmark?: boolean;
   /** the screen draws its own top (the home screen's photo header) */
   hideHeader?: boolean;
+  /** colour zone: The Uncharted Itinerary's orange (videos, deals) or sand (Compare) */
+  tone?: Tone;
 }) {
+  const t = TONES[tone ?? 'default'];
   const sidePadding = useSideInsetStyle();
   const insets = useSafeAreaInsets();
   const { isSplitScreen } = useAdaptiveLayout();
@@ -41,14 +53,14 @@ export function TabStack({
   return (
     <Stack
       screenOptions={{
-        headerStyle: { backgroundColor: Colors.bgWhite },
-        headerTintColor: Colors.accent,
-        headerTitleStyle: { fontWeight: '700', color: Colors.inkPrimary },
+        headerStyle: { backgroundColor: t.header },
+        headerTintColor: t.tint,
+        headerTitleStyle: { fontWeight: '700', color: t.title },
         headerTitleAlign: 'left',
         headerShadowVisible: false,
         headerShown: !compactChrome,
         contentStyle: {
-          backgroundColor: Colors.bgCanvas,
+          backgroundColor: t.bg,
           // the home screen draws edge to edge (its photo goes under the rail and bars) and
           // keeps its own text clear of them
           ...(hideHeader ? null : sidePadding),

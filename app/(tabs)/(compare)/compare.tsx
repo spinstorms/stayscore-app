@@ -1007,13 +1007,14 @@ const styles = StyleSheet.create({
   pickLine: { fontSize: 13.5, lineHeight: 20, color: '#334155', marginBottom: 4 },
   pickConsider: { color: '#64748B' },
   pickFoot: { fontSize: 11.5, color: '#94A3B8', marginTop: 6 },
-  screen: { flex: 1, backgroundColor: Colors.bgCanvas },
+  // the choosing zone: warm sand, as on stayodds.com's compare page
+  screen: { flex: 1, backgroundColor: Colors.sand },
   arenaHeader: {
-    backgroundColor: Colors.bgWhite,
+    backgroundColor: Colors.sand,
     paddingTop: 18,
     paddingBottom: 20,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: Colors.sandBorder,
   },
   arenaTitleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 12 },
   arenaEyebrow: { fontSize: 10.5, fontWeight: '800', color: Colors.accent, letterSpacing: 0.9 },
@@ -1056,7 +1057,7 @@ const styles = StyleSheet.create({
   selectorCol: { flexDirection: 'column' },
   selectorCard: {
     flex: 1,
-    backgroundColor: Colors.bgCanvas,
+    backgroundColor: Colors.sandCard,
     borderRadius: 14,
     padding: 11,
     borderWidth: 1,

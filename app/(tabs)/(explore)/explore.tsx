@@ -32,6 +32,7 @@ import { useStayOdds } from '../../../lib/store';
 import { Colors } from '../../../lib/theme';
 import type { Hotel } from '../../../lib/types';
 import { lazyTab } from '../../../components/LazyTab';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { withRailShortcuts } from '../../../components/RailShortcuts';
 import { routes } from '../../../lib/nav';
 
@@ -62,6 +63,11 @@ export function StayOddsHomeScreen() {
   const [requestOpen, setRequestOpen] = useState(false);
   // Android/web: the less-used filter rows sit behind a "Filters" chip so the front screen stays calm.
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const insets = useSafeAreaInsets();
+  // Filters go in the rail on iPhone and the open Duo. On the folded Duo the rail already holds
+  // the clock, the shortcuts and the tabs, so the filters stay in the page there instead.
+  const foldedDuo = IOS && !isSplitScreen && (insets.left > 40 || insets.right > 40);
+  const railFilters = IOS && !foldedDuo;
 
   const savedCount = useMemo(
     () => hotels.filter((h) => shortlist.includes(h.id)).length,
@@ -237,14 +243,14 @@ export function StayOddsHomeScreen() {
                 style={[
                   styles.ring,
                   isVerifiedTrack
-                    ? { backgroundColor: '#0F172A', borderColor: Colors.accent, borderWidth: 2.5 }
+                    ? { backgroundColor: Colors.accent, borderColor: '#FFFFFF', borderWidth: 2.5 }
                     : { backgroundColor: 'rgba(248, 250, 252, 0.94)', borderColor: '#0F766E', borderWidth: 2 },
                 ]}
               >
-                <Text style={[styles.ringPct, !isVerifiedTrack && { color: '#0F172A' }]}>
+                <Text style={[styles.ringPct, { color: isVerifiedTrack ? '#FFFFFF' : '#0F172A' }]}>
                   {o.greatStayOdds != null ? `${o.greatStayOdds}%` : topAward ? '★' : '—'}
                 </Text>
-                <Text style={[styles.ringLabel, !isVerifiedTrack && { color: '#0F766E' }]}>
+                <Text style={[styles.ringLabel, { color: isVerifiedTrack ? '#FFFFFF' : '#0F766E' }]}>
                   {o.greatStayOdds != null ? (isVerifiedTrack ? 'VERIFIED' : 'MARKET') : topAward ? 'AWARD' : 'OPEN'}
                 </Text>
               </View>
@@ -341,7 +347,7 @@ export function StayOddsHomeScreen() {
   // iOS: filters and destinations live in the native header. On iPhone Duo the system moves
   // these icon buttons into the side rail, so the folded front screen keeps just search,
   // regions and the hotels.
-  const iosToolbar = IOS ? (
+  const iosToolbar = railFilters ? (
     <Stack.Toolbar placement="right">
       <Stack.Toolbar.Menu
         icon={
@@ -422,7 +428,7 @@ export function StayOddsHomeScreen() {
         ) : null}
       </View>
 
-      {IOS ? null : (
+      {railFilters ? null : (
       <View style={styles.scopeBar}>
         {(
           [
@@ -448,7 +454,7 @@ export function StayOddsHomeScreen() {
       </View>
       )}
 
-      {IOS ? (
+      {railFilters ? (
         activeFilterLabels.length ? (
           <View style={styles.activeFilters}>
             <Ionicons name="funnel" size={12} color={Colors.inkSecondary} />
@@ -499,7 +505,7 @@ export function StayOddsHomeScreen() {
             </Pressable>
           );
         })}
-        {IOS ? null : (
+        {railFilters ? null : (
           <Pressable
             onPress={() => setRequestOpen(true)}
             style={[styles.regionPill, { borderColor: Colors.accent, backgroundColor: 'rgba(11, 122, 122, 0.22)' }]}
@@ -509,7 +515,7 @@ export function StayOddsHomeScreen() {
         )}
       </ScrollView>
 
-      {!IOS && filtersOpen ? (
+      {!railFilters && filtersOpen ? (
         <>
       <ScrollView
         horizontal

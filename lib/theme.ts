@@ -15,6 +15,17 @@ export const Colors = {
 
   coral: '#EE6A4C',
 
+  // Colour zones, matching stayodds.com:
+  // - The Uncharted Itinerary (videos, deals, our own stays): the channel's orange
+  uncharted: '#FF5D22',
+  unchartedDark: '#C2410C',
+  unchartedTint: '#FFF5EE',
+  unchartedBorder: '#FFD4C2',
+  // - Comparing and choosing (Compare): warm sand
+  sand: '#F7F0E3',
+  sandCard: '#FFFBF4',
+  sandBorder: '#E7DCC8',
+
   bgWhite: '#FFFFFF',
   bgCanvas: '#F3F8F8',
   bgWarm: '#F7FBFB',

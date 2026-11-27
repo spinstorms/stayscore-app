@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { openExternalUrl } from '../../lib/api';
+import { Colors } from '../../lib/theme';
 import { youtubeId } from './youtube';
 import { YouTubeFrame } from './YouTubeFrame';
 
@@ -57,7 +58,8 @@ export function InlineVideo({
 }
 
 const styles = StyleSheet.create({
-  wrap: { width: '100%', backgroundColor: '#000', borderRadius: 14, overflow: 'hidden' },
+  // The Uncharted Itinerary's orange frame around every video, as on stayodds.com
+  wrap: { width: '100%', backgroundColor: '#000', borderRadius: 14, overflow: 'hidden', borderWidth: 3, borderColor: Colors.uncharted },
   scrim: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.18)' },
   center: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
   play: {
