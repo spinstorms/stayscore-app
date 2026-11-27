@@ -13,7 +13,8 @@
       "buildNumber": "1",
       "infoPlist": {
         "UIRequiresFullScreen": false,
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocationWhenInUseUsageDescription": "StayOdds can show where you are on the hotel map so you can find luxury hotels near you. Your location stays on your phone."
       }
     },
     "android": {
