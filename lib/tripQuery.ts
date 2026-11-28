@@ -40,6 +40,11 @@ const MONTHS: { m: number; label: string; re: RegExp }[] = [
 
 const PLACES: { re: RegExp; region?: string; excludeCountries?: string[]; includeLocations?: string[]; search?: string; label: string }[] = [
   { re: /\bcaribbean\b/i, region: 'Caribbean & Mexico', excludeCountries: ['mexico'], label: 'Caribbean Islands' },
+  { re: /\b(?:dominican republic|punta cana|cap cana|la romana|miches|samana)\b/i, region: 'Caribbean & Mexico', search: 'Dominican Republic', label: 'Dominican Republic' },
+  { re: /\b(?:turks (?:and|&) caicos|providenciales)\b/i, region: 'Caribbean & Mexico', search: 'Turks', label: 'Turks & Caicos' },
+  { re: /\b(?:bahamas|nassau)\b/i, region: 'Caribbean & Mexico', search: 'Bahamas', label: 'Bahamas' },
+  { re: /\bjamaica\b/i, region: 'Caribbean & Mexico', search: 'Jamaica', label: 'Jamaica' },
+  { re: /\b(?:china|beijing|shanghai|chengdu|lijiang|sanya|hangzhou|guangzhou|shenzhen)\b/i, region: 'Asia', search: 'China', label: 'China' },
   { re: /\b(?:mexico|riviera maya|cancun|cancún|los cabos|cabo|tulum|punta mita)\b/i, region: 'Caribbean & Mexico', search: 'Mexico', label: 'Mexico' },
   {
     re: /\b(?:canary islands|canaries)\b/i,

@@ -326,6 +326,9 @@ const VERIFIED_ADULTS_ONLY_IDS = new Set([
   'amanpulo-philippines',
 ]);
 
+// Hotels checked by hand as family-friendly (same list as stayodds.com: data/family-hotels.json)
+const VERIFIED_FAMILY_IDS = new Set<string>(["atlantis-sanya", "atlantis-the-royal", "aulani-disney-resort-hawaii", "barcelo-bavaro-palace", "beaches-turks-and-caicos", "calcot-manor", "casa-de-campo-resort-villas", "club-med-kani", "club-med-miches-playa-esmeralda", "club-med-seychelles", "curtain-bluff-antigua", "daios-cove-crete", "eden-roc-cap-cana", "fairmont-mayakoba", "finest-punta-cana", "forte-village-resort", "four-seasons-hualalai", "four-seasons-koh-samui", "four-seasons-langkawi", "four-seasons-maui", "four-seasons-nevis", "four-seasons-punta-mita", "four-seasons-seychelles", "grace-bay-club-turks-caicos", "grand-velas-riviera-maya", "grand-wailea-waldorf-astoria", "half-moon-jamaica", "hyatt-ziva-cap-cana", "ikos-andalusia", "ikos-aria", "intercontinental-hayman-island", "jumby-bay-island-antigua", "jumeirah-al-naseem", "kimpton-seafire-grand-cayman", "mandarin-oriental-sanya", "martinhal-sagres", "montage-los-cabos", "nickelodeon-hotels-resorts-punta-cana", "one-and-only-reethi-rah", "paradisus-palma-real", "ritz-carlton-grand-cayman", "rosewood-baha-mar", "rosewood-little-dix-bay", "rosewood-mayakoba", "rosewood-sanya", "sandy-lane-barbados", "sani-resort", "shangri-la-rasa-ria", "six-senses-qing-cheng-mountain", "sugar-beach-st-lucia", "suvretta-house", "the-broadmoor", "the-cove-atlantis", "the-grove-hertfordshire", "the-ritz-carlton-naples", "the-romanos-costa-navarino", "the-shore-club-turks-and-caicos"]);
+
 export function getGuestProfile(hotel: Hotel): GuestProfileInfo {
   const text = `${hotel.name || ''} ${hotel.verdict || ''} ${hotel.standout || ''} ${hotel.watchOut || ''}`.toLowerCase();
   const isAdultsOnly =
@@ -342,6 +345,7 @@ export function getGuestProfile(hotel: Hotel): GuestProfileInfo {
   }
 
   const isFamily =
+    VERIFIED_FAMILY_IDS.has(hotel.id) ||
     /\bkids?\s*club\b|\bfamil(?:y|ies)\b|\bchildren\b|\bwater\s*park\b|\bteen\b|\bmulti[-\s]?gen\b/i.test(text) ||
     ['Four Seasons', 'St. Regis', 'The Ritz-Carlton', 'One&Only', 'Rosewood', 'Soneva', 'Six Senses', 'Jumeirah'].includes(
       normalizeBrandName(hotel)
