@@ -1,3 +1,4 @@
+import { getTripadvisor } from './tripadvisor';
 import { Colors } from './theme';
 import type { EditorialRating, Hotel, LinkedYoutubeReview, OfficialAward } from './types';
 
@@ -200,7 +201,24 @@ export function getVerifiedGuestScore(
   return null;
 }
 
+// Scores are pure for a given hotel object, so work each one out once. Screens call this in
+// sorts and lists (1,300+ hotels), which made Compare slow to open.
+const oddsCache = new WeakMap<object, ReturnType<typeof computeStayOddsUncached>>();
 export function computeStayOdds(
+  hotel: Hotel,
+  liveGoogle?: Parameters<typeof computeStayOddsUncached>[1]
+): ReturnType<typeof computeStayOddsUncached> {
+  // a live Google rating changes the result, so that case isn't cached
+  if (liveGoogle) return computeStayOddsUncached(hotel, liveGoogle);
+  let o = oddsCache.get(hotel);
+  if (!o) {
+    o = computeStayOddsUncached(hotel);
+    oddsCache.set(hotel, o);
+  }
+  return o;
+}
+
+function computeStayOddsUncached(
   hotel: Hotel,
   liveGoogle?: { rating: number; reviewCount?: number | null; googleMapsUri?: string | null; fetchedAt?: string } | null
 ): StayOddsResult {
@@ -510,7 +528,10 @@ export function getTonePalette(tone: StayOddsResult['statusTone']) {
   };
 }
 
-export function getTripAdvisorUrl(hotel: Pick<Hotel, 'name' | 'location' | 'country'>): string {
+export function getTripAdvisorUrl(hotel: Pick<Hotel, 'name' | 'location' | 'country'> & { id?: string }): string {
+  // the hotel's own Tripadvisor page when we have it saved, otherwise a search
+  const saved = getTripadvisor(hotel.id);
+  if (saved?.u) return saved.u;
   const query = `${hotel.name || ''} ${hotel.location || hotel.country || ''}`.trim();
   return `https://www.tripadvisor.com/Search?q=${encodeURIComponent(query)}&ssrc=h`;
 }

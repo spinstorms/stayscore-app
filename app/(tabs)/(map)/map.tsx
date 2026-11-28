@@ -1,22 +1,39 @@
+import { useBleed } from '../../../lib/layout';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
-  LayoutChangeEvent,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from 'react-native';
-import { openExternalUrl } from '../../lib/api';
-import { AWARD_LISTS, matchesAwardList, type AwardListId } from '../../lib/awards';
-import { computeStayOdds, getTonePalette, isVisitedProperty } from '../../lib/scoring';
-import { useStayOdds } from '../../lib/store';
-import { Colors } from '../../lib/theme';
-import type { Hotel } from '../../lib/types';
+import { DotMap } from '../../../components/map/DotMap';
+import { NativeHotelMap, nativeMapAvailable } from '../../../components/map/NativeHotelMap';
+import { openExternalUrl } from '../../../lib/api';
+import { openInMaps } from '../../../lib/openInMaps';
+import {
+  applyAwardFilters,
+  AWARD_FILTERS,
+  AWARD_LISTS,
+  matchesAwardList,
+  type AwardFilterId,
+  type AwardListId,
+  type DiningMap,
+} from '../../../lib/awards';
+import { loadGuestRanks } from '../../../lib/ranks';
+import { computeStayOdds, getTonePalette, isVisitedProperty } from '../../../lib/scoring';
+import { useStayOdds } from '../../../lib/store';
+import { Colors } from '../../../lib/theme';
+import type { Hotel } from '../../../lib/types';
+import { lazyTab } from '../../../components/LazyTab';
+import { withRailShortcuts } from '../../../components/RailShortcuts';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { t } from '../../../lib/i18n';
 
 type MapScope = 'all' | 'visited' | 'saved' | AwardListId;
 const AWARD_SCOPES = AWARD_LISTS.map((l) => l.id) as string[];
@@ -52,36 +69,114 @@ const REGION_VIEWPORTS: RegionViewport[] = [
   { id: 'egypt', label: 'Egypt', regionFilter: null, countryFilter: ['Egypt'], minLat: 23.5, maxLat: 31.5, minLng: 29.0, maxLng: 35.5 },
 ];
 
-export default function WorldMapScreen() {
+export function WorldMapScreen() {
   const router = useRouter();
   const { hotels, shortlist, isShortlisted, toggleShortlist, pushToCompare, loading } = useStayOdds();
 
   const [viewportId, setViewportId] = useState<string>('world');
-  const params = useLocalSearchParams<{ scope?: string }>();
+  const params = useLocalSearchParams<{ scope?: string; awards?: string; match?: string }>();
   const [scope, setScope] = useState<MapScope>('all');
+  // Multi-select award filters, as on stayodds.com/hotels/: pick one or more, match all or any.
+  const [awards, setAwards] = useState<AwardFilterId[]>([]);
+  const [awardMatch, setAwardMatch] = useState<'all' | 'any'>('all');
+  const [dining, setDining] = useState<DiningMap>({});
   React.useEffect(() => {
-    if (params.scope && AWARD_SCOPES.includes(String(params.scope))) setScope(params.scope as MapScope);
-  }, [params.scope]);
-  const [selectedId, setSelectedId] = useState<string>('taaktana-labuan-bajo');
-  const [canvasSize, setCanvasSize] = useState({ width: 340, height: 290 });
+    const sc = params.scope ? String(params.scope) : '';
+    if (sc === 'w50') {
+      // legacy single-award scope -> award filter (the website migrates it the same way)
+      setScope('all');
+      setAwards((a) => (a.includes('w50') ? a : [...a, 'w50']));
+    } else if (sc && AWARD_SCOPES.includes(sc)) setScope(sc as MapScope);
+    if (params.awards) {
+      const ids = String(params.awards)
+        .split(',')
+        .filter((a): a is AwardFilterId => AWARD_FILTERS.some((f) => f.id === a));
+      setAwards(ids);
+    }
+    if (params.match === 'any') setAwardMatch('any');
+  }, [params.scope, params.awards, params.match]);
+  React.useEffect(() => {
+    let active = true;
+    loadGuestRanks().then((d) => {
+      if (!active || !d?.extras) return;
+      const m: DiningMap = {};
+      for (const [id, x] of Object.entries(d.extras)) if (x.dining?.length) m[id] = x.dining;
+      setDining(m);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+  const toggleAward = (id: AwardFilterId) =>
+    setAwards((a) => (a.includes(id) ? a.filter((x) => x !== id) : [...a, id]));
+  const [selectedId, setSelectedIdRaw] = useState<string>('taaktana-labuan-bajo');
+  // map first: the hotel card shows once a pin is tapped, and closes to give the map the screen
+  const [cardOpen, setCardOpen] = useState(false);
+  const setSelectedId = (id: string) => {
+    setSelectedIdRaw(id);
+    setCardOpen(true);
+  };
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [satellite, setSatellite] = useState(true);
+  const insets = useSafeAreaInsets();
+  // seamless rail: the panel and the map run under the rail; controls stay clear of it
+  const bleed = useBleed();
+  const { width: winW, height: winH } = useWindowDimensions();
+  const compactLandscape = winW > winH && winH < 520;
+  // iPad: the hotel details sit in a panel under the map instead of floating over it
+  const docked = Math.min(winW, winH) >= 700;
+  // keep the floating card above the iPhone tab bar; on the Duo the tabs sit in the side rail
+  const railOnSide = insets.left > 40 || insets.right > 40;
+  const cardBottom =
+    process.env.EXPO_OS === 'ios' ? insets.bottom + (railOnSide ? 12 : 58) : 12;
 
   const viewport = useMemo(
     () => REGION_VIEWPORTS.find((v) => v.id === viewportId) || REGION_VIEWPORTS[0],
     [viewportId]
   );
 
-  const visibleHotels = useMemo(() => {
+  // Hotels in the chosen scope, before award filters (award chip counts are taken from this, as on the website)
+  const scopeBase = useMemo(() => {
     const savedSet = new Set(shortlist);
     return hotels.filter((h) => {
       if (typeof h.lat !== 'number' || typeof h.lng !== 'number') return false;
+      // a few directory hotels have no real location yet (0, 0 sits in the sea off Africa)
+      if (Math.abs(h.lat) < 0.01 && Math.abs(h.lng) < 0.01) return false;
       if (scope === 'visited' && !isVisitedProperty(h)) return false;
       if (scope === 'saved' && !savedSet.has(h.id)) return false;
       if (AWARD_SCOPES.includes(scope) && !matchesAwardList(h, scope as AwardListId)) return false;
-      if (viewport.countryFilter && !viewport.countryFilter.includes(h.country)) return false;
-      if (viewport.regionFilter && h.region !== viewport.regionFilter) return false;
       return true;
     });
-  }, [hotels, scope, shortlist, viewport]);
+  }, [hotels, scope, shortlist]);
+
+  const awardMatched = useMemo(
+    () => applyAwardFilters(scopeBase, awards, awardMatch, dining),
+    [scopeBase, awards, awardMatch, dining]
+  );
+
+  const visibleHotels = useMemo(
+    () =>
+      awardMatched.filter((h) => {
+        if (viewport.countryFilter && !viewport.countryFilter.includes(h.country)) return false;
+        if (viewport.regionFilter && h.region !== viewport.regionFilter) return false;
+        return true;
+      }),
+    [awardMatched, viewport]
+  );
+
+  const savedKey = shortlist.join(',');
+  const colorFor = useCallback(
+    // our filmed stays in The Uncharted Itinerary's orange, other hotels in lagoon teal
+    (h: Hotel) => (shortlist.includes(h.id) ? '#F43F5E' : isVisitedProperty(h) ? Colors.uncharted : Colors.accent),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [savedKey]
+  );
+
+  const pinKind = useCallback(
+    (h: Hotel) => (shortlist.includes(h.id) ? 'saved' : isVisitedProperty(h) ? 'ours' : 'global') as 'saved' | 'ours' | 'global',
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [savedKey]
+  );
 
   const selectedHotel: Hotel | null = useMemo(() => {
     return (
@@ -97,26 +192,6 @@ export default function WorldMapScreen() {
     [selectedHotel]
   );
 
-  const onCanvasLayout = (e: LayoutChangeEvent) => {
-    const { width, height } = e.nativeEvent.layout;
-    if (width > 0 && height > 0) {
-      setCanvasSize({ width, height });
-    }
-  };
-
-  const project = (lat: number, lng: number) => {
-    const padX = 16;
-    const padY = 16;
-    const w = Math.max(1, canvasSize.width - padX * 2);
-    const h = Math.max(1, canvasSize.height - padY * 2);
-    const xRatio = (lng - viewport.minLng) / Math.max(0.1, viewport.maxLng - viewport.minLng);
-    const yRatio = (viewport.maxLat - lat) / Math.max(0.1, viewport.maxLat - viewport.minLat);
-    return {
-      x: padX + Math.max(0, Math.min(1, xRatio)) * w,
-      y: padY + Math.max(0, Math.min(1, yRatio)) * h,
-    };
-  };
-
   const openWebMap = () => {
     const q = viewport.regionFilter ? `?region=${encodeURIComponent(viewport.regionFilter)}` : '';
     openExternalUrl(`https://stayodds.com/hotels/${q}`);
@@ -126,15 +201,15 @@ export default function WorldMapScreen() {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color={Colors.accent} />
-        <Text style={styles.loadingText}>Plotting luxury stays worldwide…</Text>
+        <Text style={styles.loadingText}>{t("Plotting luxury stays worldwide…")}</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.screen}>
+    <View style={[styles.screen, bleed.root]}>
       {/* Top Coastal Navy Controls */}
-      <View style={styles.headerPanel}>
+      <View style={[styles.headerPanel, { paddingLeft: 14 + bleed.l, paddingRight: 14 + bleed.r }, compactLandscape && { paddingTop: 4, paddingBottom: 6 }]}>
         <View style={styles.topRow}>
           <View style={styles.scopeRow}>
             {(
@@ -154,27 +229,9 @@ export default function WorldMapScreen() {
             ))}
           </View>
 
-          <Pressable style={styles.webMapBtn} onPress={openWebMap}>
-            <Ionicons name="globe-outline" size={14} color="#FFFFFF" />
-            <Text style={styles.webMapBtnText}>Street Map ↗</Text>
-          </Pressable>
-        </View>
-
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.regionStrip}>
-          {AWARD_LISTS.map((l) => (
-            <Pressable
-              key={l.id}
-              onPress={() => setScope(scope === l.id ? 'all' : l.id)}
-              style={[styles.scopeBtn, scope === l.id && styles.scopeBtnActive]}
-            >
-              <Text style={[styles.scopeText, scope === l.id && styles.scopeTextActive]}>
-                {l.id === 'w50' ? "World's 50 Best" : `MICHELIN ${l.short}`}
-              </Text>
-            </Pressable>
-          ))}
-        </ScrollView>
-
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.regionStrip}>
+          {/* phone on its side: regions share the top row, so the map gets the height */}
+          {compactLandscape ? (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flex: 1, marginHorizontal: 8 }} contentContainerStyle={styles.regionStrip}>
           {REGION_VIEWPORTS.map((rv) => {
             const active = rv.id === viewportId;
             return (
@@ -183,18 +240,112 @@ export default function WorldMapScreen() {
                 onPress={() => setViewportId(rv.id)}
                 style={[styles.regionPill, active && styles.regionPillActive]}
               >
-                <Text style={[styles.regionText, active && styles.regionTextActive]}>{rv.label}</Text>
+                <Text style={[styles.regionText, active && styles.regionTextActive]}>{t(rv.label)}</Text>
               </Pressable>
             );
           })}
         </ScrollView>
+          ) : null}
+
+          <Pressable
+            style={[styles.webMapBtn, (filtersOpen || awards.length > 0) && styles.filtersBtnOn]}
+            onPress={() => setFiltersOpen((v) => !v)}
+            accessibilityRole="button"
+            accessibilityState={{ expanded: filtersOpen }}
+          >
+            <Ionicons name="options-outline" size={14} color={Colors.accentDark} />
+            <Text style={styles.webMapBtnText}>Awards{awards.length ? ` (${awards.length})` : ''}</Text>
+          </Pressable>
+        </View>
+
+        {filtersOpen ? (
+        <>
+        <Text style={styles.awardRowLabel}>{t("Awards (pick one or more)")}</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.regionStrip}>
+          {AWARD_SCOPES.includes(scope)
+            ? AWARD_LISTS.filter((l) => l.id === scope).map((l) => (
+                <Pressable key={l.id} onPress={() => setScope('all')} style={[styles.scopeBtn, styles.scopeBtnActive]}>
+                  <Text style={[styles.scopeText, styles.scopeTextActive]}>
+                    {l.id === 'w50' ? "World's 50 Best" : `MICHELIN ${l.short}`} ✕
+                  </Text>
+                </Pressable>
+              ))
+            : null}
+          {AWARD_FILTERS.map((f) => {
+            const on = awards.includes(f.id);
+            const cnt = scopeBase.filter((h) => f.test(h, dining)).length;
+            if (!cnt && !on) return null;
+            return (
+              <Pressable
+                key={f.id}
+                accessibilityRole="button"
+                accessibilityState={{ selected: on }}
+                onPress={() => toggleAward(f.id)}
+                style={[styles.scopeBtn, on && styles.scopeBtnActive]}
+              >
+                <Text style={[styles.scopeText, on && styles.scopeTextActive]}>
+                  {on ? '✓ ' : ''}
+                  {f.label} ({cnt})
+                </Text>
+              </Pressable>
+            );
+          })}
+          {awards.length ? (
+            <Pressable onPress={() => setAwards([])} style={styles.awardClear}>
+              <Text style={styles.awardClearText}>{t("Clear")}</Text>
+            </Pressable>
+          ) : null}
+        </ScrollView>
+        {awards.length > 1 ? (
+          <View style={styles.matchRow}>
+            <Text style={styles.matchText}>{t("Show hotels with")}</Text>
+            {(['all', 'any'] as const).map((m) => (
+              <Pressable
+                key={m}
+                accessibilityRole="button"
+                accessibilityState={{ selected: awardMatch === m }}
+                onPress={() => setAwardMatch(m)}
+                style={[styles.matchBtn, awardMatch === m && styles.matchBtnActive]}
+              >
+                <Text style={[styles.matchBtnText, awardMatch === m && styles.matchBtnTextActive]}>
+                  {m === 'all' ? 'all of these' : 'any of these'}
+                </Text>
+              </Pressable>
+            ))}
+            <Text style={styles.matchText}>
+              · {awardMatched.length} hotel{awardMatched.length === 1 ? '' : 's'}
+            </Text>
+          </View>
+        ) : null}
+        <Pressable onPress={openWebMap} hitSlop={6}>
+          <Text style={styles.awardClearText}>{t("Open the full map on stayodds.com ↗")}</Text>
+        </Pressable>
+        </>
+        ) : null}
+
+        {compactLandscape ? null : (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.regionStrip}>
+          {REGION_VIEWPORTS.map((rv) => {
+            const active = rv.id === viewportId;
+            return (
+              <Pressable
+                key={rv.id}
+                onPress={() => setViewportId(rv.id)}
+                style={[styles.regionPill, active && styles.regionPillActive]}
+              >
+                <Text style={[styles.regionText, active && styles.regionTextActive]}>{t(rv.label)}</Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+        )}
       </View>
 
       {/* Interactive Coordinate Map Canvas (100% Expo Go & Web compatible) */}
       <View style={styles.mapContainer}>
-        <View style={styles.mapCanvas} onLayout={onCanvasLayout}>
-          {/* Subtle coordinate gridlines */}
-          {[0.2, 0.4, 0.6, 0.8].map((frac) => (
+        <View style={styles.mapCanvas}>
+          {/* Subtle coordinate gridlines (dot map only) */}
+          {(nativeMapAvailable ? [] : [0.2, 0.4, 0.6, 0.8]).map((frac) => (
             <React.Fragment key={frac}>
               <View style={[styles.gridLineH, { top: `${frac * 100}%` }]} pointerEvents="none" />
               <View style={[styles.gridLineV, { left: `${frac * 100}%` }]} pointerEvents="none" />
@@ -202,71 +353,83 @@ export default function WorldMapScreen() {
           ))}
 
           {/* Legend & Count Badge */}
-          <View style={styles.mapOverlayBadge} pointerEvents="none">
+          <View style={[styles.mapOverlayBadge, { left: 10 + bleed.l }]} pointerEvents="none">
             <Text style={styles.mapOverlayBadgeText}>
               {viewport.label} • {visibleHotels.length} {visibleHotels.length === 1 ? 'stay' : 'stays'}
             </Text>
           </View>
 
-          <View style={styles.legendRow} pointerEvents="none">
+          <View style={[styles.legendRow, { left: 10 + bleed.l }]} pointerEvents="none">
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: Colors.uncharted }]} />
+              <Text style={styles.legendText}>{t("Our stays")}</Text>
+            </View>
             <View style={styles.legendItem}>
               <View style={[styles.legendDot, { backgroundColor: Colors.accent }]} />
-              <Text style={styles.legendText}>First-Hand</Text>
+              <Text style={styles.legendText}>{t("Other hotels")}</Text>
             </View>
             <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: '#14B8A6' }]} />
-              <Text style={styles.legendText}>Global</Text>
-            </View>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: '#F43F5E' }]} />
-              <Text style={styles.legendText}>Saved</Text>
+              <View style={[styles.legendDot, { backgroundColor: '#E0485F' }]} />
+              <Text style={styles.legendText}>{t("Saved")}</Text>
             </View>
           </View>
 
-          {/* Plotted real lat/lng hotel pins */}
-          {visibleHotels.map((h) => {
-            const pos = project(h.lat, h.lng);
-            const isSelected = selectedHotel?.id === h.id;
-            const visited = isVisitedProperty(h);
-            const saved = isShortlisted(h.id);
-            const hasAward = (h.officialAwards || []).length > 0;
-            const pinSize = isSelected ? 18 : visited ? 12 : 9;
-            const bgColor = saved
-              ? '#F43F5E'
-              : visited
-              ? Colors.accent
-              : '#14B8A6';
+          {nativeMapAvailable && (!cardOpen || docked) ? (
+            <Pressable
+              style={[styles.layerBtn, { right: 12 + bleed.r }]}
+              onPress={() => setSatellite((v) => !v)}
+              accessibilityRole="button"
+              accessibilityLabel={satellite ? 'Show street map' : 'Show satellite view'}
+            >
+              <Ionicons name={satellite ? 'map-outline' : 'earth'} size={16} color={Colors.inkPrimary} />
+              <Text style={styles.layerBtnText}>{satellite ? t('Map') : t('Satellite')}</Text>
+            </Pressable>
+          ) : null}
 
-            return (
-              <Pressable
-                key={h.id}
-                onPress={() => setSelectedId(h.id)}
-                hitSlop={8}
-                accessibilityLabel={`${h.name}, ${h.location}`}
-                style={[
-                  styles.pinWrap,
-                  {
-                    left: pos.x - pinSize / 2,
-                    top: pos.y - pinSize / 2,
-                    width: pinSize,
-                    height: pinSize,
-                    borderRadius: pinSize / 2,
-                    backgroundColor: bgColor,
-                    borderWidth: isSelected ? 2.5 : hasAward ? 1.5 : 1,
-                    borderColor: isSelected ? '#FFFFFF' : hasAward ? '#FDE047' : 'rgba(255,255,255,0.65)',
-                    zIndex: isSelected ? 30 : visited ? 15 : 5,
-                  },
-                ]}
-              />
-            );
-          })}
+          {/* The phone's own map (Apple Maps / Google Maps), or the light dot map */}
+          {nativeMapAvailable ? (
+            <NativeHotelMap
+              hotels={visibleHotels}
+              selectedId={selectedHotel?.id ?? null}
+              onSelect={setSelectedId}
+              colorFor={colorFor}
+              bounds={viewport}
+              satellite={satellite}
+              pinKind={pinKind}
+            />
+          ) : (
+            <DotMap
+              hotels={visibleHotels}
+              selectedId={selectedHotel?.id ?? null}
+              onSelect={setSelectedId}
+              colorFor={colorFor}
+              bounds={viewport}
+            />
+          )}
         </View>
       </View>
 
       {/* Selected Hotel Preview Sheet */}
-      {selectedHotel && selectedOdds ? (
-        <View style={styles.previewWrap}>
-          <View style={styles.previewCard}>
+      {(cardOpen || docked) && selectedHotel && selectedOdds ? (
+        <View
+          style={
+            docked
+              ? [styles.dockedPanel, { paddingLeft: 14 + bleed.l, paddingRight: 14 + bleed.r, paddingBottom: insets.bottom + 12 }]
+              : [styles.previewWrap, { bottom: cardBottom, left: 12 + bleed.l, right: 12 + bleed.r }]
+          }
+        >
+          <View style={[styles.previewCard, docked && styles.previewCardDocked]}>
+            {docked ? null : (
+            <Pressable
+              onPress={() => setCardOpen(false)}
+              style={styles.previewClose}
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel="Close hotel card"
+            >
+              <Ionicons name="close" size={16} color={Colors.inkSecondary} />
+            </Pressable>
+            )}
             <View style={styles.previewTop}>
               <Image source={{ uri: selectedHotel.thumbnail }} style={styles.previewThumb} />
               <View style={{ flex: 1 }}>
@@ -312,14 +475,23 @@ export default function WorldMapScreen() {
                   router.push({ pathname: '/hotel/[id]', params: { id: selectedHotel.id } })
                 }
               >
-                <Text style={styles.btnPrimaryText}>Full Breakdown →</Text>
+                <Text style={styles.btnPrimaryText}>{t("Full Breakdown →")}</Text>
+              </Pressable>
+
+              <Pressable
+                style={styles.btnOutline}
+                accessibilityLabel={process.env.EXPO_OS === 'ios' ? 'Open in Apple Maps' : 'Open in Google Maps'}
+                onPress={() => openInMaps(selectedHotel)}
+              >
+                <Ionicons name="navigate-outline" size={14} color={Colors.accentDark} />
+                <Text style={styles.btnOutlineText}>{t("Maps")}</Text>
               </Pressable>
 
               <Pressable
                 style={styles.btnOutline}
                 onPress={() => {
                   pushToCompare(selectedHotel.id);
-                  router.push('/(tabs)/compare');
+                  router.push('/compare');
                 }}
               >
                 <Ionicons name="git-compare-outline" size={14} color={Colors.accentDark} />
@@ -345,32 +517,8 @@ export default function WorldMapScreen() {
             </View>
           </View>
 
-          {/* Quick Horizontal Switcher for Pins in This Region */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.nearbyRow}
-          >
-            {visibleHotels.slice(0, 20).map((h) => {
-              const active = h.id === selectedHotel.id;
-              return (
-                <Pressable
-                  key={h.id}
-                  onPress={() => setSelectedId(h.id)}
-                  style={[styles.nearbyChip, active && styles.nearbyChipActive]}
-                >
-                  <Text
-                    style={[styles.nearbyChipText, active && styles.nearbyChipTextActive]}
-                    numberOfLines={1}
-                  >
-                    {h.name}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
         </View>
-      ) : (
+      ) : visibleHotels.length ? null : (
         <View style={styles.emptyPreview}>
           <Text style={styles.emptyTitle}>
             {scope === 'saved'
@@ -392,7 +540,7 @@ const styles = StyleSheet.create({
   loadingText: { color: Colors.inkSecondary, fontSize: 14, fontWeight: '600' },
 
   headerPanel: {
-    backgroundColor: Colors.navy,
+    backgroundColor: Colors.bgWhite,
     paddingHorizontal: 14,
     paddingTop: 10,
     paddingBottom: 12,
@@ -413,22 +561,37 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: Colors.bgCanvas,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.14)',
+    borderColor: Colors.border,
   },
   scopeBtnActive: {
     backgroundColor: Colors.accent,
     borderColor: Colors.accent,
   },
   scopeText: {
-    color: 'rgba(255,255,255,0.82)',
+    color: Colors.inkSecondary,
     fontSize: 12,
     fontWeight: '700',
   },
   scopeTextActive: {
     color: '#FFFFFF',
   },
+  awardRowLabel: { color: Colors.inkSecondary, fontSize: 11, fontWeight: '700', letterSpacing: 0.3 },
+  awardClear: { paddingHorizontal: 10, paddingVertical: 6, justifyContent: 'center' },
+  awardClearText: { color: Colors.accent, fontSize: 12, fontWeight: '700', textDecorationLine: 'underline' },
+  matchRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 },
+  matchText: { color: Colors.inkSecondary, fontSize: 12 },
+  matchBtn: {
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  matchBtnActive: { backgroundColor: Colors.accent, borderColor: Colors.accent },
+  matchBtnText: { color: Colors.inkSecondary, fontSize: 12, fontWeight: '700' },
+  matchBtnTextActive: { color: '#FFFFFF' },
   webMapBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -441,7 +604,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(45, 212, 191, 0.5)',
   },
   webMapBtnText: {
-    color: '#CCFBF1',
+    color: Colors.accentDark,
     fontSize: 11.5,
     fontWeight: '700',
   },
@@ -453,37 +616,67 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: Colors.bgCanvas,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
+    borderColor: Colors.border,
   },
   regionPillActive: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#FFFFFF',
+    backgroundColor: Colors.accent,
+    borderColor: Colors.accent,
   },
   regionText: {
-    color: 'rgba(255,255,255,0.86)',
+    color: Colors.inkSecondary,
     fontSize: 12,
     fontWeight: '600',
   },
   regionTextActive: {
-    color: Colors.navy,
+    color: '#FFFFFF',
     fontWeight: '700',
   },
 
+  // the map takes every bit of the screen the controls don't
   mapContainer: {
     flex: 1,
-    padding: 12,
-    minHeight: 220,
+    minHeight: 260,
   },
   mapCanvas: {
     flex: 1,
-    backgroundColor: '#071B30',
-    borderRadius: 18,
+    backgroundColor: '#0B3A44',
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#1E3A5F',
     position: 'relative',
+  },
+  layerBtn: {
+    // bottom-right, clear of Apple's own compass and 3D buttons in the top corner
+    position: 'absolute',
+    bottom: 14,
+    right: 12,
+    zIndex: 50,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    minHeight: 40,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 4,
+  },
+  layerBtnText: { color: Colors.inkPrimary, fontSize: 13, fontWeight: '700' },
+  filtersBtnOn: { borderColor: Colors.accent, backgroundColor: Colors.accentSoft },
+  previewClose: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    zIndex: 5,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.bgCanvas,
   },
   gridLineH: {
     position: 'absolute',
@@ -541,9 +734,19 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
 
+  // the card floats over the bottom of the map
+  dockedPanel: {
+    backgroundColor: Colors.bgWhite,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+    paddingTop: 12,
+  },
+  previewCardDocked: { shadowOpacity: 0, elevation: 0, borderWidth: 0, padding: 4 },
   previewWrap: {
-    paddingHorizontal: 12,
-    paddingBottom: 12,
+    position: 'absolute',
+    left: 12,
+    right: 12,
+    bottom: 12,
     gap: 8,
   },
   previewCard: {
@@ -555,6 +758,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   previewTop: {
+    paddingRight: 30,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
@@ -692,3 +896,5 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
+
+export default lazyTab(withRailShortcuts(WorldMapScreen));

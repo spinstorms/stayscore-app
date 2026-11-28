@@ -25,6 +25,8 @@ jobs:
         run: npx tsc --noEmit
       - name: Expo config and dependency check
         run: npx expo-doctor || true
+      - name: Bundle a data snapshot (opens instantly)
+        run: node scripts/snapshot-data.mjs
       - name: Build web version
         env:
           EXPO_WEB_OUTPUT: single

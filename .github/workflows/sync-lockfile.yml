@@ -1,0 +1,31 @@
+name: Sync package-lock.json
+
+# When package.json changes on a working branch, refresh package-lock.json so `npm ci`
+# (used by EAS Build and the other workflows) keeps working. Lets new libraries be added
+# from places that can't reach the npm registry.
+on:
+  push:
+    branches-ignore: [main, mockups]
+    paths: [package.json]
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Update lockfile
+        run: npm install --package-lock-only --no-audit --no-fund
+      - name: Commit if changed
+        run: |
+          if git diff --quiet package-lock.json; then echo "lockfile already in sync"; exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json
+          git commit -m "Sync package-lock.json with package.json"
+          git push

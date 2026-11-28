@@ -1,3 +1,4 @@
+import CLIMATE_RULES from './climate-rules.json';
 import { LIVE_BASE_URL } from './api';
 import type { Hotel } from './types';
 
@@ -250,76 +251,39 @@ export function getPartnerPrograms(hotel: Hotel): PartnerPrograms {
   };
 }
 
-export function getBestMonths(hotel: Hotel): BestMonthsInfo {
-  const country = String(hotel.country || '').toLowerCase();
-  const region = String(hotel.region || '').toLowerCase();
-  const loc = String(hotel.location || '').toLowerCase();
+/**
+ * Best months to go: the same rules, in the same order, as stayodds.com (CLIMATE_RULES_PY in
+ * build_stayodds_site.py, exported to climate-rules.json), so the app and the website agree.
+ */
+const MONTH_INDEX: Record<string, number> = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
 
-  if (region.includes('maldives') || country.includes('maldives')) {
-    return { months: [1, 2, 3, 4, 12], shortLabel: 'Dec–Apr', note: 'Dry northeast monsoon & calmest visibility' };
-  }
-  if (country.includes('indonesia') || region.includes('bali')) {
-    return { months: [5, 6, 7, 8, 9, 10], shortLabel: 'May–Oct', note: 'Dry season with low humidity & clear seas' };
-  }
-  if (country.includes('thailand')) {
-    if (/samui|phangan/i.test(loc)) {
-      return { months: [1, 2, 3, 4, 6, 7, 8], shortLabel: 'Jan–Apr, Jun–Aug', note: 'Gulf of Thailand dry windows' };
+const CLIMATE: { re: RegExp; label: string; note: string; months: number[] }[] = (CLIMATE_RULES as [string, string, string][]).map(
+  ([pattern, label, note]) => ({ re: new RegExp(pattern, 'i'), label, note, months: monthsFromLabel(label) })
+);
+
+/** "Apr–May & Oct–Nov" -> [4, 5, 10, 11]; "Year-Round ..." -> every month; ranges wrap over New Year. */
+function monthsFromLabel(label: string): number[] {
+  if (/year-round/i.test(label)) return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+  const out = new Set<number>();
+  const re = /([A-Z][a-z]{2})\s*[–-]\s*([A-Z][a-z]{2})/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(label))) {
+    const a = MONTH_INDEX[m[1].toLowerCase()];
+    const b = MONTH_INDEX[m[2].toLowerCase()];
+    if (!a || !b) continue;
+    for (let k = a; ; k = (k % 12) + 1) {
+      out.add(k);
+      if (k === b) break;
     }
-    return { months: [11, 12, 1, 2, 3], shortLabel: 'Nov–Mar', note: 'Cool, dry Andaman & Bangkok peak season' };
   }
-  if (country.includes('japan')) {
-    if (/hokkaido|niseko/i.test(loc)) {
-      return { months: [1, 2, 3, 7, 8, 9, 12], shortLabel: 'Dec–Mar (Ski), Jul–Sep', note: 'Powder snow winter & cool green summer' };
-    }
-    return { months: [3, 4, 5, 10, 11], shortLabel: 'Mar–May, Oct–Nov', note: 'Cherry blossom spring & crisp autumn foliage' };
-  }
-  if (country.includes('australia')) {
-    if (/queensland|lizard|orpheus|whitsunday|daintree|port douglas|uluru/i.test(loc)) {
-      return { months: [5, 6, 7, 8, 9, 10], shortLabel: 'May–Oct', note: 'Dry tropical & Outback winter sunshine' };
-    }
-    return { months: [11, 12, 1, 2, 3, 4], shortLabel: 'Nov–Apr', note: 'Warm Southern Hemisphere summer & autumn' };
-  }
-  if (country.includes('new zealand')) {
-    return { months: [11, 12, 1, 2, 3, 4], shortLabel: 'Nov–Apr', note: 'Long sunlit summer & autumn days' };
-  }
-  if (/tenerife|lanzarote|gran canaria|fuerteventura|la gomera|la palma|costa adeje|maspalomas|meloneras|playa blanca|corralejo|canary/i.test(loc)) {
-    return {
-      months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
-      shortLabel: 'Year-Round (Oct–May Winter Sun)',
-      note: 'Warm subtropical Canary Islands sunshine year-round',
-    };
-  }
-  if (country.includes('greece') || country.includes('turkey') || country.includes('italy') || country.includes('spain') || country.includes('portugal') || country.includes('croatia')) {
-    return { months: [5, 6, 9, 10], shortLabel: 'May–Jun, Sep–Oct', note: 'Warm Mediterranean sun without peak-August crowds' };
-  }
-  if (country.includes('egypt') || region.includes('middle east') || country.includes('united arab emirates') || country.includes('oman') || country.includes('qatar') || country.includes('saudi arabia')) {
-    return { months: [10, 11, 12, 1, 2, 3, 4], shortLabel: 'Oct–Apr', note: 'Pleasant desert winter warmth' };
-  }
-  if (country.includes('french polynesia') || region.includes('bora bora')) {
-    return { months: [5, 6, 7, 8, 9, 10], shortLabel: 'May–Oct', note: 'Dry austral winter with clear lagoon skies' };
-  }
-  if (region.includes('caribbean') || region.includes('mexico')) {
-    return { months: [12, 1, 2, 3, 4], shortLabel: 'Dec–Apr', note: 'Dry winter season outside hurricane window' };
-  }
-  if (country.includes('south africa')) {
-    return { months: [11, 12, 1, 2, 3, 4], shortLabel: 'Nov–Apr', note: 'Warm Cape summer & wine-country sunshine' };
-  }
-  if (country.includes('kenya') || country.includes('tanzania') || country.includes('botswana') || country.includes('rwanda')) {
-    return { months: [6, 7, 8, 9, 10], shortLabel: 'Jun–Oct', note: 'Dry safari season & peak wildlife viewing' };
-  }
-  if (country.includes('switzerland') || country.includes('austria') || country.includes('norway') || country.includes('iceland')) {
-    return { months: [1, 2, 3, 6, 7, 8, 9], shortLabel: 'Jan–Mar, Jun–Sep', note: 'Alpine snow season & bright Nordic summer' };
-  }
-  if (region.includes('europe')) {
-    return { months: [5, 6, 7, 8, 9, 10], shortLabel: 'May–Oct', note: 'Mild European late spring through early autumn' };
-  }
-  if (country.includes('peru') || country.includes('chile')) {
-    return { months: [5, 6, 7, 8, 9, 10], shortLabel: 'May–Oct', note: 'Clear Andean dry season' };
-  }
-  if (region.includes('indian ocean') || country.includes('seychelles') || country.includes('mauritius')) {
-    return { months: [4, 5, 10, 11], shortLabel: 'Apr–May, Oct–Nov', note: 'Calmest seas between trade-wind seasons' };
-  }
-  return { months: [4, 5, 6, 9, 10], shortLabel: 'Apr–Jun, Sep–Oct', note: 'Balanced shoulder-season weather' };
+  return out.size ? [...out].sort((x, y) => x - y) : [3, 4, 5, 9, 10, 11];
+}
+
+export function getBestMonths(hotel: Hotel): BestMonthsInfo {
+  const hay = `${hotel.name || ''} ${hotel.location || ''} ${hotel.country || ''} ${hotel.region || ''}`;
+  const rule = CLIMATE.find((r) => r.re.test(hay));
+  if (rule) return { months: rule.months, shortLabel: rule.label, note: rule.note };
+  return { months: [3, 4, 5, 9, 10, 11], shortLabel: 'Spring & Autumn', note: 'Mild shoulder-season conditions' };
 }
 
 export function isBestInMonth(hotel: Hotel, monthNum: number): boolean {
@@ -362,6 +326,9 @@ const VERIFIED_ADULTS_ONLY_IDS = new Set([
   'amanpulo-philippines',
 ]);
 
+// Hotels checked by hand as family-friendly (same list as stayodds.com: data/family-hotels.json)
+const VERIFIED_FAMILY_IDS = new Set<string>(["atlantis-sanya", "atlantis-the-royal", "aulani-disney-resort-hawaii", "barcelo-bavaro-palace", "beaches-turks-and-caicos", "calcot-manor", "casa-de-campo-resort-villas", "club-med-kani", "club-med-miches-playa-esmeralda", "club-med-seychelles", "curtain-bluff-antigua", "daios-cove-crete", "eden-roc-cap-cana", "fairmont-mayakoba", "finest-punta-cana", "forte-village-resort", "four-seasons-hualalai", "four-seasons-koh-samui", "four-seasons-langkawi", "four-seasons-maui", "four-seasons-nevis", "four-seasons-punta-mita", "four-seasons-seychelles", "grace-bay-club-turks-caicos", "grand-velas-riviera-maya", "grand-wailea-waldorf-astoria", "half-moon-jamaica", "hyatt-ziva-cap-cana", "ikos-andalusia", "ikos-aria", "intercontinental-hayman-island", "jumby-bay-island-antigua", "jumeirah-al-naseem", "kimpton-seafire-grand-cayman", "mandarin-oriental-sanya", "martinhal-sagres", "montage-los-cabos", "nickelodeon-hotels-resorts-punta-cana", "one-and-only-reethi-rah", "paradisus-palma-real", "ritz-carlton-grand-cayman", "rosewood-baha-mar", "rosewood-little-dix-bay", "rosewood-mayakoba", "rosewood-sanya", "sandy-lane-barbados", "sani-resort", "shangri-la-rasa-ria", "six-senses-qing-cheng-mountain", "sugar-beach-st-lucia", "suvretta-house", "the-broadmoor", "the-cove-atlantis", "the-grove-hertfordshire", "the-ritz-carlton-naples", "the-romanos-costa-navarino", "the-shore-club-turks-and-caicos"]);
+
 export function getGuestProfile(hotel: Hotel): GuestProfileInfo {
   const text = `${hotel.name || ''} ${hotel.verdict || ''} ${hotel.standout || ''} ${hotel.watchOut || ''}`.toLowerCase();
   const isAdultsOnly =
@@ -378,6 +345,7 @@ export function getGuestProfile(hotel: Hotel): GuestProfileInfo {
   }
 
   const isFamily =
+    VERIFIED_FAMILY_IDS.has(hotel.id) ||
     /\bkids?\s*club\b|\bfamil(?:y|ies)\b|\bchildren\b|\bwater\s*park\b|\bteen\b|\bmulti[-\s]?gen\b/i.test(text) ||
     ['Four Seasons', 'St. Regis', 'The Ritz-Carlton', 'One&Only', 'Rosewood', 'Soneva', 'Six Senses', 'Jumeirah'].includes(
       normalizeBrandName(hotel)

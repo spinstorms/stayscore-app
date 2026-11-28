@@ -1,0 +1,9 @@
+{
+ "ios": {
+  "CFBundleDisplayName": "StayOdds",
+  "NSLocationWhenInUseUsageDescription": "StayOdds dapat menampilkan lokasimu di peta hotel agar kamu menemukan hotel mewah di dekatmu. Lokasimu tetap di ponselmu."
+ },
+ "android": {
+  "app_name": "StayOdds"
+ }
+}

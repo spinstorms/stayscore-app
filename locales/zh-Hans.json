@@ -1,0 +1,9 @@
+{
+ "ios": {
+  "CFBundleDisplayName": "StayOdds",
+  "NSLocationWhenInUseUsageDescription": "StayOdds 可以在酒店地图上显示你的位置，帮你找到附近的奢华酒店。你的位置信息只保留在手机上。"
+ },
+ "android": {
+  "app_name": "StayOdds"
+ }
+}

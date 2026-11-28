@@ -1,0 +1,21 @@
+name: Over-the-air update (Android)
+on:
+  push:
+    branches: [app-duo-foldables-and-website-parity]
+    paths: [.github/workflows/ota-update.yml, ota.txt]
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "22", cache: npm }
+      - run: npm ci
+      - name: Check the Expo token is set
+        run: test -n "${{ secrets.EXPO_TOKEN }}" || (echo "EXPO_TOKEN secret is missing" && exit 1)
+      - name: Publish to preview and production
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          npx eas-cli@latest update --channel preview --platform android --message "$(tail -1 ota.txt | cut -c22-)" --non-interactive
+          npx eas-cli@latest update --channel production --platform android --message "$(tail -1 ota.txt | cut -c22-)" --non-interactive

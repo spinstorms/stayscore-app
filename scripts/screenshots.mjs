@@ -3,7 +3,9 @@ import fs from 'node:fs';
 
 const BASE = 'http://localhost:8081';
 const screens = [
-  ['01-explore', '/'],
+  ['00-home', '/'],
+  ['01-explore', '/explore'],
+  ['01b-home-search', '/?q=maldives'],
   ['02-award-lists-top100', '/awards'],
   ['03-award-lists-3keys', '/awards?list=michelin3'],
   ['04-map-3keys', '/map?scope=michelin3'],
@@ -13,11 +15,21 @@ const screens = [
   ['08-compare', '/compare'],
   ['09-watch', '/watch'],
   ['10-deals', '/deals'],
+  ['11-holidays', '/holidays?when=christmas'],
+  ['12-insights', '/insights'],
+  ['13-hotel-christmas', '/hotel/rosewood-hong-kong?when=christmas'],
+  ['14-map-awards', '/map?awards=keys,stars&match=any'],
 ];
 const targets = [
   ['iphone-15-pro', devices['iPhone 15 Pro']],
   ['pixel-7', devices['Pixel 7']],
   ['ipad', devices['iPad Pro 11']],
+  // iPhone Duo (points): outer display, inner display open, inner display in portrait
+  ['iphone-duo-outer', { viewport: { width: 466, height: 678 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true }],
+  ['iphone-duo-open', { viewport: { width: 951, height: 669 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true }],
+  ['iphone-duo-open-portrait', { viewport: { width: 669, height: 951 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true }],
+  // Android book-style foldable, unfolded
+  ['android-fold-open', { viewport: { width: 673, height: 841 }, deviceScaleFactor: 2.6, isMobile: true, hasTouch: true }],
 ];
 fs.mkdirSync('mockups', { recursive: true });
 const browser = await chromium.launch();
@@ -34,6 +46,37 @@ for (const [label, device] of targets) {
     await page.waitForTimeout(6000); // live data loads from the StayOdds database
     await page.screenshot({ path: `mockups/${label}__${name}.png` });
     if (label === 'iphone-15-pro' && name === '01-explore') fs.writeFileSync('mockups/explore.html', await page.content());
+    await page.close();
+  }
+  await ctx.close();
+}
+// Store screenshots at the exact sizes Apple and Google ask for
+const storeScreens = [
+  ['1-home', '/'],
+  ['2-search', '/?q=Maldives%20in%20March'],
+  ['3-explore', '/explore'],
+  ['4-hotel', '/hotel/the-ungasan-bali'],
+  ['5-compare', '/compare'],
+  ['6-insights', '/insights'],
+  ['7-watch', '/watch'],
+];
+const storeTargets = [
+  ['apple-iphone-6.9', { viewport: { width: 440, height: 956 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true }], // 1320x2868
+  ['apple-iphone-6.3', { viewport: { width: 402, height: 874 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true }], // 1206x2622
+  ['apple-duo', { viewport: { width: 699, height: 1017 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true }], // 1398x2034
+  ['apple-ipad-13', { viewport: { width: 1032, height: 1376 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true }], // 2064x2752
+  ['google-phone', { viewport: { width: 360, height: 640 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true }], // 1080x1920
+  ['google-tablet-7', { viewport: { width: 600, height: 960 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true }], // 1200x1920
+  ['google-tablet-10', { viewport: { width: 800, height: 1280 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true }], // 1600x2560
+];
+fs.mkdirSync('mockups/store', { recursive: true });
+for (const [label, device] of storeTargets) {
+  const ctx = await browser.newContext({ ...device });
+  for (const [name, path] of storeScreens) {
+    const page = await ctx.newPage();
+    await page.goto(BASE + path, { waitUntil: 'networkidle', timeout: 60000 }).catch(() => {});
+    await page.waitForTimeout(6000);
+    await page.screenshot({ path: `mockups/store/${label}__${name}.png` });
     await page.close();
   }
   await ctx.close();

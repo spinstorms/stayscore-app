@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -13,159 +13,36 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { HotelDetailContent } from '../../components/HotelDetailContent';
-import { RequestResortModal } from '../../components/SupportModals';
-import { openExternalUrl } from '../../lib/api';
-import { BRAND } from '../../lib/brand';
+import { HotelDetailContent } from '../../../components/HotelDetailContent';
+import { StayOddsWordmark } from '../../../components/TabStack';
+import { RequestResortModal } from '../../../components/SupportModals';
+import { getHotelVideoUrl, openExternalUrl } from '../../../lib/api';
+import { BRAND } from '../../../lib/brand';
+import { getBrandCategories, getMonthShortName, getPartnerPrograms, isBestInMonth } from '../../../lib/insights';
+import { formatPersonalScore, useAdaptiveLayout } from '../../../lib/layout';
+import { computeStayOdds, getTonePalette, getTripAdvisorUrl, isVisitedProperty } from '../../../lib/scoring';
 import {
-  getBrandCategories,
-  getGuestProfile,
-  getMonthShortName,
-  getPartnerPrograms,
-  isBestInMonth,
-} from '../../lib/insights';
-import { formatPersonalScore, useAdaptiveLayout } from '../../lib/layout';
-import { computeStayOdds, getTonePalette, getTripAdvisorUrl, isVisitedProperty } from '../../lib/scoring';
-import { useStayOdds } from '../../lib/store';
-import { Colors } from '../../lib/theme';
-import type { Hotel } from '../../lib/types';
+  FEATURE_FILTERS,
+  getForbesRank,
+  getMichelinKeyCount,
+  getW50BestRank,
+  type VerifiedFeature,
+} from '../../../lib/features';
+import { useStayOdds } from '../../../lib/store';
+import { Colors } from '../../../lib/theme';
+import type { Hotel } from '../../../lib/types';
+import { lazyTab } from '../../../components/LazyTab';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { withRailShortcuts } from '../../../components/RailShortcuts';
+import { routes } from '../../../lib/nav';
+import { t } from '../../../lib/i18n';
 
 type Scope = 'all' | 'visited' | 'world' | 'saved';
-type VerifiedFeature =
-  | 'all'
-  | '50best_50'
-  | '50best_100'
-  | 'michelin'
-  | 'michelin_3'
-  | 'michelin_2'
-  | 'michelin_1'
-  | 'forbes'
-  | 'video'
-  | 'adults'
-  | 'family'
-  | 'preferred'
-  | 'points'
-  | 'beach';
-
-function getW50BestRank(h: Hotel): number | null {
-  let best: number | null = null;
-  for (const a of h.officialAwards || []) {
-    const txt = `${a.awardBody || ''} ${a.label || ''}`;
-    if (/50\s*best/i.test(txt)) {
-      const m = String(a.label || '').match(/(?:No\.?|#)\s*(\d{1,3})/i);
-      const val = m ? Number(m[1]) : 999;
-      if (best == null || val < best) best = val;
-    }
-  }
-  return best;
-}
-
-function getMichelinKeyCount(h: Hotel): number | null {
-  let best: number | null = null;
-  for (const a of h.officialAwards || []) {
-    const txt = `${a.awardBody || ''} ${a.label || ''}`;
-    if (/michelin/i.test(txt)) {
-      const m = String(a.label || '').match(/([123])\s*michelin\s*key/i);
-      const val = m ? Number(m[1]) : 1;
-      if (best == null || val > best) best = val;
-    }
-  }
-  return best;
-}
-
-function getForbesRank(h: Hotel): number | null {
-  let best: number | null = null;
-  for (const a of h.officialAwards || []) {
-    const txt = `${a.awardBody || ''} ${a.label || ''}`;
-    if (/forbes/i.test(txt)) {
-      let val = 1;
-      if (/five[- ]star/i.test(txt)) val = 5;
-      else if (/four[- ]star/i.test(txt)) val = 4;
-      else if (/recommended/i.test(txt)) val = 3;
-      if (best == null || val > best) best = val;
-    }
-  }
-  return best;
-}
-
-const FEATURE_FILTERS: { id: VerifiedFeature; label: string; match: (h: Hotel) => boolean }[] = [
-  { id: 'all', label: 'All Data', match: () => true },
-  {
-    id: '50best_50',
-    label: '🏆 Top 50 (#1→50)',
-    match: (h) => {
-      const r = getW50BestRank(h);
-      return r != null && r >= 1 && r <= 50;
-    },
-  },
-  {
-    id: '50best_100',
-    label: '💯 Top 100 (#1→100)',
-    match: (h) => {
-      const r = getW50BestRank(h);
-      return r != null && r >= 1 && r <= 100;
-    },
-  },
-  {
-    id: 'michelin',
-    label: '🗝️ MICHELIN (3→1)',
-    match: (h) => getMichelinKeyCount(h) != null,
-  },
-  {
-    id: 'michelin_3',
-    label: '🗝️ 3 Keys',
-    match: (h) => getMichelinKeyCount(h) === 3,
-  },
-  {
-    id: 'michelin_2',
-    label: '🗝️ 2 Keys',
-    match: (h) => getMichelinKeyCount(h) === 2,
-  },
-  {
-    id: 'michelin_1',
-    label: '🗝️ 1 Key',
-    match: (h) => getMichelinKeyCount(h) === 1,
-  },
-  {
-    id: 'forbes',
-    label: '⭐ Forbes',
-    match: (h) => getForbesRank(h) != null,
-  },
-  {
-    id: 'video',
-    label: 'Video Reviews',
-    match: (h) => Boolean(h.videoId || (h.youtubeReviews && h.youtubeReviews.length > 0)),
-  },
-  {
-    id: 'adults',
-    label: '🥂 Adults-Only',
-    match: (h) => getGuestProfile(h).adultsOnly,
-  },
-  {
-    id: 'family',
-    label: '👨‍👩‍👧 Family & Kids',
-    match: (h) => getGuestProfile(h).familyFriendly,
-  },
-  {
-    id: 'preferred',
-    label: '✨ Preferred Perks',
-    match: (h) => getPartnerPrograms(h).hasPreferredPerks,
-  },
-  {
-    id: 'points',
-    label: '★ Points Brands',
-    match: (h) => getPartnerPrograms(h).isPointsEligible,
-  },
-  {
-    id: 'beach',
-    label: 'Beach / Reef',
-    match: (h) => Boolean(h.keyFacts?.beachOrReef || h.region === 'Maldives'),
-  },
-];
-
-export default function StayOddsHomeScreen() {
+const IOS = process.env.EXPO_OS === 'ios';
+const stripEmoji = (s: string) => s.replace(/^[^A-Za-z0-9']+\s*/, '');
+export function StayOddsHomeScreen() {
   const router = useRouter();
-  const { isSplitScreen } = useAdaptiveLayout();
+  const { isSplitScreen, isWideDesktop } = useAdaptiveLayout();
   const {
     hotels,
     visitedCount,
@@ -185,6 +62,13 @@ export default function StayOddsHomeScreen() {
   const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState<string>('taaktana-labuan-bajo');
   const [requestOpen, setRequestOpen] = useState(false);
+  // Android/web: the less-used filter rows sit behind a "Filters" chip so the front screen stays calm.
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const insets = useSafeAreaInsets();
+  // Filters go in the rail on iPhone and the open Duo. On the folded Duo the rail already holds
+  // the clock, the shortcuts and the tabs, so the filters stay in the page there instead.
+  const foldedDuo = IOS && !isSplitScreen && (insets.left > 40 || insets.right > 40);
+  const railFilters = IOS && !foldedDuo;
 
   const savedCount = useMemo(
     () => hotels.filter((h) => shortlist.includes(h.id)).length,
@@ -219,6 +103,17 @@ export default function StayOddsHomeScreen() {
     }
     return ['All', ...ordered];
   }, [scopedHotels]);
+
+  // Scores worked out once per hotel, not again inside every sort comparison
+  const oddsCache = useMemo(() => new Map<string, ReturnType<typeof computeStayOdds>>(), [hotels]);
+  const oddsOf = (h: Hotel) => {
+    let o = oddsCache.get(h.id);
+    if (!o) {
+      o = computeStayOdds(h);
+      oddsCache.set(h.id, o);
+    }
+    return o;
+  };
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -264,8 +159,8 @@ export default function StayOddsHomeScreen() {
           const fb = getForbesRank(b) ?? -1;
           if (fb !== fa) return fb - fa;
         }
-        const oa = computeStayOdds(a);
-        const ob = computeStayOdds(b);
+        const oa = oddsOf(a);
+        const ob = oddsOf(b);
         const tierRank = (o: ReturnType<typeof computeStayOdds>) =>
           o.firstHand ? 2 : o.visited ? 1 : 0;
         if (tierRank(ob) !== tierRank(oa)) return tierRank(ob) - tierRank(oa);
@@ -301,6 +196,21 @@ export default function StayOddsHomeScreen() {
       >
         <View style={styles.cardHeroWrap}>
           <Image source={{ uri: h.thumbnail }} style={styles.cardHeroImg} resizeMode="cover" />
+          {/* our video review: a YouTube play button right on the photo */}
+          {h.videoId ? (
+            <Pressable
+              style={styles.playBtn}
+              onPress={() => {
+                const url = getHotelVideoUrl(h);
+                if (url) openExternalUrl(url);
+              }}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={`Watch our video of ${h.name}`}
+            >
+              <Ionicons name="play" size={24} color="#FFFFFF" style={{ marginLeft: 3 }} />
+            </Pressable>
+          ) : null}
 
           {/* Top overlay: tier pill + heart shortlist toggle + floating Two-Track ring */}
           <View style={styles.cardHeroTop}>
@@ -349,14 +259,14 @@ export default function StayOddsHomeScreen() {
                 style={[
                   styles.ring,
                   isVerifiedTrack
-                    ? { backgroundColor: '#0F172A', borderColor: Colors.accent, borderWidth: 2.5 }
+                    ? { backgroundColor: Colors.accent, borderColor: '#FFFFFF', borderWidth: 2.5 }
                     : { backgroundColor: 'rgba(248, 250, 252, 0.94)', borderColor: '#0F766E', borderWidth: 2 },
                 ]}
               >
-                <Text style={[styles.ringPct, !isVerifiedTrack && { color: '#0F172A' }]}>
+                <Text style={[styles.ringPct, { color: isVerifiedTrack ? '#FFFFFF' : '#0F172A' }]}>
                   {o.greatStayOdds != null ? `${o.greatStayOdds}%` : topAward ? '★' : '—'}
                 </Text>
-                <Text style={[styles.ringLabel, !isVerifiedTrack && { color: '#0F766E' }]}>
+                <Text style={[styles.ringLabel, { color: isVerifiedTrack ? '#FFFFFF' : '#0F766E' }]}>
                   {o.greatStayOdds != null ? (isVerifiedTrack ? 'VERIFIED' : 'MARKET') : topAward ? 'AWARD' : 'OPEN'}
                 </Text>
               </View>
@@ -433,25 +343,108 @@ export default function StayOddsHomeScreen() {
     );
   };
 
+  const scopeLabels: Record<Scope, string> = {
+    all: `All (${hotels.length})`,
+    visited: `Verified by us (${visitedCount})`,
+    world: `Global directory (${worldCount})`,
+    saved: `Shortlist (${savedCount})`,
+  };
+  const activeFilterLabels = [
+    scope !== 'all' ? scopeLabels[scope].replace(/ \(\d+\)$/, '') : '',
+    feature !== 'all' ? stripEmoji(FEATURE_FILTERS.find((f) => f.id === feature)?.label || '') : '',
+    selectedMonth ? `Best in ${getMonthShortName(selectedMonth)}` : '',
+  ].filter(Boolean);
+  const clearFilters = () => {
+    setScope('all');
+    setFeature('all');
+    setSelectedMonth(0);
+  };
+
+  // iOS: filters and destinations live in the native header. On iPhone Duo the system moves
+  // these icon buttons into the side rail, so the folded front screen keeps just search,
+  // regions and the hotels.
+  const iosToolbar = railFilters ? (
+    <Stack.Toolbar placement="right">
+      <Stack.Toolbar.Menu
+        icon={
+          activeFilterLabels.length
+            ? 'line.3.horizontal.decrease.circle.fill'
+            : 'line.3.horizontal.decrease.circle'
+        }
+        accessibilityLabel={t("Filters")}
+      >
+        <Stack.Toolbar.Menu title="Show" inline>
+          {(['all', 'visited', 'world', 'saved'] as const).map((val) => (
+            <Stack.Toolbar.MenuAction
+              key={val}
+              isOn={scope === val}
+              onPress={() => {
+                setScope(val);
+                setRegion('All');
+              }}
+            >
+              {scopeLabels[val]}
+            </Stack.Toolbar.MenuAction>
+          ))}
+        </Stack.Toolbar.Menu>
+        <Stack.Toolbar.Menu title="Awards and data" icon="trophy">
+          {FEATURE_FILTERS.map((f) => (
+            <Stack.Toolbar.MenuAction key={f.id} isOn={feature === f.id} onPress={() => setFeature(f.id)}>
+              {stripEmoji(f.label)}
+            </Stack.Toolbar.MenuAction>
+          ))}
+        </Stack.Toolbar.Menu>
+        <Stack.Toolbar.Menu title="Best month to go" icon="calendar">
+          {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((m) => (
+            <Stack.Toolbar.MenuAction key={m} isOn={selectedMonth === m} onPress={() => setSelectedMonth(m)}>
+              {m === 0 ? 'Any month' : getMonthShortName(m)}
+            </Stack.Toolbar.MenuAction>
+          ))}
+        </Stack.Toolbar.Menu>
+        <Stack.Toolbar.Menu title="More" inline>
+          <Stack.Toolbar.MenuAction icon="trophy" onPress={() => router.push('/awards')}>
+            {t("Award lists")}
+          </Stack.Toolbar.MenuAction>
+          <Stack.Toolbar.MenuAction icon="plus.circle" onPress={() => setRequestOpen(true)}>
+            Request a resort
+          </Stack.Toolbar.MenuAction>
+          {activeFilterLabels.length ? (
+            <Stack.Toolbar.MenuAction icon="xmark.circle" onPress={clearFilters}>
+              Clear filters
+            </Stack.Toolbar.MenuAction>
+          ) : null}
+        </Stack.Toolbar.Menu>
+      </Stack.Toolbar.Menu>
+      {/* One button only: the Duo rail also holds the tabs, and more buttons ran into them.
+          Holidays and Insights are tabs; award lists are in this menu. */}
+    </Stack.Toolbar>
+  ) : null;
+
   const listHeader = (
     <View style={styles.navyHeaderPanel}>
+      {!IOS && isSplitScreen ? (
+        <View style={{ marginTop: 6, marginBottom: 12 }}>
+          <StayOddsWordmark />
+        </View>
+      ) : null}
       <View style={styles.searchWrap}>
-        <Ionicons name="search" size={17} color="rgba(255,255,255,0.68)" />
+        <Ionicons name="search" size={17} color={Colors.inkSecondary} />
         <TextInput
           value={search}
           onChangeText={setSearch}
           placeholder={`Search ${BRAND.name}: Maldives, Bali, Four Seasons...`}
-          placeholderTextColor="rgba(255,255,255,0.58)"
+          placeholderTextColor={Colors.inkMuted}
           style={styles.searchInput}
           returnKeyType="search"
         />
         {search ? (
           <Pressable onPress={() => setSearch('')}>
-            <Ionicons name="close-circle" size={17} color="rgba(255,255,255,0.75)" />
+            <Ionicons name="close-circle" size={17} color={Colors.inkSecondary} />
           </Pressable>
         ) : null}
       </View>
 
+      {railFilters ? null : (
       <View style={styles.scopeBar}>
         {(
           [
@@ -475,17 +468,45 @@ export default function StayOddsHomeScreen() {
           </Pressable>
         ))}
       </View>
+      )}
 
-      <Pressable
-        onPress={() => router.push('/awards')}
-        style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 14, marginBottom: 10, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 12, backgroundColor: 'rgba(255, 93, 34, 0.18)', borderWidth: 1, borderColor: Colors.accent }}
-      >
-        <Ionicons name="trophy-outline" size={16} color="#FFFFFF" />
-        <Text style={{ color: '#FFFFFF', fontWeight: '800', fontSize: 13.5, flex: 1 }}>
-          Award lists: World's 50 Best Top 100 • MICHELIN Keys
-        </Text>
-        <Ionicons name="chevron-forward" size={16} color="#FFFFFF" />
-      </Pressable>
+      {railFilters ? (
+        activeFilterLabels.length ? (
+          <View style={styles.activeFilters}>
+            <Ionicons name="funnel" size={12} color={Colors.inkSecondary} />
+            <Text style={styles.activeFiltersText} numberOfLines={1}>
+              {activeFilterLabels.join(' · ')}
+            </Text>
+            <Pressable onPress={clearFilters} hitSlop={8}>
+              <Text style={styles.activeFiltersClear}>{t("Clear")}</Text>
+            </Pressable>
+          </View>
+        ) : null
+      ) : (
+        <View style={styles.quickLinks}>
+          <Pressable
+            onPress={() => setFiltersOpen((o) => !o)}
+            style={[styles.quickLink, (filtersOpen || activeFilterLabels.length > 0) && styles.quickLinkOn]}
+          >
+            <Ionicons name="options-outline" size={15} color={Colors.inkPrimary} />
+            <Text style={styles.quickLinkText} numberOfLines={1}>
+              {t('Filters')}{activeFilterLabels.length ? ` (${activeFilterLabels.length})` : ''}
+            </Text>
+          </Pressable>
+          <Pressable onPress={() => router.push('/awards')} style={styles.quickLink} accessibilityLabel={t("Award lists")}>
+            <Ionicons name="trophy-outline" size={15} color={Colors.inkPrimary} />
+            <Text style={styles.quickLinkText} numberOfLines={1}>{t("Awards")}</Text>
+          </Pressable>
+          <Pressable onPress={() => router.push(routes.holidays() as never)} style={styles.quickLink} accessibilityLabel={t("Holidays")}>
+            <Ionicons name="gift-outline" size={15} color={Colors.inkPrimary} />
+            <Text style={styles.quickLinkText} numberOfLines={1}>{t("Holidays")}</Text>
+          </Pressable>
+          <Pressable onPress={() => router.push(routes.insights() as never)} style={styles.quickLink} accessibilityLabel="Guest insights">
+            <Ionicons name="stats-chart-outline" size={15} color={Colors.inkPrimary} />
+            <Text style={styles.quickLinkText} numberOfLines={1}>{t("Insights")}</Text>
+          </Pressable>
+        </View>
+      )}
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.regionRow}>
         {regions.map((r) => {
@@ -496,18 +517,22 @@ export default function StayOddsHomeScreen() {
               onPress={() => setRegion(r)}
               style={[styles.regionPill, isActive && styles.regionPillActive]}
             >
-              <Text style={[styles.regionText, isActive && styles.regionTextActive]}>{r}</Text>
+              <Text style={[styles.regionText, isActive && styles.regionTextActive]}>{r === 'All' ? t('All') : t(r)}</Text>
             </Pressable>
           );
         })}
-        <Pressable
-          onPress={() => setRequestOpen(true)}
-          style={[styles.regionPill, { borderColor: Colors.accent, backgroundColor: 'rgba(255, 93, 34, 0.22)' }]}
-        >
-          <Text style={[styles.regionText, { color: '#FFFFFF', fontWeight: '700' }]}>+ Request Resort</Text>
-        </Pressable>
+        {railFilters ? null : (
+          <Pressable
+            onPress={() => setRequestOpen(true)}
+            style={[styles.regionPill, { borderColor: Colors.accent, backgroundColor: 'rgba(11, 122, 122, 0.22)' }]}
+          >
+            <Text style={[styles.regionText, { color: Colors.inkPrimary, fontWeight: '700' }]}>+ Request Resort</Text>
+          </Pressable>
+        )}
       </ScrollView>
 
+      {!railFilters && filtersOpen ? (
+        <>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -522,15 +547,15 @@ export default function StayOddsHomeScreen() {
               style={[
                 styles.regionPill,
                 {
-                  borderColor: isActive ? '#38BDF8' : 'rgba(255,255,255,0.14)',
-                  backgroundColor: isActive ? 'rgba(56, 189, 248, 0.22)' : 'rgba(255,255,255,0.06)',
+                  borderColor: isActive ? '#38BDF8' : Colors.border,
+                  backgroundColor: isActive ? 'rgba(56, 189, 248, 0.22)' : Colors.sandCard,
                 },
               ]}
             >
               <Text
                 style={[
                   styles.regionText,
-                  { color: isActive ? '#E0F2FE' : 'rgba(255,255,255,0.78)', fontSize: 11.5 },
+                  { color: isActive ? '#075985' : Colors.inkSecondary, fontSize: 11.5 },
                 ]}
               >
                 {f.label}
@@ -555,15 +580,15 @@ export default function StayOddsHomeScreen() {
               style={[
                 styles.regionPill,
                 {
-                  borderColor: isActive ? '#FBBF24' : 'rgba(255,255,255,0.12)',
-                  backgroundColor: isActive ? 'rgba(251, 191, 36, 0.22)' : 'rgba(255,255,255,0.05)',
+                  borderColor: isActive ? '#FBBF24' : Colors.border,
+                  backgroundColor: isActive ? 'rgba(251, 191, 36, 0.22)' : Colors.sandCard,
                 },
               ]}
             >
               <Text
                 style={[
                   styles.regionText,
-                  { color: isActive ? '#FEF3C7' : 'rgba(255,255,255,0.72)', fontSize: 11 },
+                  { color: isActive ? '#92400E' : Colors.inkSecondary, fontSize: 11 },
                 ]}
               >
                 {label}
@@ -572,6 +597,8 @@ export default function StayOddsHomeScreen() {
           );
         })}
       </ScrollView>
+        </>
+      ) : null}
     </View>
   );
 
@@ -607,7 +634,8 @@ export default function StayOddsHomeScreen() {
   if (isSplitScreen) {
     return (
       <View style={styles.splitRoot}>
-        <View style={styles.splitLeft}>
+        {iosToolbar}
+        <View style={[styles.splitLeft, !isWideDesktop && styles.splitLeftHalf]}>
           <FlatList
             data={filtered}
             keyExtractor={(item) => item.id}
@@ -628,6 +656,7 @@ export default function StayOddsHomeScreen() {
 
   return (
     <View style={styles.screen}>
+      {iosToolbar}
       <FlatList
         data={filtered}
         keyExtractor={(item) => item.id}
@@ -643,18 +672,47 @@ export default function StayOddsHomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.bgCanvas },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: Colors.bgCanvas },
+  screen: { flex: 1, backgroundColor: Colors.sand },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: Colors.sand },
   loadingText: { color: Colors.inkSecondary, fontSize: 14, fontWeight: '600' },
 
-  splitRoot: { flex: 1, flexDirection: 'row', backgroundColor: Colors.bgCanvas },
-  splitLeft: { width: '44%', minWidth: 320, borderRightWidth: 1, borderRightColor: Colors.border },
+  splitRoot: { flex: 1, flexDirection: 'row', backgroundColor: Colors.sand },
+  splitLeft: { width: '42%', minWidth: 320, borderRightWidth: 1, borderRightColor: Colors.border },
+  // Foldables and iPhone Duo fold down the middle: an even split keeps the crease between list and detail.
+  splitLeftHalf: { width: '50%', minWidth: 0 },
   splitRight: { flex: 1 },
 
   listContent: { paddingBottom: 34, gap: 14 },
+  quickLinks: { flexDirection: 'row', gap: 6, marginBottom: 10 },
+  quickLinkOn: { backgroundColor: 'rgba(11, 122, 122, 0.22)', borderColor: Colors.accent },
+  activeFilters: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 10,
+    backgroundColor: Colors.sand,
+  },
+  activeFiltersText: { flex: 1, color: Colors.inkSecondary, fontSize: 12.5, fontWeight: '600' },
+  activeFiltersClear: { color: '#FDBA74', fontSize: 12.5, fontWeight: '700' },
+  quickLink: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 9,
+    borderRadius: 12,
+    backgroundColor: Colors.sand,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  quickLinkText: { color: Colors.inkPrimary, fontWeight: '700', fontSize: 12 },
 
   navyHeaderPanel: {
-    backgroundColor: Colors.navy,
+    backgroundColor: Colors.sand,
     paddingHorizontal: 14,
     paddingTop: 6,
     paddingBottom: 18,
@@ -667,46 +725,63 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    backgroundColor: Colors.sand,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderColor: Colors.border,
     paddingHorizontal: 13,
     paddingVertical: 10,
   },
-  searchInput: { flex: 1, fontSize: 14, color: '#FFFFFF' },
+  searchInput: { flex: 1, fontSize: 14, color: Colors.inkPrimary },
 
   scopeBar: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: Colors.sand,
     borderRadius: 999,
     padding: 3,
     gap: 4,
   },
   scopeBtn: { flex: 1, paddingVertical: 7, borderRadius: 999, alignItems: 'center' },
-  scopeBtnActive: { backgroundColor: '#FFFFFF' },
-  scopeText: { fontSize: 11.5, fontWeight: '700', color: 'rgba(255,255,255,0.75)' },
-  scopeTextActive: { color: Colors.navy },
+  scopeBtnActive: { backgroundColor: Colors.accent },
+  scopeText: { fontSize: 11.5, fontWeight: '700', color: Colors.inkSecondary },
+  scopeTextActive: { color: '#FFFFFF' },
 
   regionRow: { gap: 8, paddingVertical: 2 },
   regionPill: {
     paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: 999,
-    backgroundColor: 'rgba(255, 255, 255, 0.09)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.16)',
-  },
-  regionPillActive: { backgroundColor: Colors.accent, borderColor: Colors.accent },
-  regionText: { fontSize: 12, fontWeight: '700', color: 'rgba(255,255,255,0.88)' },
-  regionTextActive: { color: '#FFFFFF' },
-
-  card: {
-    marginHorizontal: 14,
-    backgroundColor: Colors.bgWhite,
-    borderRadius: 22,
+    backgroundColor: Colors.sand,
     borderWidth: 1,
     borderColor: Colors.border,
+  },
+  regionPillActive: { backgroundColor: Colors.accent, borderColor: Colors.accent },
+  regionText: { fontSize: 12, fontWeight: '700', color: Colors.inkSecondary },
+  regionTextActive: { color: '#FFFFFF' },
+
+  playBtn: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    width: 56,
+    height: 56,
+    marginLeft: -28,
+    marginTop: -40,
+    borderRadius: 28,
+    backgroundColor: '#E62117',
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 5,
+    elevation: 5,
+  },
+  card: {
+    marginHorizontal: 14,
+    backgroundColor: Colors.sandCard,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: Colors.sandBorder,
     overflow: 'hidden',
     shadowColor: '#0F172A',
     shadowOpacity: 0.08,
@@ -825,3 +900,5 @@ const styles = StyleSheet.create({
   },
   taChipText: { fontSize: 10.5, fontWeight: '700', color: Colors.inkSecondary },
 });
+
+export default lazyTab(withRailShortcuts(StayOddsHomeScreen));

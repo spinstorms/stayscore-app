@@ -1,82 +1,29 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import savedTripadvisor from '../assets/data/tripadvisor.json';
+import savedGoogle from '../assets/data/google-ratings.json';
 import * as WebBrowser from 'expo-web-browser';
 import { Linking } from 'react-native';
+import { readBig, writeBig } from './bigStore';
 import { BRAND } from './brand';
-import { PLACEHOLDER_IDS } from './placeholders';
+import { buildPayload, type RawDirectory, type SavedRating, type StayOddsPayload } from './payload';
 import type { AffiliateDeal, Hotel, VideoItem } from './types';
 
+export { buildPayload, type RawDirectory, type StayOddsPayload } from './payload';
+
 export const LIVE_BASE_URL = BRAND.liveApiBaseUrl;
+
+/** Saved Tripadvisor and Google ratings: the same copies stayodds.com scores with, so the scores match */
+function withSavedRatings(raw: RawDirectory): RawDirectory {
+  return {
+    ...raw,
+    savedRatings: {
+      tripadvisor: (savedTripadvisor as { hotels: Record<string, SavedRating> }).hotels,
+      google: (savedGoogle as { hotels: Record<string, SavedRating> }).hotels,
+    },
+  };
+}
 const CACHE_KEY = 'stayodds_supabase_cache_v23';
 
-function resolveHotelThumbnail(id: string, rawHero?: string | null): string {
-  const hero = String(rawHero || '').trim();
-  const isBlocked =
-    !hero ||
-    hero.includes('www.fourseasons.com') ||
-    hero.includes('www.lungarnocollection.com') ||
-    hero.endsWith('/logo.jpg');
-  const ownPlaceholder = PLACEHOLDER_IDS.has(id)
-    ? `${LIVE_BASE_URL}/assets/placeholders/${id}.webp?v=169`
-    : `${LIVE_BASE_URL}/assets/placeholders/default-stayodds.webp?v=169`;
-  const missingPlaceholder = /\/assets\/placeholders\/([^/?]+)\.webp/.exec(hero);
-  if (missingPlaceholder && !PLACEHOLDER_IDS.has(missingPlaceholder[1])) return ownPlaceholder;
-  if (!isBlocked && /^https?:\/\//i.test(hero)) {
-    return hero.includes('uncharteditinerary.com/assets/') && !hero.includes('?') ? `${hero}?v=169` : hero;
-  }
-  if (!isBlocked && hero.startsWith('assets/')) return `${LIVE_BASE_URL}/${hero}?v=169`;
-  return ownPlaceholder;
-}
 
-function photoCreditFrom(src: unknown, thumb: string): { text: string; url: string } | null {
-  if (typeof src !== 'string' || !src.startsWith('wikimedia|') || !/^https?:/i.test(thumb)) return null;
-  const [, lic = '', artist = '', page = ''] = src.split('|');
-  const text = `Photo: ${artist.trim() || 'Wikimedia Commons'}${lic.trim() ? `, ${lic.trim()}` : ''} via Wikimedia Commons`;
-  return { text, url: page.trim() };
-}
-
-/** One guest score from every real guest rating, weighted by review count (same rule as stayodds.com). */
-function combineGuestScores(rows?: Record<string, any>[] | null): Hotel['verifiedGuest'] {
-  if (!rows || !rows.length) return null;
-  const parts = rows.map((r) => {
-    const isTa = r.partner_source === 'tripadvisor';
-    const isGoogle = r.partner_source === 'google';
-    return {
-      name: isTa ? 'Tripadvisor' : isGoogle ? 'Google' : 'Verified booking guests',
-      rating: Number(r.rating),
-      scale: Number(r.scale || (isTa || isGoogle ? 5 : 10)),
-      normalized100: Number(r.normalized_100),
-      reviewCount: r.review_count != null ? Number(r.review_count) : null,
-      verifiedAt: r.verified_at as string | undefined,
-    };
-  });
-  const counts = parts.map((p) => p.reviewCount || 0);
-  const total = counts.reduce((a, b) => a + b, 0);
-  const n100 = total
-    ? Math.round(parts.reduce((a, p, i) => a + p.normalized100 * counts[i], 0) / total)
-    : Math.round(parts.reduce((a, p) => a + p.normalized100, 0) / parts.length);
-  return {
-    licensed: {
-      sourceName: parts.length > 1 ? 'Guest Reviews' : parts[0].name,
-      rating: Math.round(n100) / 10,
-      scale: 10,
-      normalized100: n100,
-      reviewCount: total || null,
-      attribution: parts.map((p) => p.name).join(' + '),
-      verifiedAt: parts.map((p) => p.verifiedAt || '').sort().pop() || null,
-      sources: parts,
-    },
-  } as Hotel['verifiedGuest'];
-}
-
-export interface StayOddsPayload {
-  hotels: Hotel[];
-  visitedCount: number;
-  worldCount: number;
-  videos: VideoItem[];
-  shorts: VideoItem[];
-  deals: AffiliateDeal[];
-  updatedAt: string;
-}
 
 export interface LiveGoogleRating {
   status: 'ok' | 'cap_reached' | 'unavailable';
@@ -159,7 +106,7 @@ function parseCachedPayload(raw: string | null): { data: StayOddsPayload; isFres
 
 export async function loadCachedDataWithMeta(): Promise<{ data: StayOddsPayload; isFresh: boolean } | null> {
   try {
-    const raw = await AsyncStorage.getItem(CACHE_KEY);
+    const raw = await readBig(CACHE_KEY);
     return parseCachedPayload(raw);
   } catch {
     return null;
@@ -197,7 +144,35 @@ export async function fetchStayOddsData(options?: { forceRefresh?: boolean }): P
   return inFlightDirectoryFetch;
 }
 
+
+/** The website's photo for each hotel (card photos, the hotel's own gallery, official photos) beats the database's first photo. */
+async function withSitePhotos(payload: StayOddsPayload): Promise<StayOddsPayload> {
+  try {
+    const res = await fetchLiveJson<{ photos?: Record<string, string>; galleries?: Record<string, string[]> }>('/data/app-photos.json');
+    const photos = res?.photos || {};
+    const galleries = res?.galleries || {};
+    for (const h of payload.hotels as Array<{ id: string; thumbnail?: string; gallery?: string[] }>) {
+      const p = photos[h.id];
+      if (p && /^https?:\/\//.test(p) && !p.includes('/placeholders/')) h.thumbnail = p;
+      if (galleries[h.id]?.length) h.gallery = galleries[h.id];
+    }
+  } catch {
+    // keep the database photos
+  }
+  return payload;
+}
+
 async function fetchStayOddsDataFromNetwork(): Promise<StayOddsPayload> {
+  const payload = await withSitePhotos(buildPayload(withSavedRatings(await fetchRawDirectory())));
+  // Never cache empty or failed responses
+  if (payload.hotels.length > 0) {
+    const envelope: CachedEnvelope = { cachedAt: Date.now(), data: payload };
+    writeBig(CACHE_KEY, JSON.stringify(envelope));
+  }
+  return payload;
+}
+
+export async function fetchRawDirectory(): Promise<RawDirectory> {
   const [props, facts, fhReviews, licensedScores, awards, editorial, ytReviews, bookingLinks, videosRes, affRes] =
     await Promise.all([
       sbSelect<Record<string, any>>('properties'),
@@ -216,172 +191,27 @@ async function fetchStayOddsDataFromNetwork(): Promise<StayOddsPayload> {
         '/data/affiliates.json'
       ).catch(() => ({ curated: [], fromVideos: [] })),
     ]);
+  return { props, facts, fhReviews, licensedScores, awards, editorial, ytReviews, bookingLinks, videosRes, affRes };
+}
 
-  const factMap = new Map(facts.map((r) => [String(r.property_id), r]));
-  const fhMap = new Map(fhReviews.map((r) => [String(r.property_id), r]));
-  // A guest rating needs at least 20 reviews; thinner ones are left off. A hotel can have several
-  // (booking-platform guests out of 10, Tripadvisor out of 5): they are combined below, weighted by review count.
-  const guestMap = new Map<string, Record<string, any>[]>();
-  licensedScores
-    .filter((r) => (r.review_count != null ? Number(r.review_count) >= 20 : r.partner_source !== 'nuitee_connect'))
-    .forEach((r) => {
-      const k = String(r.property_id);
-      guestMap.set(k, [...(guestMap.get(k) || []), r]);
-    });
 
-  const awardsMap = new Map<string, any[]>();
-  awards.forEach((r) => {
-    const k = String(r.property_id);
-    awardsMap.set(k, [
-      ...(awardsMap.get(k) || []),
-      {
-        awardBody: r.award_body,
-        label: r.label,
-        year: r.award_year,
-        normalized100: r.normalized_100,
-        sourceUrl: r.source_url,
-      },
-    ]);
-  });
-
-  const edMap = new Map<string, any[]>();
-  editorial.forEach((r) => {
-    const k = String(r.property_id);
-    edMap.set(k, [
-      ...(edMap.get(k) || []),
-      {
-        sourceName: r.source_name,
-        sourceUrl: r.source_url,
-        rawScore: r.raw_score,
-        normalized100: r.normalized_100,
-        takeaway: r.takeaway,
-      },
-    ]);
-  });
-
-  const ytMap = new Map<string, any[]>();
-  ytReviews.forEach((r) => {
-    const k = String(r.property_id);
-    ytMap.set(k, [
-      ...(ytMap.get(k) || []),
-      {
-        creatorName: r.creator_name,
-        sourceUrl: r.source_url,
-        sentiment: r.sentiment,
-        takeaway: r.takeaway,
-      },
-    ]);
-  });
-
-  const bkMap = new Map<string, any[]>();
-  bookingLinks.forEach((r) => {
-    const k = String(r.property_id);
-    bkMap.set(k, [
-      ...(bkMap.get(k) || []),
-      {
-        channelType: r.channel_type,
-        partnerName: r.partner_name,
-        url: r.url,
-        mobileAllowed: Boolean(r.mobile_allowed),
-        perksSummary: r.perks_summary,
-        priority: r.priority,
-      },
-    ]);
-  });
-
-  const hotels: Hotel[] = props.map((p) => {
-    const id = String(p.id);
-    const f = factMap.get(id) || {};
-    const fh = fhMap.get(id);
-    const gs = guestMap.get(id);
-    const links = (bkMap.get(id) || []).sort((a, b) => (a.priority || 1) - (b.priority || 1));
-    // Mobile Booking Compliance: prefer mobileAllowed link (StayOdds SEO web page or VIP/mobile-approved partner)
-    const mobileBooking =
-      links.find((l) => l.mobileAllowed)?.url || `${LIVE_BASE_URL}/stayodds/${id}/`;
-
-    const rated = Boolean(fh && fh.overall_score != null);
-    return {
-      id,
-      name: String(p.name || ''),
-      location: String(p.city || ''),
-      country: String(p.country || ''),
-      region: String(p.region || 'Global'),
-      lat: Number(p.lat || 0),
-      lng: Number(p.lng || 0),
-      brand: String(p.brand || ''),
-      priceRange: p.price_tier || undefined,
-      reviewedDate: fh?.reviewed_date || undefined,
-      videoId: fh?.youtube_video_id || undefined,
-      inLiveFeed: Boolean(fh?.in_live_feed),
-      visitedByUs: Boolean(p.visited_by_founder),
-      coverageType: fh?.coverage_type || 'Global Directory',
-      tier: p.tier || 'global_directory',
-      googlePlaceId: p.google_place_id || null,
-      thumbnail: resolveHotelThumbnail(id, p.hero_image_url),
-      photoCredit: photoCreditFrom(p.image_license_source, resolveHotelThumbnail(id, p.hero_image_url)),
-      scores: rated && fh
-        ? {
-            rooms: fh.rooms_score != null ? Number(fh.rooms_score) : null,
-            grounds: fh.grounds_score != null ? Number(fh.grounds_score) : null,
-            food: fh.food_score != null ? Number(fh.food_score) : null,
-            service: fh.service_score != null ? Number(fh.service_score) : null,
-            value: fh.value_score != null ? Number(fh.value_score) : null,
-          }
-        : null,
-      overall: rated && fh ? Number(fh.overall_score) : null,
-      verdict: String(fh?.verdict || ''),
-      whereWeDiffer: String(fh?.where_we_differ || ''),
-      standout: String(f.standout || ''),
-      watchOut: String(f.watch_out || ''),
-      keyFacts: {
-        poolHeating: f.pool_heating || undefined,
-        beachOrReef: f.beach_or_reef || undefined,
-        renovationYear: f.renovation_year || null,
-        transferLogistics: f.transfer_logistics || undefined,
-      },
-      propertyStatus:
-        f.operating_status || f.renovations_extensions || f.nearby_construction
-          ? {
-              operatingStatus: f.operating_status || undefined,
-              renovationsExtensions: f.renovations_extensions || undefined,
-              nearbyConstruction: f.nearby_construction || undefined,
-              sourceUrl: f.status_source_url || undefined,
-              sourceNote: f.status_source_note || undefined,
-              verifiedAt: f.status_verified_at || undefined,
-            }
-          : null,
-      redFlags: Array.isArray(f.red_flag_tags) ? f.red_flag_tags : [],
-      bookingUrl: mobileBooking,
-      bookingLinks: links,
-      shorts: Array.isArray(fh?.shorts) ? fh.shorts : [],
-      verifiedGuest: combineGuestScores(gs),
-      editorialRatings: edMap.get(id) || [],
-      youtubeReviews: ytMap.get(id) || [],
-      officialAwards: awardsMap.get(id) || [],
-    };
-  });
-
-  const visitedCount = hotels.filter((h) => h.visitedByUs).length;
-  const payload: StayOddsPayload = {
-    hotels,
-    visitedCount,
-    worldCount: hotels.length - visitedCount,
-    videos: videosRes.videos || [],
-    shorts: videosRes.shorts || [],
-    deals: [...(affRes.curated || []), ...(affRes.fromVideos || [])],
-    updatedAt: new Date().toISOString(),
-  };
-
-  // Never cache empty or failed responses; silently ignore storage errors (private mode / quota)
-  if (payload.hotels.length > 0) {
-    try {
-      const envelope: CachedEnvelope = { cachedAt: Date.now(), data: payload };
-      AsyncStorage.setItem(CACHE_KEY, JSON.stringify(envelope)).catch(() => {});
-    } catch {
-      // Ignore storage serialization/quota errors
-    }
+let snapshotPayload: StayOddsPayload | null = null;
+/**
+ * The directory as it was when the app was built (assets/data/snapshot.json, prepared by
+ * scripts/snapshot-data.mjs on every EAS build). Used on first launch and offline, so the app
+ * never opens to a loading screen. Older raw-table snapshots are still understood.
+ */
+export function loadBundledSnapshot(): StayOddsPayload | null {
+  if (snapshotPayload) return snapshotPayload;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const snap = require('../assets/data/snapshot.json') as Partial<StayOddsPayload> & Partial<RawDirectory>;
+    if (Array.isArray(snap?.hotels) && snap.hotels.length) snapshotPayload = snap as StayOddsPayload;
+    else if (Array.isArray(snap?.props) && snap.props.length) snapshotPayload = buildPayload(withSavedRatings(snap as RawDirectory));
+    return snapshotPayload;
+  } catch {
+    return null;
   }
-  return payload;
 }
 
 const liveGoogleMemoryCache = new Map<string, LiveGoogleRating>();
@@ -481,7 +311,7 @@ export async function openExternalUrl(url: string) {
       }
     }
     await WebBrowser.openBrowserAsync(url, {
-      toolbarColor: '#FF5D22',
+      toolbarColor: '#0B7A7A',
       controlsColor: '#FFFFFF',
       presentationStyle: WebBrowser.WebBrowserPresentationStyle.FULL_SCREEN,
     });

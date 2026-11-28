@@ -1,0 +1,9 @@
+{
+ "ios": {
+  "CFBundleDisplayName": "StayOdds",
+  "NSLocationWhenInUseUsageDescription": "StayOdds는 호텔 지도에 현재 위치를 표시해 주변 럭셔리 호텔을 찾도록 도와줍니다. 위치 정보는 휴대폰에만 남아 있습니다."
+ },
+ "android": {
+  "app_name": "StayOdds"
+ }
+}

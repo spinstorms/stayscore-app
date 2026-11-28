@@ -1,3 +1,4 @@
+import { useBleed } from '../../../lib/layout';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo, useState } from 'react';
 import {
@@ -11,15 +12,20 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { openExternalUrl } from '../../lib/api';
-import { useAdaptiveLayout } from '../../lib/layout';
-import { useStayOdds } from '../../lib/store';
-import { Colors } from '../../lib/theme';
-import type { VideoItem } from '../../lib/types';
+import { InlineVideo } from '../../../components/video/InlineVideo';
+import { openExternalUrl } from '../../../lib/api';
+import { useAdaptiveLayout } from '../../../lib/layout';
+import { useStayOdds } from '../../../lib/store';
+import { Colors } from '../../../lib/theme';
+import type { VideoItem } from '../../../lib/types';
+import { lazyTab } from '../../../components/LazyTab';
+import { t } from '../../../lib/i18n';
 
-export default function WatchScreen() {
+export function WatchScreen() {
   const { videos, shorts, refreshing, refresh } = useStayOdds();
   const { isSplitScreen, gridColumns, horizontalPadding } = useAdaptiveLayout();
+  // seamless rail: the page colours, and the orange banner, run under the rail
+  const bleed = useBleed();
 
   const [category, setCategory] = useState('All');
   const [query, setQuery] = useState('');
@@ -49,32 +55,21 @@ export default function WatchScreen() {
   const remainingVideos = featuredVideo ? filteredVideos.slice(1) : [];
 
   const renderVideoCard = (video: VideoItem, isFeatured = false) => (
-    <Pressable
+    <View
       key={video.id}
       style={[
         styles.videoCard,
         isFeatured && styles.featuredCard,
         !isFeatured && isSplitScreen && { flex: 1, minWidth: '47%' },
       ]}
-      onPress={() => openExternalUrl(video.url)}
     >
-      <View style={[styles.thumbWrap, isFeatured && styles.featuredThumbWrap]}>
-        <Image
-          source={{ uri: video.thumbnail || video.fallbackThumbnail }}
-          style={styles.thumbImg}
-          resizeMode="cover"
-        />
-        <View style={styles.playOverlay}>
-          <View style={styles.playCircle}>
-            <Ionicons name="play" size={18} color="#FFFFFF" style={{ marginLeft: 2 }} />
-          </View>
-        </View>
-        {video.category ? (
-          <View style={styles.catBadge}>
-            <Text style={styles.catBadgeText}>{video.category}</Text>
-          </View>
-        ) : null}
-      </View>
+      {/* Tap to play right here, like the play buttons on stayodds.com */}
+      <InlineVideo
+        url={video.url}
+        thumbnail={video.thumbnail || video.fallbackThumbnail}
+        badge={video.category || undefined}
+        style={{ borderRadius: 0 }}
+      />
 
       <View style={styles.videoBody}>
         <Text style={[styles.videoTitle, isFeatured && styles.featuredTitle]} numberOfLines={2}>
@@ -105,26 +100,26 @@ export default function WatchScreen() {
           </View>
         ) : null}
 
-        <View style={styles.watchRow}>
+        <Pressable style={styles.watchRow} onPress={() => openExternalUrl(video.url)}>
           <Ionicons name="logo-youtube" size={15} color={isFeatured ? Colors.accent : '#EF4444'} />
           <Text style={[styles.watchCta, isFeatured && { color: '#FFFFFF' }]}>
-            Watch Full Episode on YouTube
+            Open on YouTube (comments, subscribe)
           </Text>
-        </View>
+        </Pressable>
       </View>
-    </Pressable>
+    </View>
   );
 
   return (
     <ScrollView
-      style={styles.screen}
-      contentContainerStyle={{ paddingBottom: 36 }}
+      style={[styles.screen, bleed.root]}
+      contentContainerStyle={[{ paddingBottom: 36 }, bleed.pad]}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={Colors.accent} />}
     >
       {/* Channel Banner */}
-      <View style={[styles.channelBanner, { paddingHorizontal: horizontalPadding }]}>
+      <View style={[styles.channelBanner, bleed.band(horizontalPadding)]}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.bannerEyebrow}>THE UNCHARTED ITINERARY ON YOUTUBE</Text>
+          <Text style={styles.bannerEyebrow}>{t("THE UNCHARTED ITINERARY ON YOUTUBE")}</Text>
           <Text style={styles.bannerTitle}>
             {videos.length} Full Reviews & {shorts.length} Travel Shorts
           </Text>
@@ -137,7 +132,7 @@ export default function WatchScreen() {
           onPress={() => openExternalUrl('https://www.youtube.com/@TheUnchartedItinerary?sub_confirmation=1')}
         >
           <Ionicons name="logo-youtube" size={16} color="#FFFFFF" />
-          <Text style={styles.subBtnText}>Subscribe</Text>
+          <Text style={styles.subBtnText}>{t("Subscribe")}</Text>
         </Pressable>
       </View>
 
@@ -149,7 +144,7 @@ export default function WatchScreen() {
             style={styles.searchInput}
             value={query}
             onChangeText={setQuery}
-            placeholder="Search episodes, hotels, destinations, or cameras..."
+            placeholder={t("Search episodes, hotels, destinations, or cameras...")}
             placeholderTextColor={Colors.inkMuted}
           />
           {query ? (
@@ -193,7 +188,7 @@ export default function WatchScreen() {
               <Ionicons name="flash" size={16} color={Colors.accent} />
               <Text style={styles.sectionTitle}>Quick Resort Shorts ({shorts.length})</Text>
             </View>
-            <Text style={styles.sectionHint}>Swipe →</Text>
+            <Text style={styles.sectionHint}>{t("Swipe →")}</Text>
           </View>
           <FlatList
             horizontal
@@ -202,24 +197,12 @@ export default function WatchScreen() {
             keyExtractor={(item) => item.id}
             contentContainerStyle={{ paddingHorizontal: horizontalPadding, gap: 10 }}
             renderItem={({ item }) => (
-              <Pressable style={styles.shortCard} onPress={() => openExternalUrl(item.url)}>
-                <Image
-                  source={{ uri: item.thumbnail || item.fallbackThumbnail }}
-                  style={styles.shortImg}
-                  resizeMode="cover"
-                />
-                <View style={styles.shortScrim} />
-                <View style={styles.shortBadge}>
-                  <Ionicons name="play" size={10} color="#FFFFFF" />
-                  <Text style={styles.shortBadgeText}>SHORT</Text>
-                </View>
-                <View style={styles.shortFooter}>
-                  <Text style={styles.shortTitle} numberOfLines={2}>
-                    {item.title}
-                  </Text>
-                  {item.viewsText ? <Text style={styles.shortViews}>{item.viewsText}</Text> : null}
-                </View>
-              </Pressable>
+              <View style={styles.shortCard}>
+                <InlineVideo url={item.url} thumbnail={item.thumbnail || item.fallbackThumbnail} aspect={9 / 16} badge="SHORT" style={{ borderRadius: 14 }} />
+                <Text style={styles.shortTitleBelow} numberOfLines={2}>
+                  {item.title}
+                </Text>
+              </View>
             )}
           />
         </View>
@@ -239,17 +222,20 @@ export default function WatchScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.bgCanvas },
+  shortTitleBelow: { fontSize: 12.5, fontWeight: '700', color: '#FFFFFF', marginTop: 6 },
+  // The Uncharted Itinerary zone: the channel's orange, as on stayodds.com
+  // the whole page in the channel's orange, with white cards (option A)
+  screen: { flex: 1, backgroundColor: Colors.uncharted },
   channelBanner: {
-    backgroundColor: Colors.charcoal,
+    backgroundColor: '#E8501A',
     paddingVertical: 18,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
   },
-  bannerEyebrow: { fontSize: 10, fontWeight: '800', color: Colors.accent, letterSpacing: 0.9 },
+  bannerEyebrow: { fontSize: 10, fontWeight: '800', color: 'rgba(255,255,255,0.85)', letterSpacing: 0.9 },
   bannerTitle: { fontSize: 19, fontWeight: '800', color: '#FFFFFF', marginTop: 2 },
-  bannerSub: { fontSize: 12, color: '#C5C9D1', marginTop: 4, lineHeight: 17 },
+  bannerSub: { fontSize: 12, color: 'rgba(255,255,255,0.92)', marginTop: 4, lineHeight: 17 },
   subBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -282,7 +268,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
   },
-  filterPillActive: { backgroundColor: Colors.accent, borderColor: Colors.accent },
+  filterPillActive: { backgroundColor: Colors.uncharted, borderColor: Colors.uncharted },
   filterPillText: { fontSize: 12.5, fontWeight: '700', color: Colors.inkSecondary },
   filterPillTextActive: { color: '#FFFFFF' },
 
@@ -314,7 +300,7 @@ const styles = StyleSheet.create({
     width: 46,
     height: 46,
     borderRadius: 23,
-    backgroundColor: 'rgba(255, 93, 34, 0.94)',
+    backgroundColor: 'rgba(11, 122, 122, 0.94)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -348,7 +334,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignSelf: 'flex-start',
   },
-  bestForPillDark: { backgroundColor: 'rgba(255, 93, 34, 0.18)' },
+  bestForPillDark: { backgroundColor: 'rgba(11, 122, 122, 0.18)' },
   bestForText: { fontSize: 11.5, fontWeight: '700', color: Colors.accentDark },
 
   watchRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12 },
@@ -367,17 +353,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 10,
   },
-  sectionTitle: { fontSize: 16, fontWeight: '800', color: Colors.inkPrimary },
+  sectionTitle: { fontSize: 16, fontWeight: '800', color: '#FFFFFF' },
   sectionHint: { fontSize: 12, fontWeight: '700', color: Colors.accent },
 
-  shortCard: {
-    width: 136,
-    height: 220,
-    borderRadius: 14,
-    overflow: 'hidden',
-    backgroundColor: Colors.charcoal,
-    position: 'relative',
-  },
+  shortCard: { width: 150 },
   shortImg: { width: '100%', height: '100%' },
   shortScrim: {
     position: 'absolute',
@@ -407,3 +386,5 @@ const styles = StyleSheet.create({
   episodesGrid: { marginTop: 12, gap: 14 },
   episodesGridWide: { flexDirection: 'row', flexWrap: 'wrap' },
 });
+
+export default lazyTab(WatchScreen);

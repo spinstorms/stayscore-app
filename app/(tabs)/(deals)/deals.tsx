@@ -1,3 +1,4 @@
+import { useBleed } from '../../../lib/layout';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
@@ -11,19 +12,23 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { QuickFeedbackModal, RequestResortModal } from '../../components/SupportModals';
-import { openExternalUrl } from '../../lib/api';
-import { BRAND } from '../../lib/brand';
-import { useAdaptiveLayout } from '../../lib/layout';
-import { useStayOdds } from '../../lib/store';
-import { Colors } from '../../lib/theme';
-import type { AffiliateDeal } from '../../lib/types';
+import { QuickFeedbackModal, RequestResortModal } from '../../../components/SupportModals';
+import { openExternalUrl } from '../../../lib/api';
+import { BRAND } from '../../../lib/brand';
+import { useAdaptiveLayout } from '../../../lib/layout';
+import { useStayOdds } from '../../../lib/store';
+import { Colors } from '../../../lib/theme';
+import type { AffiliateDeal } from '../../../lib/types';
+import { lazyTab } from '../../../components/LazyTab';
+import { t } from '../../../lib/i18n';
 
 type DealSection = 'all' | 'promos' | 'gear';
 
-export default function DealsScreen() {
+export function DealsScreen() {
   const { deals, refreshing, refresh } = useStayOdds();
   const { isSplitScreen, gridColumns, horizontalPadding } = useAdaptiveLayout();
+  // seamless rail: the page colours, and the orange banner, run under the rail
+  const bleed = useBleed();
 
   const [section, setSection] = useState<DealSection>('all');
   const [query, setQuery] = useState('');
@@ -67,14 +72,14 @@ export default function DealsScreen() {
 
   return (
     <ScrollView
-      style={styles.screen}
-      contentContainerStyle={{ paddingBottom: 38 }}
+      style={[styles.screen, bleed.root]}
+      contentContainerStyle={[{ paddingBottom: 38 }, bleed.pad]}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={Colors.accent} />}
     >
       {/* Header Banner */}
-      <View style={[styles.banner, { paddingHorizontal: horizontalPadding }]}>
-        <Text style={styles.bannerEyebrow}>PERSONALLY CURATED PERKS &amp; FILMING KIT</Text>
-        <Text style={styles.bannerTitle}>Our Active Discount Codes &amp; Gear</Text>
+      <View style={[styles.banner, bleed.band(horizontalPadding)]}>
+        <Text style={styles.bannerEyebrow}>{t("PERSONALLY CURATED PERKS & FILMING KIT")}</Text>
+        <Text style={styles.bannerTitle}>{t("Our Active Discount Codes & Gear")}</Text>
         <Text style={styles.bannerSub}>
           Tap any code to copy instantly — our hand-picked travel eSIM discounts, points offers, and filming kit.
         </Text>
@@ -168,7 +173,7 @@ export default function DealsScreen() {
                   onPress={() => handleCopyCode(deal)}
                 >
                   <View>
-                    <Text style={styles.codeLabel}>PROMO CODE</Text>
+                    <Text style={styles.codeLabel}>{t("PROMO CODE")}</Text>
                     <Text style={styles.codeValue}>{deal.promoCode}</Text>
                   </View>
                   <View style={[styles.copyPill, isCopied && styles.copyPillCopied]}>
@@ -201,16 +206,18 @@ export default function DealsScreen() {
         style={{
           marginHorizontal: horizontalPadding,
           marginTop: 18,
-          backgroundColor: Colors.navy,
+          backgroundColor: Colors.accentSoft,
+          borderWidth: 1,
+          borderColor: Colors.accentBorder,
           borderRadius: 16,
           padding: 16,
           gap: 10,
         }}
       >
-        <Text style={{ color: '#FFFFFF', fontSize: 15, fontWeight: '800' }}>
+        <Text style={{ color: Colors.inkPrimary, fontSize: 15, fontWeight: '800' }}>
           StayOdds. Community &amp; Support
         </Text>
-        <Text style={{ color: 'rgba(255,255,255,0.78)', fontSize: 12.5, lineHeight: 18 }}>
+        <Text style={{ color: Colors.inkSecondary, fontSize: 12.5, lineHeight: 18 }}>
           Missing a resort, spotted a renovation, or want to read how our scoring works?
         </Text>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
@@ -228,13 +235,15 @@ export default function DealsScreen() {
           <Pressable
             onPress={() => setFeedbackOpen(true)}
             style={{
-              backgroundColor: 'rgba(255,255,255,0.14)',
+              backgroundColor: Colors.bgWhite,
+              borderWidth: 1,
+              borderColor: Colors.accentBorder,
               paddingHorizontal: 13,
               paddingVertical: 9,
               borderRadius: 10,
             }}
           >
-            <Text style={{ color: '#FFFFFF', fontSize: 12.5, fontWeight: '700' }}>Send Feedback</Text>
+            <Text style={{ color: Colors.accentDark, fontSize: 12.5, fontWeight: '700' }}>{t("Send Feedback")}</Text>
           </Pressable>
         </View>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 14, marginTop: 4 }}>
@@ -265,27 +274,29 @@ export default function DealsScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.bgCanvas },
+  // The Uncharted Itinerary zone: the channel's orange, as on stayodds.com
+  // the whole page in the channel's orange, with white cards (option A)
+  screen: { flex: 1, backgroundColor: Colors.uncharted },
   banner: {
-    backgroundColor: Colors.charcoal,
+    backgroundColor: '#E8501A',
     paddingTop: 18,
     paddingBottom: 18,
   },
-  bannerEyebrow: { fontSize: 10, fontWeight: '800', color: Colors.accent, letterSpacing: 0.9 },
+  bannerEyebrow: { fontSize: 10, fontWeight: '800', color: 'rgba(255,255,255,0.85)', letterSpacing: 0.9 },
   bannerTitle: { fontSize: 20, fontWeight: '800', color: '#FFFFFF', marginTop: 2 },
-  bannerSub: { fontSize: 12.5, color: '#C5C9D1', marginTop: 4, lineHeight: 18 },
+  bannerSub: { fontSize: 12.5, color: 'rgba(255,255,255,0.92)', marginTop: 4, lineHeight: 18 },
 
   segmentWrap: {
     flexDirection: 'row',
-    backgroundColor: Colors.charcoalCard,
+    backgroundColor: 'rgba(255,255,255,0.22)',
     borderRadius: 12,
     padding: 4,
     marginTop: 14,
     gap: 4,
   },
   segBtn: { flex: 1, paddingVertical: 8, borderRadius: 9, alignItems: 'center' },
-  segBtnActive: { backgroundColor: Colors.accent },
-  segText: { fontSize: 11.5, fontWeight: '700', color: '#B5BAC4' },
+  segBtnActive: { backgroundColor: Colors.unchartedDark },
+  segText: { fontSize: 11.5, fontWeight: '700', color: '#FFFFFF' },
   segTextActive: { color: '#FFFFFF' },
 
   searchBar: {
@@ -395,3 +406,5 @@ const styles = StyleSheet.create({
   },
   disclosureText: { flex: 1, fontSize: 11.5, color: Colors.inkMuted, lineHeight: 17 },
 });
+
+export default lazyTab(DealsScreen);

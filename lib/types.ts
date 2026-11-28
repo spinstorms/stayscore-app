@@ -91,6 +91,8 @@ export interface HotelShort {
 }
 
 export interface Hotel {
+  /** extra photos of the hotel itself (website gallery), when there are any */
+  gallery?: string[];
   id: string;
   name: string;
   location: string;

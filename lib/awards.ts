@@ -96,3 +96,47 @@ export const W50_EXPLAINER = {
     "The list is voted by The World's 50 Best Hotels Academy: travel experts in 13 regions, each panel split equally between travel journalists, hoteliers and seasoned luxury travellers, with a 50/50 gender balance. Each member votes for seven hotels in order of preference, must have stayed at every hotel they vote for in the last three years and upload proof of the stay, and cannot vote for hotels they own or have a financial interest in. Voting is confidential and independently adjudicated by Deloitte. Ranks 51–100 are published as the extended list.",
   sourceUrl: 'https://www.the50.com/hotels/best-in-the-world/how-the-voting-works.html',
 };
+
+/** Forbes Travel Guide level: 5 = Five-Star, 4 = Four-Star, 3 = Recommended (as on the website). */
+export function forbesRank(h: Hotel): number | null {
+  let best: number | null = null;
+  for (const a of h.officialAwards || []) {
+    const txt = `${a.awardBody || ''} ${a.label || ''}`;
+    if (/forbes/i.test(txt)) {
+      let val = 1;
+      if (/five[- ]star/i.test(txt)) val = 5;
+      else if (/four[- ]star/i.test(txt)) val = 4;
+      else if (/recommended/i.test(txt)) val = 3;
+      if (best == null || val > best) best = val;
+    }
+  }
+  return best;
+}
+
+export type AwardFilterId = 'keys' | 'stars' | 'w50' | 'forbes5';
+export type DiningMap = Record<string, { distinction: string }[] | undefined>;
+
+export function hasStarRestaurant(h: Hotel, dining: DiningMap): boolean {
+  return (dining[h.id] || []).some((r) => /MICHELIN Star/.test(r.distinction || ''));
+}
+
+/** The world map's multi-select award filters, same ids and wording as stayodds.com/hotels/. */
+export const AWARD_FILTERS: { id: AwardFilterId; label: string; test: (h: Hotel, dining: DiningMap) => boolean }[] = [
+  { id: 'keys', label: 'MICHELIN Keys', test: (h) => michelinKeys(h) != null },
+  { id: 'stars', label: 'MICHELIN-starred restaurant', test: (h, d) => hasStarRestaurant(h, d) },
+  { id: 'w50', label: "World's 50 Best", test: (h) => w50Rank(h) != null },
+  { id: 'forbes5', label: 'Forbes Five-Star', test: (h) => forbesRank(h) === 5 },
+];
+
+export function applyAwardFilters(
+  list: Hotel[],
+  selected: AwardFilterId[],
+  match: 'all' | 'any',
+  dining: DiningMap
+): Hotel[] {
+  const sel = AWARD_FILTERS.filter((f) => selected.includes(f.id));
+  if (!sel.length) return list;
+  return match === 'any'
+    ? list.filter((h) => sel.some((f) => f.test(h, dining)))
+    : list.filter((h) => sel.every((f) => f.test(h, dining)));
+}

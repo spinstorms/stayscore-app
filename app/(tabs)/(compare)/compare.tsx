@@ -2,6 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
+import { buildCompareInsights, type CompareInsight } from '../../../lib/compareInsights';
+import { loadGuestRanks } from '../../../lib/ranks';
 import {
   FlatList,
   Image,
@@ -16,23 +18,26 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { ShareCardModal } from '../../components/ShareCardModal';
-import { getHotelVideoUrl, openExternalUrl } from '../../lib/api';
-import { BRAND } from '../../lib/brand';
+import { ShareCardModal } from '../../../components/ShareCardModal';
+import { getHotelVideoUrl, openExternalUrl } from '../../../lib/api';
+import { BRAND } from '../../../lib/brand';
 import {
   getBestMonths,
   getBrandCategories,
   getGuestProfile,
   getPartnerPrograms,
   getVerifiedRoomTip,
-} from '../../lib/insights';
-import { formatPersonalScore, useAdaptiveLayout } from '../../lib/layout';
-import { formatCriticSlot, getPropertyStatusMeta } from '../../lib/propertyStatus';
-import { computeStayOdds, getTonePalette, getTripAdvisorUrl, isVisitedProperty } from '../../lib/scoring';
-import { buildStayOddsPick } from '../../lib/pick';
-import { useStayOdds } from '../../lib/store';
-import { Colors } from '../../lib/theme';
-import type { Hotel } from '../../lib/types';
+} from '../../../lib/insights';
+import { formatPersonalScore, useAdaptiveLayout } from '../../../lib/layout';
+import { formatCriticSlot, getPropertyStatusMeta } from '../../../lib/propertyStatus';
+import { computeStayOdds, getTonePalette, getTripAdvisorUrl, isVisitedProperty } from '../../../lib/scoring';
+import { buildStayOddsPick } from '../../../lib/pick';
+import { useStayOdds } from '../../../lib/store';
+import { Colors } from '../../../lib/theme';
+import type { Hotel } from '../../../lib/types';
+import { lazyTab } from '../../../components/LazyTab';
+import { withRailShortcuts } from '../../../components/RailShortcuts';
+import { t } from '../../../lib/i18n';
 
 type PickerTarget = 'A' | 'B' | 'C' | null;
 
@@ -44,7 +49,7 @@ function matchesHotelQuery(h: Hotel, rawQuery: string): boolean {
   return q.split(/\s+/).every((tok) => hay.includes(tok));
 }
 
-export default function CompareScreen() {
+function CompareScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ a?: string; b?: string; c?: string }>();
   const {
@@ -60,6 +65,11 @@ export default function CompareScreen() {
     refresh,
   } = useStayOdds();
   const { isSplitScreen, horizontalPadding } = useAdaptiveLayout();
+  // Measured width of the cards row. Cards get an explicit width when side by side, because on
+  // Android a long unbroken line inside a card could stop flex from shrinking it and push the
+  // second hotel off screen.
+  const [gridWidth, setGridWidth] = useState(0);
+  const [genInsights, setGenInsights] = useState<CompareInsight[] | null>(null);
 
   const [pickerTarget, setPickerTarget] = useState<PickerTarget>(null);
   const [pickerQuery, setPickerQuery] = useState('');
@@ -104,6 +114,8 @@ export default function CompareScreen() {
     [hotels, compareC]
   );
   const isThreeWay = Boolean(hotelC);
+  // new hotels picked: clear the old insights
+  useEffect(() => setGenInsights(null), [hotelA?.id, hotelB?.id, hotelC?.id]);
 
   const oddsA = useMemo(() => (hotelA ? computeStayOdds(hotelA) : null), [hotelA]);
   const oddsB = useMemo(() => (hotelB ? computeStayOdds(hotelB) : null), [hotelB]);
@@ -134,6 +146,8 @@ export default function CompareScreen() {
   }, [hotels, inlineSearchC]);
 
   const pickerList = useMemo(() => {
+    // only build the full list when the picker is open
+    if (!pickerTarget) return [];
     const savedSet = new Set(shortlist);
     return hotels
       .filter((h) => {
@@ -150,7 +164,7 @@ export default function CompareScreen() {
         if (bv !== av) return bv - av;
         return (ob.greatStayOdds ?? -1) - (oa.greatStayOdds ?? -1) || a.name.localeCompare(b.name);
       });
-  }, [hotels, pickerQuery, pickerScope, shortlist]);
+  }, [hotels, pickerQuery, pickerScope, shortlist, pickerTarget]);
 
   const handleToggleThreeWay = () => {
     if (compareC) {
@@ -275,18 +289,18 @@ export default function CompareScreen() {
                 : 'Tap to browse all hotels'}
             </Text>
           </View>
-          <Ionicons name="chevron-down" size={18} color="#94A3B8" />
+          <Ionicons name="chevron-down" size={18} color={Colors.inkMuted} />
         </Pressable>
 
         {/* Fast Inline Search Input inside Selector */}
         <View style={styles.inlineSearchWrap}>
-          <Ionicons name="search" size={14} color="#94A3B8" />
+          <Ionicons name="search" size={14} color={Colors.inkMuted} />
           <TextInput
             style={styles.inlineSearchInput}
             value={query}
             onChangeText={setQuery}
             placeholder={`Search Hotel ${side} (name, city, country, brand)...`}
-            placeholderTextColor="#7C8594"
+            placeholderTextColor={Colors.inkMuted}
             returnKeyType="search"
           />
           {hasQuery ? (
@@ -295,7 +309,7 @@ export default function CompareScreen() {
               hitSlop={8}
               accessibilityLabel={`Clear Hotel ${side} search`}
             >
-              <Ionicons name="close-circle" size={16} color="#94A3B8" />
+              <Ionicons name="close-circle" size={16} color={Colors.inkMuted} />
             </Pressable>
           ) : null}
         </View>
@@ -383,7 +397,13 @@ export default function CompareScreen() {
         : Colors.inkSecondary;
 
     return (
-      <View style={[styles.vsCard, isSplitScreen && !isThreeWay && styles.vsCardHalf]}>
+      <View
+        style={[
+          styles.vsCard,
+          isSplitScreen && !isThreeWay && styles.vsCardHalf,
+          isSplitScreen && !isThreeWay && gridWidth > 0 ? { width: (gridWidth - 2 * horizontalPadding - 12) / 2 } : null,
+        ]}
+      >
         <View style={styles.cardHeroWrap}>
           <Image source={{ uri: hotel.thumbnail }} style={styles.cardHeroImg} resizeMode="cover" />
           <View style={styles.cardHeroTopBadges}>
@@ -564,7 +584,7 @@ export default function CompareScreen() {
               </>
             ) : null}
             <View style={styles.metricRow}>
-              <Text style={styles.metricLabel}>Best Dry Months</Text>
+              <Text style={styles.metricLabel}>{t("Best Dry Months")}</Text>
               <Text style={styles.metricVal}>☀ {bestMonths.shortLabel}</Text>
             </View>
             {hotel.priceRange ? (
@@ -597,7 +617,7 @@ export default function CompareScreen() {
             ) : null}
             {hotel.watchOut ? (
               <>
-                <Text style={[styles.noteTitle, { marginTop: 8, color: Colors.amber }]}>Watch-Out</Text>
+                <Text style={[styles.noteTitle, { marginTop: 8, color: Colors.amber }]}>{t("Watch-Out")}</Text>
                 <Text style={styles.noteBody}>{hotel.watchOut}</Text>
               </>
             ) : null}
@@ -610,13 +630,13 @@ export default function CompareScreen() {
                 onPress={() => openExternalUrl(hotel.bookingUrl)}
               >
                 <Ionicons name="bed-outline" size={15} color={Colors.accentInk} />
-                <Text style={styles.btnPrimaryText}>Check Live Rates</Text>
+                <Text style={styles.btnPrimaryText}>{t("Check Live Rates")}</Text>
               </Pressable>
             ) : null}
             {videoUrl ? (
               <Pressable style={styles.btnDark} onPress={() => openExternalUrl(videoUrl)}>
                 <Ionicons name="logo-youtube" size={15} color="#FFFFFF" />
-                <Text style={styles.btnDarkText}>Watch</Text>
+                <Text style={styles.btnDarkText}>{t("Watch")}</Text>
               </Pressable>
             ) : null}
           </View>
@@ -625,7 +645,7 @@ export default function CompareScreen() {
             style={styles.btnOutline}
             onPress={() => router.push({ pathname: '/hotel/[id]', params: { id: hotel.id } })}
           >
-            <Text style={styles.btnOutlineText}>Open Full Breakdown</Text>
+            <Text style={styles.btnOutlineText}>{t("Open Full Breakdown")}</Text>
             <Ionicons name="arrow-forward" size={14} color={Colors.accent} />
           </Pressable>
 
@@ -700,30 +720,27 @@ export default function CompareScreen() {
               style={[
                 styles.shareBannerBtn,
                 { flex: 1, marginBottom: 0, justifyContent: 'center' },
-                isThreeWay && { backgroundColor: 'rgba(124, 58, 237, 0.25)', borderColor: '#C084FC' },
+                isThreeWay && { backgroundColor: 'rgba(124, 58, 237, 0.10)', borderColor: '#C4B5FD' },
               ]}
               onPress={handleToggleThreeWay}
             >
               <Ionicons
                 name={isThreeWay ? 'remove-circle-outline' : 'add-circle-outline'}
                 size={15}
-                color={isThreeWay ? '#E9D5FF' : '#38BDF8'}
+                color={isThreeWay ? '#6D28D9' : Colors.accentDark}
               />
-              <Text style={[styles.shareBannerTxt, { color: isThreeWay ? '#E9D5FF' : '#BAE6FD' }]}>
-                {isThreeWay ? 'Back to 2 Hotels' : '+ Compare 3rd Hotel'}
+              <Text style={[styles.shareBannerTxt, { color: isThreeWay ? '#6D28D9' : Colors.accentDark }]} numberOfLines={1}>
+                {isThreeWay ? t('Back to 2 hotels') : t('Add a 3rd hotel')}
               </Text>
             </Pressable>
           </View>
 
           {hotelA && hotelB ? (
             <Pressable style={styles.shareBannerBtn} onPress={() => setShowShareModal(true)}>
-              <Ionicons name="sparkles-outline" size={15} color="#FF8B5E" />
-              <Text style={styles.shareBannerTxt}>
-                {isThreeWay
-                  ? 'Share 3-Hotel Branded Card (Clean Photos + QR)'
-                  : 'Share Branded VS Card (1:1 Feed & 9:16 Story + QR)'}
+              <Ionicons name="share-outline" size={16} color={Colors.accentDark} />
+              <Text style={styles.shareBannerTxt} numberOfLines={1}>
+                {isThreeWay ? t('Share this 3-hotel comparison') : t('Share this comparison')}
               </Text>
-              <Ionicons name="arrow-forward" size={14} color="#FF8B5E" />
             </Pressable>
           ) : null}
 
@@ -752,12 +769,12 @@ export default function CompareScreen() {
                   paddingHorizontal: 11,
                   paddingVertical: 6,
                   borderRadius: 999,
-                  backgroundColor: 'rgba(255,255,255,0.1)',
+                  backgroundColor: Colors.bgCanvas,
                   borderWidth: 1,
-                  borderColor: 'rgba(255,255,255,0.2)',
+                  borderColor: Colors.border,
                 }}
               >
-                <Text style={{ color: '#F8FAFC', fontSize: 11.5, fontWeight: '600' }}>{m.label}</Text>
+                <Text style={{ color: Colors.inkPrimary, fontSize: 11.5, fontWeight: '600' }}>{m.label}</Text>
               </Pressable>
             ))}
           </ScrollView>
@@ -806,8 +823,51 @@ export default function CompareScreen() {
           </View>
         ) : null}
 
+        {hotelA && hotelB ? (
+          <View style={[styles.genWrap, { marginHorizontal: horizontalPadding }]}>
+            {genInsights ? (
+              <View style={styles.genCard}>
+                <View style={styles.genHead}>
+                  <Text style={styles.pickEyebrow}>INSIGHTS FOR THESE {isThreeWay && hotelC ? '3' : '2'} HOTELS</Text>
+                  <Pressable onPress={() => setGenInsights(null)} hitSlop={8}>
+                    <Ionicons name="close" size={18} color={Colors.inkMuted} />
+                  </Pressable>
+                </View>
+                {genInsights.map((g) => (
+                  <View key={g.title} style={styles.genRow}>
+                    <Text style={styles.genIcon}>{g.icon}</Text>
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Text style={styles.genTitle}>{g.title}</Text>
+                      <Text style={styles.genText}>{g.text}</Text>
+                    </View>
+                  </View>
+                ))}
+                <Text style={styles.pickFoot}>Worked out from the guest reviews, critics, our stays, awards, prices and seasons on StayOdds. Nothing is estimated.</Text>
+              </View>
+            ) : (
+              <Pressable
+                style={styles.genBtn}
+                accessibilityRole="button"
+                onPress={async () => {
+                  const r = await loadGuestRanks();
+                  setGenInsights(
+                    buildCompareInsights([hotelA, hotelB, ...(isThreeWay && hotelC ? [hotelC] : [])], {
+                      ranks: r?.ranks,
+                      extras: r?.extras,
+                    })
+                  );
+                }}
+              >
+                <Ionicons name="sparkles" size={16} color="#FFFFFF" />
+                <Text style={styles.genBtnText}>{t("Generate insights for these hotels")}</Text>
+              </Pressable>
+            )}
+          </View>
+        ) : null}
+
         {hotelA && hotelB && oddsA && oddsB ? (
           <View
+            onLayout={(e) => setGridWidth(e.nativeEvent.layout.width)}
             style={[
               styles.vsGrid,
               isSplitScreen && !isThreeWay ? styles.vsGridRow : styles.vsGridCol,
@@ -820,7 +880,7 @@ export default function CompareScreen() {
           </View>
         ) : (
           <View style={styles.emptyBox}>
-            <Text style={styles.emptyText}>Loading luxury stays...</Text>
+            <Text style={styles.emptyText}>{t("Loading luxury stays...")}</Text>
           </View>
         )}
       </ScrollView>
@@ -861,7 +921,7 @@ export default function CompareScreen() {
               style={styles.modalInput}
               value={pickerQuery}
               onChangeText={setPickerQuery}
-              placeholder="Search hotel, city, country, or brand..."
+              placeholder={t("Search hotel, city, country, or brand...")}
               placeholderTextColor={Colors.inkMuted}
               autoFocus
             />
@@ -939,29 +999,30 @@ export default function CompareScreen() {
 }
 
 const styles = StyleSheet.create({
-  pickBox: { marginTop: 4, marginBottom: 14, padding: 16, borderRadius: 16, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E2E8F0', borderTopWidth: 4, borderTopColor: '#FF5D22' },
-  pickEyebrow: { fontSize: 11.5, fontWeight: '800', letterSpacing: 0.6, color: '#FF5D22', marginBottom: 4 },
+  pickBox: { marginTop: 4, marginBottom: 14, padding: 16, borderRadius: 16, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E2E8F0', borderTopWidth: 4, borderTopColor: '#0B7A7A' },
+  pickEyebrow: { fontSize: 11.5, fontWeight: '800', letterSpacing: 0.6, color: '#0B7A7A', marginBottom: 4 },
   pickTitle: { fontSize: 18, fontWeight: '900', color: '#0F172A', marginBottom: 8 },
   pickLine: { fontSize: 13.5, lineHeight: 20, color: '#334155', marginBottom: 4 },
   pickConsider: { color: '#64748B' },
   pickFoot: { fontSize: 11.5, color: '#94A3B8', marginTop: 6 },
-  screen: { flex: 1, backgroundColor: Colors.bgCanvas },
+  // the choosing zone: warm sand, as on stayodds.com's compare page
+  screen: { flex: 1, backgroundColor: Colors.sand },
   arenaHeader: {
-    backgroundColor: Colors.charcoal,
+    backgroundColor: Colors.sand,
     paddingTop: 18,
     paddingBottom: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#2E323A',
+    borderBottomColor: Colors.sandBorder,
   },
   arenaTitleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 12 },
   arenaEyebrow: { fontSize: 10.5, fontWeight: '800', color: Colors.accent, letterSpacing: 0.9 },
-  arenaTitle: { fontSize: 21, fontWeight: '800', color: '#FFFFFF', marginTop: 2 },
-  arenaSub: { fontSize: 12.5, color: '#C5C9D1', marginTop: 4, lineHeight: 18 },
+  arenaTitle: { fontSize: 21, fontWeight: '800', color: Colors.inkPrimary, marginTop: 2 },
+  arenaSub: { fontSize: 12.5, color: Colors.inkSecondary, marginTop: 4, lineHeight: 18 },
   shareCardBtn: {
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: '#1E293B',
+    backgroundColor: Colors.accent,
     borderWidth: 1,
     borderColor: Colors.accent,
     alignItems: 'center',
@@ -980,49 +1041,49 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: 'rgba(255, 93, 34, 0.14)',
+    backgroundColor: 'rgba(11, 122, 122, 0.14)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 93, 34, 0.45)',
+    borderColor: 'rgba(11, 122, 122, 0.45)',
     borderRadius: 12,
     paddingVertical: 9,
     paddingHorizontal: 12,
     marginBottom: 12,
   },
-  shareBannerTxt: { color: '#FFD6C4', fontSize: 12.5, fontWeight: '700' },
+  shareBannerTxt: { color: Colors.accentDark, fontSize: 13.5, fontWeight: '700', flexShrink: 1, textAlign: 'center' },
 
   selectorRow: { flexDirection: 'row', gap: 10 },
   selectorCol: { flexDirection: 'column' },
   selectorCard: {
     flex: 1,
-    backgroundColor: Colors.charcoalCard,
+    backgroundColor: Colors.sandCard,
     borderRadius: 14,
     padding: 11,
     borderWidth: 1,
-    borderColor: '#373B44',
+    borderColor: Colors.border,
     gap: 8,
   },
   selectorTop: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   selectorTag: { fontSize: 10, fontWeight: '800', color: Colors.accent, letterSpacing: 0.7 },
-  selectorName: { fontSize: 15, fontWeight: '700', color: '#FFFFFF', marginTop: 2 },
-  selectorMeta: { fontSize: 11.5, color: '#A5AAB4', marginTop: 2 },
+  selectorName: { fontSize: 15, fontWeight: '700', color: Colors.inkPrimary, marginTop: 2 },
+  selectorMeta: { fontSize: 11.5, color: Colors.inkSecondary, marginTop: 2 },
 
   inlineSearchWrap: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 7,
-    backgroundColor: '#111827',
+    backgroundColor: Colors.bgWhite,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: Colors.border,
     paddingHorizontal: 10,
     paddingVertical: 7,
   },
-  inlineSearchInput: { flex: 1, color: '#FFFFFF', fontSize: 13, paddingVertical: 0 },
+  inlineSearchInput: { flex: 1, color: Colors.inkPrimary, fontSize: 13, paddingVertical: 0 },
   inlineResultsList: {
-    backgroundColor: '#0F172A',
+    backgroundColor: Colors.bgWhite,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: Colors.border,
     overflow: 'hidden',
   },
   inlineResultRow: {
@@ -1035,8 +1096,8 @@ const styles = StyleSheet.create({
     borderBottomColor: 'rgba(148,163,184,0.14)',
   },
   inlineResultRowActive: { backgroundColor: 'rgba(20,184,166,0.12)' },
-  inlineResultName: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
-  inlineResultSub: { color: '#94A3B8', fontSize: 11, marginTop: 1 },
+  inlineResultName: { color: Colors.inkPrimary, fontSize: 13, fontWeight: '700' },
+  inlineResultSub: { color: Colors.inkMuted, fontSize: 11, marginTop: 1 },
   inlineEmptyState: {
     backgroundColor: 'rgba(245, 158, 11, 0.12)',
     borderWidth: 1,
@@ -1047,7 +1108,25 @@ const styles = StyleSheet.create({
   inlineEmptyText: { color: '#FDE68A', fontSize: 12, lineHeight: 16 },
 
   vsGrid: { paddingTop: 16, gap: 16 },
-  vsGridRow: { flexDirection: 'row', alignItems: 'flex-start' },
+  genWrap: { marginTop: 14 },
+  genBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: Colors.accent,
+    borderRadius: 14,
+    paddingVertical: 13,
+    paddingHorizontal: 16,
+  },
+  genBtnText: { color: '#FFFFFF', fontWeight: '800', fontSize: 14.5 },
+  genCard: { backgroundColor: Colors.bgWhite, borderRadius: 16, borderWidth: 1, borderColor: Colors.border, padding: 16, gap: 12 },
+  genHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  genRow: { flexDirection: 'row', gap: 10 },
+  genIcon: { fontSize: 18, width: 24, textAlign: 'center' },
+  genTitle: { fontSize: 14.5, fontWeight: '800', color: Colors.inkPrimary },
+  genText: { fontSize: 13.5, color: Colors.inkSecondary, lineHeight: 19, marginTop: 2 },
+  vsGridRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   vsGridCol: { flexDirection: 'column' },
 
   vsCard: {
@@ -1057,7 +1136,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     overflow: 'hidden',
   },
-  vsCardHalf: { flex: 1 },
+  vsCardHalf: { flexGrow: 0, flexShrink: 1, minWidth: 0 },
   cardHeroWrap: { position: 'relative', height: 180, backgroundColor: Colors.charcoal },
   cardHeroImg: { width: '100%', height: '100%' },
   cardHeroTopBadges: {
@@ -1114,13 +1193,14 @@ const styles = StyleSheet.create({
   },
   statusBoxHead: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
     alignItems: 'center',
     gap: 6,
     marginBottom: 4,
   },
   statusBoxTitle: { fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
-  statusBoxBadge: { fontSize: 10.5, fontWeight: '800' },
+  statusBoxBadge: { fontSize: 10.5, fontWeight: '800', flexShrink: 1 },
   statusBoxText: { fontSize: 12, color: Colors.inkPrimary, lineHeight: 17 },
   statusSourceLink: { fontSize: 11.5, fontWeight: '700', color: Colors.accent, textDecorationLine: 'underline' },
 
@@ -1267,3 +1347,5 @@ const styles = StyleSheet.create({
   },
   pickerScoreText: { color: '#FFFFFF', fontSize: 12.5, fontWeight: '800' },
 });
+
+export default lazyTab(withRailShortcuts(CompareScreen));

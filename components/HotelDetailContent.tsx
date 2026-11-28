@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { fetchLiveGoogleRating, getHotelVideoUrl, LiveGoogleRating, openExternalUrl } from '../lib/api';
 import { BRAND } from '../lib/brand';
@@ -19,10 +19,21 @@ import { useStayOdds } from '../lib/store';
 import { Colors } from '../lib/theme';
 import type { Hotel } from '../lib/types';
 import { ShareCardModal } from './ShareCardModal';
+import { InlineVideo } from './video/InlineVideo';
+import { WhenBox } from './WhenBox';
+import { t } from '../lib/i18n';
+import { getTripadvisor } from '../lib/tripadvisor';
+
+const formatTaDate = (d: string) => {
+  const x = new Date(d);
+  return Number.isNaN(x.getTime()) ? d : x.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+};
 
 interface Props {
   hotel: Hotel;
   isSidePane?: boolean;
+  /** quick-date key to preselect, e.g. 'christmas' (from the Holidays screen) */
+  when?: string;
 }
 
 function ScoreBar({
@@ -77,10 +88,15 @@ function RankScale({ title, r }: { title: string; r: RankEntry }) {
   );
 }
 
-export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
+export function HotelDetailContent({ hotel, isSidePane = false, when }: Props) {
   const router = useRouter();
   const { hotels, setCompareA, setCompareB, setCompareC, pushToCompare, toggleShortlist, isShortlisted } = useStayOdds();
   const [liveGoogle, setLiveGoogle] = useState<LiveGoogleRating | null>(null);
+  const ta = getTripadvisor(hotel.id);
+  // "Full details below": jumps past the booking buttons to the StayOdds breakdown
+  const scrollRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
+  const [detailsY, setDetailsY] = useState(0);
+  const jumpToDetails = () => scrollRef.current?.scrollTo({ y: Math.max(0, detailsY - 8), animated: true });
   const [showExplainer, setShowExplainer] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const saved = isShortlisted(hotel.id);
@@ -159,6 +175,7 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
   return (
     <>
     <ScrollView
+      ref={scrollRef}
       style={styles.scroll}
       contentContainerStyle={[styles.content, isSidePane && styles.contentSidePane]}
       showsVerticalScrollIndicator={false}
@@ -166,6 +183,17 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
       {/* Hero Media & Summary */}
       <View style={styles.heroCard}>
         <Image source={{ uri: hotel.thumbnail }} style={styles.heroImage} />
+        {/* photo-first: a strip of the hotel's own photos under the hero */}
+        {hotel.gallery && hotel.gallery.filter((u) => u !== hotel.thumbnail).length >= 2 ? (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.photoStrip}>
+            {hotel.gallery
+              .filter((u) => u !== hotel.thumbnail)
+              .slice(0, 6)
+              .map((u) => (
+                <Image key={u} source={{ uri: u }} style={styles.photoStripImg} accessibilityLabel={hotel.name} />
+              ))}
+          </ScrollView>
+        ) : null}
         {hotel.photoCredit ? (
           <Pressable onPress={() => openExternalUrl(hotel.photoCredit!.url)}>
             <Text style={{ fontSize: 11, color: Colors.inkMuted, paddingHorizontal: 14, paddingTop: 6 }}>
@@ -192,6 +220,20 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
               </View>
               <Text style={styles.soVerdict}>{verdict}</Text>
             </View>
+            {/* the score comes first: point people to how it's worked out, before any prices */}
+            <Pressable
+              onPress={jumpToDetails}
+              style={({ pressed }) => [styles.detailsJump, pressed && { opacity: 0.8 }]}
+              accessibilityRole="button"
+              accessibilityLabel={t('Score explained below')}
+            >
+              <Ionicons name="arrow-down-circle" size={22} color={Colors.accent} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.detailsJumpTitle}>{t('Score explained below')}</Text>
+                <Text style={styles.detailsJumpSub}>{t('What guests and critics say, best months, room tips and rivals')}</Text>
+              </View>
+              <Ionicons name="chevron-down" size={18} color={Colors.inkMuted} />
+            </Pressable>
             {gap.left100 != null && gap.right100 != null ? (
               <View style={styles.gapRow}>
                 <View style={[styles.gapTile, { backgroundColor: '#FFF7F2' }]}>
@@ -200,7 +242,7 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
                 </View>
                 <View style={[styles.gapTile, { backgroundColor: '#F1F5F9' }]}>
                   <Text style={styles.gapBig}>{gap.right100}</Text>
-                  <Text style={styles.gapLbl}>Guests</Text>
+                  <Text style={styles.gapLbl}>{t("Guests")}</Text>
                 </View>
                 <View style={[styles.gapTile, { backgroundColor: '#FFF1E8' }]}>
                   <Text style={[styles.gapBig, { color: '#C2410C' }]}>
@@ -216,25 +258,23 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
                 {o.personalScoreLabel ? ` · our filmed stay ${o.personalScoreLabel}` : ''}.
               </Text>
             ) : null}
-            {hotel.bookingUrl ? (
-              <Pressable style={styles.btnPrice} onPress={() => openExternalUrl(hotel.bookingUrl)}>
-                <Text style={styles.btnPriceText}>
-                  Check prices{hotel.priceRange ? ` · from ${hotel.priceRange.replace(/\s*\/\s*night/i, '')}` : ''} ↗
-                </Text>
-              </Pressable>
-            ) : null}
+            <WhenBox
+              bookingUrl={hotel.bookingUrl}
+              priceFrom={hotel.priceRange ? hotel.priceRange.replace(/\s*\/\s*night/i, '') : undefined}
+              when={when}
+            />
           </View>
 
           {/* Even 2x2 facts: no empty gaps */}
           <View style={styles.factGrid}>
             {hotel.priceRange ? (
               <View style={styles.soFactTile}>
-                <Text style={styles.factKicker}>PRICE</Text>
+                <Text style={styles.factKicker}>{t("PRICE")}</Text>
                 <Text style={styles.soFactValue}>From {hotel.priceRange}</Text>
               </View>
             ) : null}
             <View style={styles.soFactTile}>
-              <Text style={styles.factKicker}>BEST MONTHS</Text>
+              <Text style={styles.factKicker}>{t("BEST MONTHS")}</Text>
               <Text style={styles.soFactValue}>{bestMonths.shortLabel}</Text>
               <Text style={styles.factNote} numberOfLines={2}>{bestMonths.note}</Text>
             </View>
@@ -282,13 +322,13 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
 
           {hotel.standout ? (
             <View style={[styles.loveCard, { borderTopColor: '#16A34A' }]}>
-              <Text style={styles.loveTitle}>Why guests love it</Text>
+              <Text style={styles.loveTitle}>{t("Why guests love it")}</Text>
               <Text style={styles.loveText}>{hotel.standout}</Text>
             </View>
           ) : null}
           {hotel.watchOut ? (
             <View style={[styles.loveCard, { borderTopColor: '#F59E0B' }]}>
-              <Text style={styles.loveTitle}>Know before you book</Text>
+              <Text style={styles.loveTitle}>{t("Know before you book")}</Text>
               <Text style={styles.loveText}>{hotel.watchOut}</Text>
             </View>
           ) : null}
@@ -326,7 +366,7 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
 
           {ranks?.area ? (
             <View style={styles.rankBox}>
-              <Text style={styles.rankHeading}>How guests rank it</Text>
+              <Text style={styles.rankHeading}>{t("How guests rank it")}</Text>
               <Text style={styles.rankSub}>
                 Against other StayOdds hotels nearby, and against hotels at a similar price. Left is the best-rated.
               </Text>
@@ -423,28 +463,28 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
             ) : null}
           </View>
 
+
           {/* Primary Actions (Mobile-Compliant Booking Routing) */}
-          <View style={styles.actionRow}>
-            {videoUrl ? (
-              <Pressable style={[styles.btnDark, { flex: 1 }]} onPress={() => openExternalUrl(videoUrl)}>
-                <Ionicons name="logo-youtube" size={16} color="#FFFFFF" />
-                <Text style={styles.btnDarkText}>
-                  {hotel.coverageType === 'Short Tour' ? 'Watch Short' : 'Watch Review'}
-                </Text>
-              </Pressable>
-            ) : null}
-          </View>
+          {videoUrl ? (
+            // Our video review plays right here
+            <InlineVideo
+              url={videoUrl}
+              aspect={hotel.coverageType === 'Short Tour' ? 9 / 16 : 16 / 9}
+              badge={hotel.coverageType === 'Short Tour' ? 'Our short' : 'Our video review'}
+              style={hotel.coverageType === 'Short Tour' ? { maxWidth: 300, alignSelf: 'center' } : undefined}
+            />
+          ) : null}
 
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <Pressable
               style={[styles.btnCompare, { flex: 1 }]}
               onPress={() => {
                 pushToCompare(hotel.id);
-                router.push('/(tabs)/compare');
+                router.push('/compare');
               }}
             >
               <Ionicons name="git-compare-outline" size={15} color={Colors.accentDark} />
-              <Text style={styles.btnCompareText}>Compare VS</Text>
+              <Text style={styles.btnCompareText}>{t("Compare VS")}</Text>
             </Pressable>
 
             <Pressable
@@ -516,7 +556,10 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
       </View>
 
       {/* RESTORED: Dual-Mode Consensus & Opinion Gap Card */}
-      <View style={[styles.sectionCard, styles.gapCard, { borderLeftColor: palette.ring }]}>
+      <View
+        onLayout={(e) => setDetailsY(e.nativeEvent.layout.y)}
+        style={[styles.sectionCard, styles.gapCard, { borderLeftColor: palette.ring }]}
+      >
         <View style={styles.gapHeader}>
           <View style={{ flex: 1 }}>
             <Text style={styles.sectionEyebrow}>OPINION GAP • HYPE VS. REALITY</Text>
@@ -578,6 +621,24 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
           >
             <Text style={styles.googleStripText}>Check live reviews on Google Maps ↗</Text>
             <Text style={styles.googleAttr}>Google Maps</Text>
+          </Pressable>
+        ) : null}
+
+        {/* Tripadvisor, saved from stayodds.com with the date it was checked (no live Tripadvisor calls) */}
+        {ta ? (
+          <Pressable style={styles.googleStrip} onPress={() => ta.u && openExternalUrl(ta.u)} disabled={!ta.u}>
+            <View style={{ flex: 1, paddingRight: 8 }}>
+              <Text style={styles.googleStripText}>
+                Tripadvisor: {ta.r.toFixed(1)} / 5{ta.n ? ` from ${ta.n.toLocaleString()} reviews` : ''}
+              </Text>
+              {ta.k || ta.a?.length ? (
+                <Text style={[styles.googleAttr, { marginTop: 2, fontWeight: '600' }]}>{[ta.k, ...(ta.a || [])].filter(Boolean).join(' · ')}</Text>
+              ) : null}
+              <Text style={[styles.googleAttr, { marginTop: 2, fontWeight: '500' }]}>
+                Source: Tripadvisor{ta.d ? ` · last checked ${formatTaDate(ta.d)}` : ''}
+              </Text>
+            </View>
+            {ta.u ? <Text style={styles.googleAttr}>Read reviews ↗</Text> : null}
           </Pressable>
         ) : null}
 
@@ -702,13 +763,13 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
 
         {hotel.standout ? (
           <>
-            <Text style={[styles.noteHead, { color: Colors.teal, marginTop: 12 }]}>Standout Strengths</Text>
+            <Text style={[styles.noteHead, { color: Colors.teal, marginTop: 12 }]}>{t("Standout Strengths")}</Text>
             <Text style={styles.noteText}>{hotel.standout}</Text>
           </>
         ) : null}
         {hotel.watchOut ? (
           <>
-            <Text style={[styles.noteHead, { color: Colors.amber, marginTop: 10 }]}>Watch-Outs Before Booking</Text>
+            <Text style={[styles.noteHead, { color: Colors.amber, marginTop: 10 }]}>{t("Watch-Outs Before Booking")}</Text>
             <Text style={styles.noteText}>{hotel.watchOut}</Text>
           </>
         ) : null}
@@ -723,7 +784,7 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
         <View style={styles.weightGrid}>
           <View style={styles.weightBox}>
             <Text style={styles.weightPct}>{o.weights.firstHand}%</Text>
-            <Text style={styles.weightLbl}>My Stay</Text>
+            <Text style={styles.weightLbl}>{t("My Stay")}</Text>
             <Text style={styles.weightVal}>
               {o.ours100 != null
                 ? o.personalScoreLabel
@@ -734,7 +795,7 @@ export function HotelDetailContent({ hotel, isSidePane = false }: Props) {
           </View>
           <View style={styles.weightBox}>
             <Text style={styles.weightPct}>{o.weights.critics}%</Text>
-            <Text style={styles.weightLbl}>Published Critics</Text>
+            <Text style={styles.weightLbl}>{t("Published Critics")}</Text>
             <Text style={styles.weightVal}>
               {o.critic100 != null
                 ? `${o.critic100}%`
@@ -1081,8 +1142,6 @@ const styles = StyleSheet.create({
   gapBig: { fontSize: 18, fontWeight: '800', color: '#0F172A' },
   gapLbl: { fontSize: 11, color: '#64748B', marginTop: 2 },
   gapNote: { fontSize: 12.5, color: '#475569', lineHeight: 18 },
-  btnPrice: { backgroundColor: '#16A34A', borderRadius: 12, minHeight: 46, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 },
-  btnPriceText: { color: '#FFFFFF', fontWeight: '700', fontSize: 15 },
   factGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 12 },
   soFactTile: { flexBasis: '47%', flexGrow: 1, backgroundColor: '#FFFFFF', borderRadius: 16, borderWidth: 1, borderColor: '#E7E2DA', padding: 12 },
   factKicker: { fontSize: 10.5, fontWeight: '700', letterSpacing: 0.8, color: '#64748B' },
@@ -1106,7 +1165,8 @@ const styles = StyleSheet.create({
   altName: { fontSize: 13, fontWeight: '600', color: '#0F172A', flex: 1 },
   altMeta: { fontSize: 12, color: '#475569' },
   guestBreakdown: { fontSize: 11.5, color: '#64748B', marginTop: 6, marginBottom: 4, lineHeight: 16 },
-  scroll: { flex: 1, backgroundColor: Colors.bgCanvas },
+  // the StayOdds breakdown sits on sand (the hero card stays white)
+  scroll: { flex: 1, backgroundColor: Colors.sand },
   content: { padding: 14, gap: 14, paddingBottom: 40 },
   contentSidePane: { paddingTop: 14 },
 
@@ -1118,6 +1178,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   heroImage: { width: '100%', height: 205, backgroundColor: Colors.charcoal },
+  photoStrip: { gap: 6, paddingHorizontal: 8, paddingTop: 8 },
+  photoStripImg: { width: 132, height: 88, borderRadius: 10, backgroundColor: Colors.sandBorder },
   heroBody: { padding: 14 },
   badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 8 },
   pill: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999, borderWidth: 1 },
@@ -1191,10 +1253,10 @@ const styles = StyleSheet.create({
   vipText: { flex: 1, fontSize: 11.5, color: Colors.inkSecondary, lineHeight: 16 },
 
   sectionCard: {
-    backgroundColor: Colors.bgWhite,
+    backgroundColor: Colors.sandCard,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: Colors.sandBorder,
     padding: 15,
   },
   gapCard: { borderLeftWidth: 4 },
@@ -1263,6 +1325,21 @@ const styles = StyleSheet.create({
   flagText: { fontSize: 11, fontWeight: '800', color: Colors.amber },
 
   sectionEyebrow: { fontSize: 10, fontWeight: '800', color: Colors.accent, letterSpacing: 0.8 },
+  detailsJump: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: Colors.sand,
+    borderColor: Colors.sandBorder,
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingVertical: 11,
+    paddingHorizontal: 12,
+    marginTop: 12,
+    marginBottom: 2,
+  },
+  detailsJumpTitle: { fontSize: 14.5, fontWeight: '800', color: Colors.inkPrimary },
+  detailsJumpSub: { fontSize: 12, color: Colors.inkSecondary, marginTop: 1 },
   sectionTitle: { fontSize: 16.5, fontWeight: '800', color: Colors.inkPrimary, marginTop: 2 },
   sectionSub: { fontSize: 12.5, color: Colors.inkSecondary, marginTop: 4, lineHeight: 18 },
 

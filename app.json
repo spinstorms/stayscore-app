@@ -13,20 +13,28 @@
       "buildNumber": "1",
       "infoPlist": {
         "UIRequiresFullScreen": false,
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocationWhenInUseUsageDescription": "StayOdds can show where you are on the hotel map so you can find luxury hotels near you. Your location stays on your phone.",
+        "CFBundleAllowMixedLocalizations": true,
+        "CFBundleDevelopmentRegion": "en"
       }
     },
     "android": {
       "package": "com.stayodds.app",
       "versionCode": 1,
       "adaptiveIcon": {
-        "backgroundColor": "#071323",
+        "backgroundColor": "#EFE9D8",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": true
+      "predictiveBackGestureEnabled": true,
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyAkurUSqFAiIXe8iH163a3y-YmT2iBZAVw"
+        }
+      }
     },
     "web": {
       "bundler": "metro",
@@ -40,10 +48,11 @@
         {
           "image": "./assets/images/splash-icon.png",
           "resizeMode": "contain",
-          "backgroundColor": "#071323"
+          "backgroundColor": "#EFE9D8"
         }
       ],
-      "expo-sharing"
+      "expo-sharing",
+      "expo-maps"
     ],
     "experiments": {
       "typedRoutes": true
@@ -53,7 +62,33 @@
       "appStoreSubtitle": "Critics vs Real Guest Reviews",
       "foundingContributor": "The Uncharted Itinerary",
       "apiBaseUrl": "https://uncharteditinerary.com",
-      "websiteUrl": "https://uncharteditinerary.com"
+      "websiteUrl": "https://uncharteditinerary.com",
+      "eas": {
+        "projectId": "e621c691-ee57-434a-aade-abd7bbb908c1"
+      }
+    },
+    "owner": "uncharteditinerarys-team",
+    "locales": {
+      "en": "./locales/en.json",
+      "es": "./locales/es.json",
+      "pt-BR": "./locales/pt-BR.json",
+      "fr": "./locales/fr.json",
+      "de": "./locales/de.json",
+      "it": "./locales/it.json",
+      "ar": "./locales/ar.json",
+      "ja": "./locales/ja.json",
+      "id": "./locales/id.json",
+      "fa": "./locales/fa.json",
+      "zh-Hans": "./locales/zh-Hans.json",
+      "ko": "./locales/ko.json"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/e621c691-ee57-434a-aade-abd7bbb908c1",
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
     }
   }
 }

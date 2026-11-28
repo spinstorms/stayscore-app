@@ -1,0 +1,18 @@
+name: Push App Store listing (EAS Metadata)
+on:
+  push:
+    branches: [app-duo-foldables-and-website-parity]
+    paths: [.github/workflows/store-metadata.yml, store.config.json]
+  workflow_dispatch:
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "22", cache: npm }
+      - run: npm ci
+      - name: Push listing text to App Store Connect
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: npx eas-cli@latest metadata:push --profile production --non-interactive
