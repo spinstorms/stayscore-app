@@ -5,12 +5,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAdaptiveLayout, useAndroidBarSpace, useTabSideInsetStyle } from '../lib/layout';
 import { Colors } from '../lib/theme';
 
-type Tone = 'default' | 'uncharted' | 'sand';
+type Tone = 'default' | 'uncharted' | 'sand' | 'band' | 'bandSand';
 /** Colour zones, as on stayodds.com: hotels in sea-glass, the channel in orange, choosing in sand */
 export const TONES: Record<Tone, { header: string; tint: string; title: string; bg: string }> = {
   default: { header: Colors.bgWhite, tint: Colors.accent, title: Colors.inkPrimary, bg: Colors.bgCanvas },
   uncharted: { header: Colors.uncharted, tint: '#FFFFFF', title: '#FFFFFF', bg: Colors.uncharted },
   sand: { header: Colors.sand, tint: Colors.accentDark, title: Colors.inkPrimary, bg: Colors.sand },
+  // orange title band over a light page, as on stayodds.com's map, insights and holidays pages
+  band: { header: Colors.uncharted, tint: '#FFFFFF', title: '#FFFFFF', bg: Colors.bgCanvas },
+  bandSand: { header: Colors.uncharted, tint: '#FFFFFF', title: '#FFFFFF', bg: Colors.sand },
 };
 
 export function StayOddsWordmark() {
