@@ -5,3 +5,4 @@
 2026-11-28T00:51:59Z hotel pages in tabs like stayodds.com (Scores, What guests say, Before you book, Prices)
 2026-11-28T01:05:55Z orange title bars on Map, Holidays and Insights like stayodds.com
 2026-11-28T01:25:02Z hotel text translated with the website's translations
+Hotel tabs as cards with headline numbers (matches stayodds.com); Explore filter no longer flashes into the folded Duo rail
