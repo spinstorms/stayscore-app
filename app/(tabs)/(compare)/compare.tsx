@@ -618,7 +618,7 @@ function CompareScreen() {
             {hotel.watchOut ? (
               <>
                 <Text style={[styles.noteTitle, { marginTop: 8, color: Colors.amber }]}>{t("Watch-Out")}</Text>
-                <Text style={styles.noteBody}>{hotel.watchOut}</Text>
+                <Text style={styles.noteBody}>{t(hotel.watchOut)}</Text>
               </>
             ) : null}
           </View>

@@ -227,7 +227,7 @@ export function HotelDetailContent({ hotel, isSidePane = false, when }: Props) {
                 <Text style={styles.ringBig}>{o.greatStayOdds != null ? `${o.greatStayOdds}%` : '—'}</Text>
                 <Text style={styles.ringSmall}>StayOdds</Text>
               </View>
-              <Text style={styles.soVerdict}>{verdict}</Text>
+              <Text style={styles.soVerdict}>{t(verdict)}</Text>
             </View>
             {/* the score comes first: point people to how it's worked out, before any prices */}
             <Pressable
@@ -327,13 +327,13 @@ export function HotelDetailContent({ hotel, isSidePane = false, when }: Props) {
           {hotel.standout ? (
             <View style={[styles.loveCard, { borderTopColor: '#16A34A' }]}>
               <Text style={styles.loveTitle}>{t("Why guests love it")}</Text>
-              <Text style={styles.loveText}>{hotel.standout}</Text>
+              <Text style={styles.loveText}>{t(hotel.standout)}</Text>
             </View>
           ) : null}
           {hotel.watchOut ? (
             <View style={[styles.loveCard, { borderTopColor: '#F59E0B' }]}>
               <Text style={styles.loveTitle}>{t("Know before you book")}</Text>
-              <Text style={styles.loveText}>{hotel.watchOut}</Text>
+              <Text style={styles.loveText}>{t(hotel.watchOut)}</Text>
             </View>
           ) : null}
 
@@ -688,7 +688,7 @@ export function HotelDetailContent({ hotel, isSidePane = false, when }: Props) {
                   {BRAND.foundingContributor} ({hotel.coverageType}) ↗
                 </Text>
                 <Text style={styles.sourceBody} numberOfLines={2}>
-                  {hotel.verdict}
+                  {t(hotel.verdict)}
                 </Text>
               </View>
             </Pressable>
@@ -997,13 +997,13 @@ export function HotelDetailContent({ hotel, isSidePane = false, when }: Props) {
         {hotel.standout ? (
           <>
             <Text style={[styles.noteHead, { color: Colors.teal, marginTop: 12 }]}>{t("Standout Strengths")}</Text>
-            <Text style={styles.noteText}>{hotel.standout}</Text>
+            <Text style={styles.noteText}>{t(hotel.standout)}</Text>
           </>
         ) : null}
         {hotel.watchOut ? (
           <>
             <Text style={[styles.noteHead, { color: Colors.amber, marginTop: 10 }]}>{t("Watch-Outs Before Booking")}</Text>
-            <Text style={styles.noteText}>{hotel.watchOut}</Text>
+            <Text style={styles.noteText}>{t(hotel.watchOut)}</Text>
           </>
         ) : null}
       </View>
