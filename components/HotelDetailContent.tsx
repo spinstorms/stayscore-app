@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { fetchLiveGoogleRating, getHotelVideoUrl, LiveGoogleRating, openExternalUrl } from '../lib/api';
 import { BRAND } from '../lib/brand';
 import {
@@ -89,11 +89,12 @@ function RankScale({ title, r }: { title: string; r: RankEntry }) {
 }
 
 const DETAIL_TABS = [
-  { key: 'scores', label: 'Scores', tip: 'Our filmed stay, guests and critics side by side, and how it ranks against hotels nearby' },
-  { key: 'guests', label: 'What guests say', tip: 'What guests love, what to know, and every review source with how we weigh it' },
-  { key: 'before', label: 'Before you book', tip: 'Best months to go, the room to book, tips and similar hotels to compare' },
-  { key: 'prices', label: 'Prices', tip: 'Live prices for your dates, holiday dates and partner sites' },
+  { key: 'scores', label: 'Scores', icon: 'stats-chart-outline', sub: 'Our stay, guests and critics', tip: 'Our filmed stay, guests and critics side by side, and how it ranks against hotels nearby' },
+  { key: 'guests', label: 'What guests say', icon: 'chatbubble-outline', sub: 'What guests love and warn about', tip: 'What guests love, what to know, and every review source with how we weigh it' },
+  { key: 'before', label: 'Before you book', icon: 'calendar-outline', sub: 'Best months, room tips and good to know', tip: 'Best months to go, the room to book, tips and similar hotels to compare' },
+  { key: 'prices', label: 'Prices', icon: 'pricetag-outline', sub: 'Pick dates for live prices', tip: 'Live prices for your dates, holiday dates and partner sites' },
 ] as const;
+const TAB_ORANGE = '#E8501A';
 type DetailTab = (typeof DETAIL_TABS)[number]['key'];
 
 export function HotelDetailContent({ hotel, isSidePane = false, when }: Props) {
@@ -178,6 +179,16 @@ export function HotelDetailContent({ hotel, isSidePane = false, when }: Props) {
   const brandInfo = getBrandCategories(hotel);
   const partnerInfo = getPartnerPrograms(hotel);
   const bestMonths = getBestMonths(hotel);
+  // Headline number on each tab card (same as the website)
+  const { width: winW } = useWindowDimensions();
+  const tabsInRow = !isSidePane && winW >= 700;
+  const priceFrom = (hotel.priceRange || '').match(/[£$€][\d,]+/)?.[0] ?? '';
+  const tabNums: Record<DetailTab, string> = {
+    scores: o.greatStayOdds != null ? `${o.greatStayOdds}%` : '',
+    guests: o.verifiedGuest?.reviewCount ? o.verifiedGuest.reviewCount.toLocaleString() : '',
+    before: bestMonths?.shortLabel && bestMonths.shortLabel.length <= 12 ? bestMonths.shortLabel : '',
+    prices: priceFrom,
+  };
   const guestProfile = getGuestProfile(hotel);
   const roomTip = getRoomTipInfo(hotel);
 
@@ -559,24 +570,39 @@ export function HotelDetailContent({ hotel, isSidePane = false, when }: Props) {
         </View>
       </View>
 
-      {/* Layout C (Nov 2026, same as stayodds.com): the details sit in tabs, Scores first and Prices last.
-          Each tab's note says what's inside (the website shows it on hover). */}
-      <View style={styles.tabBar} onLayout={(e) => setDetailsY(e.nativeEvent.layout.y)}>
-        {DETAIL_TABS.map((d) => (
-          <Pressable
-            key={d.key}
-            onPress={() => setTab(d.key)}
-            onLongPress={() => setTab(d.key)}
-            style={[styles.tabPill, tab === d.key && styles.tabPillOn]}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: tab === d.key }}
-            accessibilityHint={t(d.tip)}
-          >
-            <Text style={[styles.tabPillText, tab === d.key && styles.tabPillTextOn]}>{t(d.label)}</Text>
-          </Pressable>
-        ))}
+      {/* Same as stayodds.com (Nov 2026): the details sit in four tab cards, Scores first and Prices last.
+          Each card shows its headline number and what's inside; wide screens put them in a row,
+          phones stack them as rows. The open card is orange. */}
+      <View style={[styles.tabBar, tabsInRow && styles.tabBarRow]} onLayout={(e) => setDetailsY(e.nativeEvent.layout.y)}>
+        {DETAIL_TABS.map((d) => {
+          const on = tab === d.key;
+          const num = tabNums[d.key];
+          const sub = d.key === 'guests' ? (num ? 'guest reviews: what they love and warn about' : 'What guests love and warn about')
+            : d.key === 'prices' ? (num ? 'a night, from. Pick dates for live prices' : 'Pick dates for live prices')
+            : d.sub;
+          return (
+            <Pressable
+              key={d.key}
+              onPress={() => setTab(d.key)}
+              style={({ pressed }) => [styles.tabCard, tabsInRow ? styles.tabCardCol : styles.tabCardRow, on && styles.tabCardOn, pressed && !on && { borderColor: TAB_ORANGE }]}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: on }}
+              accessibilityHint={t(d.tip)}
+            >
+              <View style={{ flex: tabsInRow ? undefined : 1, gap: 3 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+                  <Ionicons name={d.icon} size={18} color={on ? '#FFFFFF' : '#C2410C'} />
+                  <Text style={[styles.tabCardLabel, on && { color: '#FFFFFF' }]}>{t(d.label)}</Text>
+                </View>
+                {tabsInRow && num ? <Text style={[styles.tabCardNum, on && { color: '#FFFFFF' }]}>{num}</Text> : null}
+                <Text style={[styles.tabCardSub, on && { color: '#FFFFFF' }]} numberOfLines={2}>{t(sub)}</Text>
+              </View>
+              {!tabsInRow && num ? <Text style={[styles.tabCardNum, styles.tabCardNumRow, on && { color: '#FFFFFF' }]}>{num}</Text> : null}
+              {!tabsInRow && !on ? <Ionicons name="chevron-forward" size={16} color={Colors.inkMuted} /> : null}
+            </Pressable>
+          );
+        })}
       </View>
-      <Text style={styles.tabNote}>{t(DETAIL_TABS.find((d) => d.key === tab)!.tip)}</Text>
       {tab === 'guests' ? (
         <>
       {/* RESTORED: Dual-Mode Consensus & Opinion Gap Card */}
@@ -1384,12 +1410,16 @@ const styles = StyleSheet.create({
   },
   detailsJumpTitle: { fontSize: 14.5, fontWeight: '800', color: Colors.inkPrimary },
   detailsJumpSub: { fontSize: 12, color: Colors.inkSecondary, marginTop: 1 },
-  tabBar: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
-  tabPill: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999, borderWidth: 1, borderColor: Colors.sandBorder, backgroundColor: Colors.bgWhite },
-  tabPillOn: { backgroundColor: Colors.navy, borderColor: Colors.navy },
-  tabPillText: { fontSize: 14, fontWeight: '700', color: Colors.inkPrimary },
-  tabPillTextOn: { color: '#FFFFFF' },
-  tabNote: { fontSize: 13, color: Colors.inkMuted, marginTop: -4, marginBottom: 2 },
+  tabBar: { gap: 6, marginTop: 4 },
+  tabBarRow: { flexDirection: 'row', gap: 10 },
+  tabCard: { borderWidth: 2, borderColor: '#EDE4D8', backgroundColor: Colors.bgWhite, borderRadius: 14 },
+  tabCardCol: { flex: 1, paddingVertical: 12, paddingHorizontal: 13 },
+  tabCardRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 11, paddingHorizontal: 13 },
+  tabCardOn: { backgroundColor: TAB_ORANGE, borderColor: TAB_ORANGE },
+  tabCardLabel: { fontSize: 14.5, fontWeight: '800', color: Colors.inkPrimary },
+  tabCardNum: { fontSize: 24, fontWeight: '800', color: Colors.inkPrimary },
+  tabCardNumRow: { fontSize: 20 },
+  tabCardSub: { fontSize: 12.5, lineHeight: 17, color: '#4A443C' },
   sectionTitle: { fontSize: 16.5, fontWeight: '800', color: Colors.inkPrimary, marginTop: 2 },
   sectionSub: { fontSize: 12.5, color: Colors.inkSecondary, marginTop: 4, lineHeight: 18 },
 

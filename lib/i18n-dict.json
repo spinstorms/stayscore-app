@@ -2351,5 +2351,83 @@
   "fa": "قیمت زنده برای تاریخ‌های شما، تاریخ تعطیلات و سایت‌های همکار",
   "zh-Hans": "您日期的实时价格、假期日期和合作网站",
   "ko": "선택한 날짜의 실시간 가격, 휴일 날짜, 제휴 사이트"
+ },
+ "Our stay, guests and critics": {
+  "es": "Nuestra estancia, huéspedes y críticos",
+  "pt-BR": "Nossa estadia, hóspedes e críticos",
+  "fr": "Notre séjour, les clients et les critiques",
+  "de": "Unser Aufenthalt, Gäste und Kritiker",
+  "it": "Il nostro soggiorno, ospiti e critici",
+  "ar": "إقامتنا والضيوف والنقاد",
+  "ja": "私たちの滞在、宿泊客、評論家",
+  "id": "Menginap kami, tamu, dan kritikus",
+  "fa": "اقامت ما، مهمانان و منتقدان",
+  "zh-Hans": "我们的入住、住客与评论家",
+  "ko": "우리의 숙박, 투숙객, 평론가"
+ },
+ "guest reviews: what they love and warn about": {
+  "es": "opiniones: lo que les encanta y lo que advierten",
+  "pt-BR": "avaliações: o que adoram e o que alertam",
+  "fr": "avis : ce qu'ils adorent et leurs mises en garde",
+  "de": "Bewertungen: was Gäste lieben und wovor sie warnen",
+  "it": "recensioni: cosa amano e cosa segnalano",
+  "ar": "تقييمات: ما يحبه الضيوف وما يحذرون منه",
+  "ja": "レビュー：好評な点と注意点",
+  "id": "ulasan: yang disukai dan diperingatkan tamu",
+  "fa": "نظرات: آنچه دوست دارند و هشدار می‌دهند",
+  "zh-Hans": "住客点评：喜欢什么、提醒什么",
+  "ko": "리뷰: 좋아하는 점과 주의할 점"
+ },
+ "What guests love and warn about": {
+  "es": "Lo que encanta a los huéspedes y lo que advierten",
+  "pt-BR": "O que os hóspedes adoram e o que alertam",
+  "fr": "Ce que les clients adorent et leurs mises en garde",
+  "de": "Was Gäste lieben und wovor sie warnen",
+  "it": "Cosa amano gli ospiti e cosa segnalano",
+  "ar": "ما يحبه الضيوف وما يحذرون منه",
+  "ja": "宿泊客の好評な点と注意点",
+  "id": "Yang disukai dan diperingatkan tamu",
+  "fa": "آنچه مهمانان دوست دارند و هشدار می‌دهند",
+  "zh-Hans": "住客喜欢什么、提醒什么",
+  "ko": "투숙객이 좋아하는 점과 주의할 점"
+ },
+ "Best months, room tips and good to know": {
+  "es": "Mejores meses, consejos de habitación y datos útiles",
+  "pt-BR": "Melhores meses, dicas de quarto e o que saber",
+  "fr": "Meilleurs mois, conseils de chambre et bon à savoir",
+  "de": "Beste Monate, Zimmertipps und Wissenswertes",
+  "it": "Mesi migliori, consigli sulle camere e info utili",
+  "ar": "أفضل الأشهر ونصائح الغرف ومعلومات مفيدة",
+  "ja": "ベストシーズン、客室のヒント、知っておきたいこと",
+  "id": "Bulan terbaik, tips kamar, dan info penting",
+  "fa": "بهترین ماه‌ها، نکات اتاق و دانستنی‌ها",
+  "zh-Hans": "最佳月份、选房建议与须知",
+  "ko": "최적의 시기, 객실 팁, 알아둘 점"
+ },
+ "a night, from. Pick dates for live prices": {
+  "es": "por noche, desde. Elige fechas para ver precios",
+  "pt-BR": "por noite, a partir de. Escolha datas para ver preços",
+  "fr": "la nuit, dès. Choisissez vos dates pour les prix",
+  "de": "pro Nacht, ab. Daten wählen für aktuelle Preise",
+  "it": "a notte, da. Scegli le date per i prezzi",
+  "ar": "لليلة، ابتداءً من. اختر التواريخ للأسعار",
+  "ja": "1泊あたり〜。日付を選ぶと最新料金",
+  "id": "per malam, mulai. Pilih tanggal untuk harga",
+  "fa": "هر شب، از. برای قیمت‌ها تاریخ را انتخاب کنید",
+  "zh-Hans": "每晚起。选择日期查看实时价格",
+  "ko": "1박 기준부터. 날짜를 선택해 요금 확인"
+ },
+ "Pick dates for live prices": {
+  "es": "Elige fechas para ver precios",
+  "pt-BR": "Escolha datas para ver preços",
+  "fr": "Choisissez vos dates pour les prix",
+  "de": "Daten wählen für aktuelle Preise",
+  "it": "Scegli le date per i prezzi",
+  "ar": "اختر التواريخ لمعرفة الأسعار",
+  "ja": "日付を選んで最新料金を確認",
+  "id": "Pilih tanggal untuk harga terkini",
+  "fa": "برای قیمت‌ها تاریخ را انتخاب کنید",
+  "zh-Hans": "选择日期查看实时价格",
+  "ko": "날짜를 선택해 실시간 요금 확인"
  }
 }
