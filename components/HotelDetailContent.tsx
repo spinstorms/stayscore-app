@@ -88,6 +88,14 @@ function RankScale({ title, r }: { title: string; r: RankEntry }) {
   );
 }
 
+const DETAIL_TABS = [
+  { key: 'scores', label: 'Scores', tip: 'Our filmed stay, guests and critics side by side, and how it ranks against hotels nearby' },
+  { key: 'guests', label: 'What guests say', tip: 'What guests love, what to know, and every review source with how we weigh it' },
+  { key: 'before', label: 'Before you book', tip: 'Best months to go, the room to book, tips and similar hotels to compare' },
+  { key: 'prices', label: 'Prices', tip: 'Live prices for your dates, holiday dates and partner sites' },
+] as const;
+type DetailTab = (typeof DETAIL_TABS)[number]['key'];
+
 export function HotelDetailContent({ hotel, isSidePane = false, when }: Props) {
   const router = useRouter();
   const { hotels, setCompareA, setCompareB, setCompareC, pushToCompare, toggleShortlist, isShortlisted } = useStayOdds();
@@ -96,6 +104,7 @@ export function HotelDetailContent({ hotel, isSidePane = false, when }: Props) {
   // "Full details below": jumps past the booking buttons to the StayOdds breakdown
   const scrollRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
   const [detailsY, setDetailsY] = useState(0);
+  const [tab, setTab] = useState<DetailTab>('scores');
   const jumpToDetails = () => scrollRef.current?.scrollTo({ y: Math.max(0, detailsY - 8), animated: true });
   const [showExplainer, setShowExplainer] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -258,11 +267,6 @@ export function HotelDetailContent({ hotel, isSidePane = false, when }: Props) {
                 {o.personalScoreLabel ? ` · our filmed stay ${o.personalScoreLabel}` : ''}.
               </Text>
             ) : null}
-            <WhenBox
-              bookingUrl={hotel.bookingUrl}
-              priceFrom={hotel.priceRange ? hotel.priceRange.replace(/\s*\/\s*night/i, '') : undefined}
-              when={when}
-            />
           </View>
 
           {/* Even 2x2 facts: no empty gaps */}
@@ -555,9 +559,28 @@ export function HotelDetailContent({ hotel, isSidePane = false, when }: Props) {
         </View>
       </View>
 
+      {/* Layout C (Nov 2026, same as stayodds.com): the details sit in tabs, Scores first and Prices last.
+          Each tab's note says what's inside (the website shows it on hover). */}
+      <View style={styles.tabBar} onLayout={(e) => setDetailsY(e.nativeEvent.layout.y)}>
+        {DETAIL_TABS.map((d) => (
+          <Pressable
+            key={d.key}
+            onPress={() => setTab(d.key)}
+            onLongPress={() => setTab(d.key)}
+            style={[styles.tabPill, tab === d.key && styles.tabPillOn]}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: tab === d.key }}
+            accessibilityHint={t(d.tip)}
+          >
+            <Text style={[styles.tabPillText, tab === d.key && styles.tabPillTextOn]}>{t(d.label)}</Text>
+          </Pressable>
+        ))}
+      </View>
+      <Text style={styles.tabNote}>{t(DETAIL_TABS.find((d) => d.key === tab)!.tip)}</Text>
+      {tab === 'guests' ? (
+        <>
       {/* RESTORED: Dual-Mode Consensus & Opinion Gap Card */}
       <View
-        onLayout={(e) => setDetailsY(e.nativeEvent.layout.y)}
         style={[styles.sectionCard, styles.gapCard, { borderLeftColor: palette.ring }]}
       >
         <View style={styles.gapHeader}>
@@ -650,131 +673,61 @@ export function HotelDetailContent({ hotel, isSidePane = false, when }: Props) {
         ) : null}
       </View>
 
-      {/* Structured Middle Key Facts Panel (Verified Specs Only) */}
-      <View style={[styles.sectionCard, styles.keyFactsCard]}>
-        <Text style={styles.sectionEyebrow}>KEY HOTEL FACTS</Text>
-        <Text style={styles.sectionTitle}>Verified Specs &amp; Decision Details</Text>
-        {o.keyFacts.length > 0 ? (
-          <View style={styles.factsGrid}>
-            {o.keyFacts.map((kf) => (
-              <View key={kf.label} style={styles.factTile}>
-                <Text style={styles.factLabel}>{kf.label}</Text>
-                <Text style={styles.factValue}>{kf.value}</Text>
+      {/* Separated Layer 2: Linked YouTube Video Reviews */}
+      <View style={styles.sectionCard}>
+        <Text style={styles.sectionEyebrow}>DIRECT VIDEO LINKS</Text>
+        <Text style={styles.sectionTitle}>
+          Linked YouTube Video Reviews ({(videoUrl ? 1 : 0) + o.youtubeReviews.length})
+        </Text>
+        <View style={{ marginTop: 10, gap: 10 }}>
+          {videoUrl ? (
+            <Pressable style={styles.sourceRow} onPress={() => openExternalUrl(videoUrl)}>
+              <Ionicons name="logo-youtube" size={18} color="#DC2626" />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.sourceTitle}>
+                  {BRAND.foundingContributor} ({hotel.coverageType}) ↗
+                </Text>
+                <Text style={styles.sourceBody} numberOfLines={2}>
+                  {hotel.verdict}
+                </Text>
               </View>
-            ))}
-          </View>
-        ) : null}
-
-        {o.redFlags.length > 0 ? (
-          <View style={styles.flagsRow}>
-            {o.redFlags.map((flag) => (
-              <View key={flag} style={styles.flagChip}>
-                <Ionicons name="warning-outline" size={12} color={Colors.amber} />
-                <Text style={styles.flagText}>{flag}</Text>
-              </View>
-            ))}
-          </View>
-        ) : null}
-
-        {/* Property Status & Works (Strictly Verified Only) */}
-        <View
-          style={[
-            styles.statusPanel,
-            propStatus.tone === 'danger'
-              ? styles.statusPanelDanger
-              : propStatus.tone === 'warn'
-              ? styles.statusPanelWarn
-              : propStatus.tone === 'open'
-              ? styles.statusPanelOpen
-              : null,
-          ]}
-        >
-          <View style={styles.statusPanelHead}>
-            <Text style={styles.statusPanelTitle}>Property Status &amp; Works</Text>
-            <View
-              style={[
-                styles.statusBadgeChip,
-                propStatus.tone === 'danger'
-                  ? { backgroundColor: '#FEE2E2' }
-                  : propStatus.tone === 'warn'
-                  ? { backgroundColor: '#FEF3C7' }
-                  : propStatus.tone === 'open'
-                  ? { backgroundColor: '#CCFBF1' }
-                  : { backgroundColor: '#E2E8F0' },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.statusBadgeTxt,
-                  propStatus.tone === 'danger'
-                    ? { color: '#991B1B' }
-                    : propStatus.tone === 'warn'
-                    ? { color: '#92400E' }
-                    : propStatus.tone === 'open'
-                    ? { color: '#115E59' }
-                    : { color: '#334155' },
-                ]}
+            </Pressable>
+          ) : null}
+          {o.youtubeReviews.map((yt, idx) => {
+            const unverified = isScoreUnverified(yt);
+            return (
+              <Pressable
+                key={`${yt.creatorName}-${idx}`}
+                style={styles.sourceRow}
+                onPress={() => openExternalUrl(yt.sourceUrl)}
               >
-                {propStatus.badge}
-              </Text>
-            </View>
-          </View>
-
-          {propStatus.hasDetails ? (
-            <View style={{ gap: 6, marginTop: 6 }}>
-              {propStatus.operatingStatus ? (
-                <Text style={styles.statusDetailLine}>
-                  <Text style={styles.statusDetailKey}>Operating / Closure Status: </Text>
-                  {propStatus.operatingStatus}
-                </Text>
-              ) : null}
-              {propStatus.renovationsExtensions ? (
-                <Text style={styles.statusDetailLine}>
-                  <Text style={styles.statusDetailKey}>Renovations &amp; Extensions: </Text>
-                  {propStatus.renovationsExtensions}
-                </Text>
-              ) : null}
-              <Text style={styles.statusDetailLine}>
-                <Text style={styles.statusDetailKey}>Nearby Construction: </Text>
-                {propStatus.nearbyConstruction || 'No confirmed nearby construction listed.'}
-              </Text>
-              {propStatus.sourceNote || propStatus.sourceUrl ? (
-                <View style={styles.statusSourceRow}>
-                  {propStatus.sourceNote ? (
-                    <Text style={styles.statusSourceTxt}>
-                      Source: {propStatus.sourceNote}
-                      {propStatus.verifiedAt ? ` • Checked ${propStatus.verifiedAt.slice(0, 10)}` : ''}
-                    </Text>
-                  ) : null}
-                  {propStatus.sourceUrl ? (
-                    <Pressable onPress={() => openExternalUrl(propStatus.sourceUrl)}>
-                      <Text style={styles.statusSourceLink}>View verified report ↗</Text>
-                    </Pressable>
-                  ) : null}
+                <Ionicons name="logo-youtube" size={18} color="#DC2626" />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.sourceTitle}>
+                    {yt.creatorName} {yt.sentiment ? `• ${yt.sentiment}` : ''} ↗
+                  </Text>
+                  {yt.takeaway ? <Text style={styles.sourceBody}>{yt.takeaway}</Text> : null}
                 </View>
-              ) : null}
-            </View>
-          ) : (
-            <Text style={styles.statusNeutralTxt}>
-              No confirmed renovations, closures, or nearby works listed. StayOdds never invents renovation dates or construction notices.
+                {unverified ? (
+                  <View style={[styles.sourceScorePill, { backgroundColor: '#FEF3C7' }]}>
+                    <Text style={[styles.sourceScoreText, { color: '#92400E' }]}>Unverified Score</Text>
+                  </View>
+                ) : null}
+              </Pressable>
+            );
+          })}
+          {!videoUrl && o.youtubeReviews.length === 0 ? (
+            <Text style={styles.emptyNotice}>
+              No YouTube video reviews linked yet. Creators are never attributed without a direct YouTube link.
             </Text>
-          )}
+          ) : null}
         </View>
-
-        {hotel.standout ? (
-          <>
-            <Text style={[styles.noteHead, { color: Colors.teal, marginTop: 12 }]}>{t("Standout Strengths")}</Text>
-            <Text style={styles.noteText}>{hotel.standout}</Text>
-          </>
-        ) : null}
-        {hotel.watchOut ? (
-          <>
-            <Text style={[styles.noteHead, { color: Colors.amber, marginTop: 10 }]}>{t("Watch-Outs Before Booking")}</Text>
-            <Text style={styles.noteText}>{hotel.watchOut}</Text>
-          </>
-        ) : null}
       </View>
 
+        </>
+      ) : null}
+      {tab === 'scores' ? (
+        <>
       {/* Weighting Card */}
       <View style={styles.sectionCard}>
         <Text style={styles.sectionEyebrow}>TRANSPARENT WEIGHTING</Text>
@@ -926,59 +879,139 @@ export function HotelDetailContent({ hotel, isSidePane = false, when }: Props) {
         )}
       </View>
 
-      {/* Separated Layer 2: Linked YouTube Video Reviews */}
-      <View style={styles.sectionCard}>
-        <Text style={styles.sectionEyebrow}>DIRECT VIDEO LINKS</Text>
-        <Text style={styles.sectionTitle}>
-          Linked YouTube Video Reviews ({(videoUrl ? 1 : 0) + o.youtubeReviews.length})
-        </Text>
-        <View style={{ marginTop: 10, gap: 10 }}>
-          {videoUrl ? (
-            <Pressable style={styles.sourceRow} onPress={() => openExternalUrl(videoUrl)}>
-              <Ionicons name="logo-youtube" size={18} color="#DC2626" />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.sourceTitle}>
-                  {BRAND.foundingContributor} ({hotel.coverageType}) ↗
-                </Text>
-                <Text style={styles.sourceBody} numberOfLines={2}>
-                  {hotel.verdict}
-                </Text>
+        </>
+      ) : null}
+      {tab === 'before' ? (
+        <>
+      {/* Structured Middle Key Facts Panel (Verified Specs Only) */}
+      <View style={[styles.sectionCard, styles.keyFactsCard]}>
+        <Text style={styles.sectionEyebrow}>KEY HOTEL FACTS</Text>
+        <Text style={styles.sectionTitle}>Verified Specs &amp; Decision Details</Text>
+        {o.keyFacts.length > 0 ? (
+          <View style={styles.factsGrid}>
+            {o.keyFacts.map((kf) => (
+              <View key={kf.label} style={styles.factTile}>
+                <Text style={styles.factLabel}>{kf.label}</Text>
+                <Text style={styles.factValue}>{kf.value}</Text>
               </View>
-            </Pressable>
-          ) : null}
-          {o.youtubeReviews.map((yt, idx) => {
-            const unverified = isScoreUnverified(yt);
-            return (
-              <Pressable
-                key={`${yt.creatorName}-${idx}`}
-                style={styles.sourceRow}
-                onPress={() => openExternalUrl(yt.sourceUrl)}
+            ))}
+          </View>
+        ) : null}
+
+        {o.redFlags.length > 0 ? (
+          <View style={styles.flagsRow}>
+            {o.redFlags.map((flag) => (
+              <View key={flag} style={styles.flagChip}>
+                <Ionicons name="warning-outline" size={12} color={Colors.amber} />
+                <Text style={styles.flagText}>{flag}</Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
+
+        {/* Property Status & Works (Strictly Verified Only) */}
+        <View
+          style={[
+            styles.statusPanel,
+            propStatus.tone === 'danger'
+              ? styles.statusPanelDanger
+              : propStatus.tone === 'warn'
+              ? styles.statusPanelWarn
+              : propStatus.tone === 'open'
+              ? styles.statusPanelOpen
+              : null,
+          ]}
+        >
+          <View style={styles.statusPanelHead}>
+            <Text style={styles.statusPanelTitle}>Property Status &amp; Works</Text>
+            <View
+              style={[
+                styles.statusBadgeChip,
+                propStatus.tone === 'danger'
+                  ? { backgroundColor: '#FEE2E2' }
+                  : propStatus.tone === 'warn'
+                  ? { backgroundColor: '#FEF3C7' }
+                  : propStatus.tone === 'open'
+                  ? { backgroundColor: '#CCFBF1' }
+                  : { backgroundColor: '#E2E8F0' },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.statusBadgeTxt,
+                  propStatus.tone === 'danger'
+                    ? { color: '#991B1B' }
+                    : propStatus.tone === 'warn'
+                    ? { color: '#92400E' }
+                    : propStatus.tone === 'open'
+                    ? { color: '#115E59' }
+                    : { color: '#334155' },
+                ]}
               >
-                <Ionicons name="logo-youtube" size={18} color="#DC2626" />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.sourceTitle}>
-                    {yt.creatorName} {yt.sentiment ? `• ${yt.sentiment}` : ''} ↗
-                  </Text>
-                  {yt.takeaway ? <Text style={styles.sourceBody}>{yt.takeaway}</Text> : null}
+                {propStatus.badge}
+              </Text>
+            </View>
+          </View>
+
+          {propStatus.hasDetails ? (
+            <View style={{ gap: 6, marginTop: 6 }}>
+              {propStatus.operatingStatus ? (
+                <Text style={styles.statusDetailLine}>
+                  <Text style={styles.statusDetailKey}>Operating / Closure Status: </Text>
+                  {propStatus.operatingStatus}
+                </Text>
+              ) : null}
+              {propStatus.renovationsExtensions ? (
+                <Text style={styles.statusDetailLine}>
+                  <Text style={styles.statusDetailKey}>Renovations &amp; Extensions: </Text>
+                  {propStatus.renovationsExtensions}
+                </Text>
+              ) : null}
+              <Text style={styles.statusDetailLine}>
+                <Text style={styles.statusDetailKey}>Nearby Construction: </Text>
+                {propStatus.nearbyConstruction || 'No confirmed nearby construction listed.'}
+              </Text>
+              {propStatus.sourceNote || propStatus.sourceUrl ? (
+                <View style={styles.statusSourceRow}>
+                  {propStatus.sourceNote ? (
+                    <Text style={styles.statusSourceTxt}>
+                      Source: {propStatus.sourceNote}
+                      {propStatus.verifiedAt ? ` • Checked ${propStatus.verifiedAt.slice(0, 10)}` : ''}
+                    </Text>
+                  ) : null}
+                  {propStatus.sourceUrl ? (
+                    <Pressable onPress={() => openExternalUrl(propStatus.sourceUrl)}>
+                      <Text style={styles.statusSourceLink}>View verified report ↗</Text>
+                    </Pressable>
+                  ) : null}
                 </View>
-                {unverified ? (
-                  <View style={[styles.sourceScorePill, { backgroundColor: '#FEF3C7' }]}>
-                    <Text style={[styles.sourceScoreText, { color: '#92400E' }]}>Unverified Score</Text>
-                  </View>
-                ) : null}
-              </Pressable>
-            );
-          })}
-          {!videoUrl && o.youtubeReviews.length === 0 ? (
-            <Text style={styles.emptyNotice}>
-              No YouTube video reviews linked yet. Creators are never attributed without a direct YouTube link.
+              ) : null}
+            </View>
+          ) : (
+            <Text style={styles.statusNeutralTxt}>
+              No confirmed renovations, closures, or nearby works listed. StayOdds never invents renovation dates or construction notices.
             </Text>
-          ) : null}
+          )}
         </View>
+
+        {hotel.standout ? (
+          <>
+            <Text style={[styles.noteHead, { color: Colors.teal, marginTop: 12 }]}>{t("Standout Strengths")}</Text>
+            <Text style={styles.noteText}>{hotel.standout}</Text>
+          </>
+        ) : null}
+        {hotel.watchOut ? (
+          <>
+            <Text style={[styles.noteHead, { color: Colors.amber, marginTop: 10 }]}>{t("Watch-Outs Before Booking")}</Text>
+            <Text style={styles.noteText}>{hotel.watchOut}</Text>
+          </>
+        ) : null}
       </View>
 
+        </>
+      ) : null}
       {/* Pre-Loaded Head-to-Head Rival Matchups */}
-      {(() => {
+      {tab === 'before' ? (() => {
         const stop = new Set(['the', 'of', 'and', 'at', 'in', 'by', 'bay', 'beach', 'island', 'resort', 'city', 'north', 'south', 'east', 'west', 'new']);
         const locTokens = (x: Hotel) =>
           new Set(
@@ -1118,7 +1151,18 @@ export function HotelDetailContent({ hotel, isSidePane = false, when }: Props) {
             </View>
           </View>
         );
-      })()}
+      })() : null}
+      {tab === 'prices' ? (
+        <View style={styles.sectionCard}>
+          <Text style={styles.sectionTitle}>{t('Prices')}</Text>
+          {hotel.priceRange ? <Text style={styles.subtitle}>From {hotel.priceRange}</Text> : null}
+          <WhenBox
+            bookingUrl={hotel.bookingUrl}
+            priceFrom={hotel.priceRange ? hotel.priceRange.replace(/\s*\/\s*night/i, '') : undefined}
+            when={when}
+          />
+        </View>
+      ) : null}
     </ScrollView>
     <ShareCardModal
       visible={showShareModal}
@@ -1340,6 +1384,12 @@ const styles = StyleSheet.create({
   },
   detailsJumpTitle: { fontSize: 14.5, fontWeight: '800', color: Colors.inkPrimary },
   detailsJumpSub: { fontSize: 12, color: Colors.inkSecondary, marginTop: 1 },
+  tabBar: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
+  tabPill: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999, borderWidth: 1, borderColor: Colors.sandBorder, backgroundColor: Colors.bgWhite },
+  tabPillOn: { backgroundColor: Colors.navy, borderColor: Colors.navy },
+  tabPillText: { fontSize: 14, fontWeight: '700', color: Colors.inkPrimary },
+  tabPillTextOn: { color: '#FFFFFF' },
+  tabNote: { fontSize: 13, color: Colors.inkMuted, marginTop: -4, marginBottom: 2 },
   sectionTitle: { fontSize: 16.5, fontWeight: '800', color: Colors.inkPrimary, marginTop: 2 },
   sectionSub: { fontSize: 12.5, color: Colors.inkSecondary, marginTop: 4, lineHeight: 18 },
 
