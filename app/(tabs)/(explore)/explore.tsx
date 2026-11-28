@@ -68,7 +68,11 @@ export function StayOddsHomeScreen() {
   // Filters go in the rail on iPhone and the open Duo. On the folded Duo the rail already holds
   // the clock, the shortcuts and the tabs, so the filters stay in the page there instead.
   const foldedDuo = IOS && !isSplitScreen && (insets.left > 40 || insets.right > 40);
-  const railFilters = IOS && !foldedDuo;
+  // Insets are all 0 for the first frame before iOS reports them, which briefly made the folded
+  // Duo look like an iPhone and put the filter button in its rail. Wait for real insets (every
+  // iPhone has a top inset) before choosing.
+  const insetsKnown = insets.top > 0;
+  const railFilters = IOS && insetsKnown && !foldedDuo;
 
   const savedCount = useMemo(
     () => hotels.filter((h) => shortlist.includes(h.id)).length,
